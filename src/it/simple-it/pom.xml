@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>org.rascalmpl.it</groupId>
+  <artifactId>simple-it</artifactId>
+  <version>1.0-SNAPSHOT</version>
+
+  <description>A simple Rascal file verifying the basic use case of the Rascal compiler Mojo.</description>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+  </properties>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>@project.groupId@</groupId>
+        <artifactId>@project.artifactId@</artifactId>
+        <version>@project.version@</version>
+        <executions>
+          <execution>
+            <id>compile</id>
+            <phase>build</phase>
+            <goals>
+              <goal>rascal</goal>
+            </goals>
+            <configuration>
+              <boot>/Users/jurgenv/git/rascal-core/src/org/rascalmpl/core/library</boot>
+              <bin>${project.build.outputDirectory}</bin>
+              <srcs>
+                 <src>${project.baseDir}/src/it/simple-it</src>
+              </srcs>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>

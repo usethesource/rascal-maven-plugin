@@ -29,7 +29,7 @@
         <executions>
           <execution>
             <id>it-compile</id>
-            <phase>build</phase>
+            <phase>compile</phase>
             <goals>
               <goal>compile-rascal</goal>
             </goals>

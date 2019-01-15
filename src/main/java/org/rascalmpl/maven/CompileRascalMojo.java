@@ -15,8 +15,10 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -39,7 +41,7 @@ import io.usethesource.vallang.IValue;
 import io.usethesource.vallang.exceptions.FactTypeUseException;
 
 /**
- * Maven Goal for Rascal compilation. The input is Rascal is a list of
+ * Maven Goal for Rascal compilation. The input is a list of
  * Rascal source folders, the output is for each module in the source tree:
  * a .tpl file and possibly/optionally a .class file. Also a list of errors
  * and warnings is printed on stderr. 
@@ -111,7 +113,7 @@ public class CompileRascalMojo extends AbstractMojo
 	private void findAllRascalFiles(List<File> todo, IListWriter result) throws FactTypeUseException, URISyntaxException {
 		for (File f : todo) {
 			if (f.isDirectory()) {
-				findAllRascalFiles(Collections.singletonList(f), result);
+				findAllRascalFiles(Arrays.asList(f.listFiles()), result);
 			}
 			else if (f.getName().endsWith(".rsc")) {
 				result.insert(location(f));

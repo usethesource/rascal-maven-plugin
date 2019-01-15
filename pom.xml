@@ -7,7 +7,7 @@
   <version>0.0.1-SNAPSHOT</version>
   <packaging>maven-plugin</packaging>
 
-  <name>rascal-maven-plugin Maven Plugin</name>
+  <name>Rascal Maven Plugin</name>
 
   <url>http://www.rascalmpl.org</url>
 
@@ -49,7 +49,7 @@
     <dependency>
       <groupId>org.apache.maven.plugin-tools</groupId>
       <artifactId>maven-plugin-annotations</artifactId>
-      <version>3.2</version>
+      <version>3.5.1</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
@@ -70,10 +70,12 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-plugin-plugin</artifactId>
-        <version>3.2</version>
+        <version>3.5.1</version>
         <configuration>
-          <goalPrefix>rascal</goalPrefix>
           <skipErrorNoDescriptorsFound>true</skipErrorNoDescriptorsFound>
+          <mojoDependencies>
+            <param>org.rascalmpl:maven-plugin</param>
+          </mojoDependencies>
         </configuration>
         <executions>
           <execution>
@@ -121,7 +123,6 @@
             </executions>
           </plugin>
         </plugins>
-
       </build>
     </profile>
   </profiles>

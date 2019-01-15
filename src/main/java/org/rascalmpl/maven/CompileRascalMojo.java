@@ -52,7 +52,9 @@ import io.usethesource.vallang.exceptions.FactTypeUseException;
  * compiler instead of the source code of the compiler inside the Rascal interpreter.
  * 
  * TODO This Mojo always requires a 'boot' parameter which points to the file location of the
- * source of the compiler. After the bootstrap, this parameter will become optional.  
+ * source of the compiler. After the bootstrap, this parameter will become optional.
+ * 
+ * @phase compile
  */
 @Mojo(name = "rascal", defaultPhase = LifecyclePhase.COMPILE )
 public class CompileRascalMojo extends AbstractMojo

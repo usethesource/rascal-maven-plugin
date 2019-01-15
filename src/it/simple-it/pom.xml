@@ -17,8 +17,8 @@
     <plugins>
       <plugin>
         <groupId>org.rascalmpl</groupId>
-        <artifactId>rascal-maven</artifactId>
-        <version>@project.version@</version>
+        <artifactId>rascal-maven-plugin</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
         <configuration>
               <boot>/Users/jurgenv/git/rascal-core/src/org/rascalmpl/core/library</boot>
               <bin>${project.build.outputDirectory}</bin>
@@ -28,7 +28,7 @@
         </configuration>
         <executions>
           <execution>
-            <id>rascal</id>
+            <id>compile-rascal</id>
             <phase>build</phase>
             <goals>
               <goal>compile</goal>

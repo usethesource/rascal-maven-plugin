@@ -56,7 +56,7 @@ import io.usethesource.vallang.exceptions.FactTypeUseException;
  * 
  * @phase compile
  */
-@Mojo(name = "rascal", defaultPhase = LifecyclePhase.COMPILE )
+@Mojo(name="compile-rascal", defaultPhase = LifecyclePhase.COMPILE )
 public class CompileRascalMojo extends AbstractMojo
 {
     private static final String MAIN_COMPILER_MODULE = "lang::rascalcore::check::Checker";

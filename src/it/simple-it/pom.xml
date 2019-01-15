@@ -16,23 +16,23 @@
   <build>
     <plugins>
       <plugin>
-        <groupId>@project.groupId@</groupId>
-        <artifactId>@project.artifactId@</artifactId>
+        <groupId>org.rascalmpl</groupId>
+        <artifactId>rascal-maven</artifactId>
         <version>@project.version@</version>
-        <executions>
-          <execution>
-            <id>compile</id>
-            <phase>build</phase>
-            <goals>
-              <goal>rascal</goal>
-            </goals>
-            <configuration>
+        <configuration>
               <boot>/Users/jurgenv/git/rascal-core/src/org/rascalmpl/core/library</boot>
               <bin>${project.build.outputDirectory}</bin>
               <srcs>
                  <src>${project.baseDir}/src/it/simple-it</src>
               </srcs>
-            </configuration>
+        </configuration>
+        <executions>
+          <execution>
+            <id>rascal</id>
+            <phase>build</phase>
+            <goals>
+              <goal>compile</goal>
+            </goals>
           </execution>
         </executions>
       </plugin>

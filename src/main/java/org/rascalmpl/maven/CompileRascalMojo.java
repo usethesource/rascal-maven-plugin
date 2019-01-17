@@ -10,26 +10,30 @@
  */
 package org.rascalmpl.maven;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.io.StringReader;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 
+import org.apache.maven.artifact.DependencyResolutionRequiredException;
+import org.apache.maven.model.Plugin;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
+import org.apache.maven.plugins.annotations.ResolutionScope;
+import org.apache.maven.project.MavenProject;
 import org.rascalmpl.interpreter.Evaluator;
 import org.rascalmpl.interpreter.env.GlobalEnvironment;
 import org.rascalmpl.interpreter.env.ModuleEnvironment;
 import org.rascalmpl.library.util.PathConfig;
+import org.rascalmpl.uri.URIResolverRegistry;
 import org.rascalmpl.uri.URIUtil;
+import org.rascalmpl.uri.libraries.ClassResourceInput;
 import org.rascalmpl.values.ValueFactoryFactory;
 
 import io.usethesource.vallang.IConstructor;
@@ -39,6 +43,7 @@ import io.usethesource.vallang.ISourceLocation;
 import io.usethesource.vallang.IString;
 import io.usethesource.vallang.IValue;
 import io.usethesource.vallang.exceptions.FactTypeUseException;
+import io.usethesource.vallang.io.StandardTextReader;
 
 /**
  * Maven Goal for Rascal compilation. The input is a list of
@@ -56,34 +61,50 @@ import io.usethesource.vallang.exceptions.FactTypeUseException;
  * TODO This Mojo always requires a 'boot' parameter which points to the file location of the
  * source of the compiler. After the bootstrap, this parameter will become optional.
  * 
- * @phase compile
  */
-@Mojo(name="compile-rascal", defaultPhase = LifecyclePhase.COMPILE )
+@Mojo(name="compile-rascal", defaultPhase = LifecyclePhase.COMPILE,  requiresDependencyResolution = ResolutionScope.COMPILE )
 public class CompileRascalMojo extends AbstractMojo
 {
     private static final String MAIN_COMPILER_MODULE = "lang::rascalcore::check::Checker";
 
+    @Parameter(defaultValue="${project}", readonly=true, required=true)
+    private MavenProject project;
+    
 	@Parameter(defaultValue = "${project.baseDir}/src", property = "boot", required = true )
-    private File boot;
+    private String boot;
     
     @Parameter(defaultValue = "${project.build.outputDirectory}", property = "bin", required = true )
-    private File bin;
+    private String bin;
     
     @Parameter(property = "srcs", required = true )
-    private List<File> srcs;
+    private List<String> srcs;
     
     @Parameter(property = "libs", required = true )
-    private List<File> libs;
+    private List<String> libs;
 
     private final PrintWriter err = new PrintWriter(System.err);
     private final PrintWriter out = new PrintWriter(System.out);
     
-	private Evaluator makeEvaluator(File boot) throws URISyntaxException {
+	private Evaluator makeEvaluator(String boot) throws URISyntaxException, FactTypeUseException, IOException {
 		getLog().info("start loading the compiler");
 		GlobalEnvironment heap = new GlobalEnvironment();
     	Evaluator eval = new Evaluator(ValueFactoryFactory.getValueFactory(), err, out, new ModuleEnvironment("***MVN Rascal Compiler***", heap), heap);
-    	eval.addRascalSearchPath(URIUtil.createFromURI(boot.toURI().toString()));
+
+    	getLog().info("\trascal module path addition: |typepal:///|");
+    	eval.addRascalSearchPath(URIUtil.rootLocation("typepal"));
+    	
+    	getLog().info("\trascal module path addition: |std:///|");
+    	eval.addRascalSearchPath(URIUtil.rootLocation("std"));
+    	
+    	getLog().info("\trascal module path addition: " + boot);
+    	eval.addRascalSearchPath(location(boot.trim()));
+		
+		getLog().info("\timporting " + "analysis::typepal::TypePal");
+		eval.doImport(null, "analysis::typepal::TypePal");
+		
+        getLog().info("\timporting " + MAIN_COMPILER_MODULE);
     	eval.doImport(null, MAIN_COMPILER_MODULE);
+    	
     	getLog().info("done loading the compiler");
     	return eval;
 	}
@@ -91,32 +112,36 @@ public class CompileRascalMojo extends AbstractMojo
     public void execute() throws MojoExecutionException {
     	try {
 			Evaluator eval = makeEvaluator(boot);
-			ISourceLocation bootLoc = location(boot);
 			ISourceLocation binLoc = location(bin);
 			List<ISourceLocation> srcLocs = locations(srcs);
 			List<ISourceLocation> libLocs = locations(libs);
 			
-			PathConfig pcfg = new PathConfig(srcLocs, libLocs, binLoc, bootLoc);
+			PathConfig pcfg = new PathConfig(srcLocs, libLocs, binLoc, URIUtil.rootLocation("std"));
 			IConstructor config = pcfg.asConstructor();
 			IListWriter files = eval.getValueFactory().listWriter();
-			findAllRascalFiles(srcs, files);
+			findAllRascalFiles(srcLocs.toArray(new ISourceLocation[srcLocs.size()]), files);
 			
+			getLog().info("calling checker on the todo list");
 			IList messages = (IList) eval.call("check", files.done(), config);
+			getLog().info("checker is done, reporting errors now.");
 			handleMessages(pcfg, messages);
+			getLog().info("error reporting done");
 		} catch (URISyntaxException e) {
-			throw new MojoExecutionException("compiler parameter file issue", e);
+			getLog().error(e);
 		} catch (IOException e) {
 			getLog().error(e);
 		}
     }
 
-	private void findAllRascalFiles(List<File> todo, IListWriter result) throws FactTypeUseException, URISyntaxException {
-		for (File f : todo) {
-			if (f.isDirectory()) {
-				findAllRascalFiles(Arrays.asList(f.listFiles()), result);
+	private void findAllRascalFiles(ISourceLocation[] todo, IListWriter result) throws FactTypeUseException, URISyntaxException, IOException {
+		URIResolverRegistry reg = URIResolverRegistry.getInstance();
+		
+		for (ISourceLocation loc : todo) {
+			if (reg.isDirectory(loc)) {
+				findAllRascalFiles(reg.list(loc), result);
 			}
-			else if (f.getName().endsWith(".rsc")) {
-				result.insert(location(f));
+			else if (loc.getPath().endsWith(".rsc")) {
+				result.insert(loc);
 			}
 		}
 	}
@@ -180,17 +205,22 @@ public class CompileRascalMojo extends AbstractMojo
         return loc.getURI().getPath();
     }
 
-	private List<ISourceLocation> locations(List<File> files) throws URISyntaxException {
+	private List<ISourceLocation> locations(List<String> files) throws URISyntaxException, FactTypeUseException, IOException {
 		List<ISourceLocation> result = new ArrayList<ISourceLocation>(files.size());
 		
-		for (File f : files) {
+		for (String f : files) {
 			result.add(location(f));
 		}
 		
 		return result;
 	}
 
-	private ISourceLocation location(File file) throws URISyntaxException {
-		return URIUtil.createFromURI(file.toURI().toString());
+	private ISourceLocation location(String file) throws URISyntaxException, FactTypeUseException, IOException {
+		if (file.startsWith("|") && file.endsWith("|")) {
+			return (ISourceLocation) new StandardTextReader().read(ValueFactoryFactory.getValueFactory(), new StringReader(file));
+		}
+		else {
+			return URIUtil.createFileLocation(file);
+		}
 	}
 }

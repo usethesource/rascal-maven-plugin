@@ -2,8 +2,8 @@
 
 This MVN plugin runs the experimental Rascal checker and compiler.
 
-* You have to provide it a source location of the compiler to run using the `<boot>` parameter. 
-* It loads a Rascal interpret and then the source of the compiler into that interpreter.
+* You can to provide it a source location of the compiler to run using the `<boot>` parameter. 
+* It loads a Rascal interpreter and then the source of the compiler into that interpreter.
 * Then it executes the Rascal checker and prints the results on the commandline. 
 * The build fails if errors are detected. Warnings are only printed.
 

@@ -17,6 +17,7 @@ import java.io.StringReader;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.apache.maven.plugin.AbstractMojo;
@@ -90,9 +91,10 @@ public class CompileRascalMojo extends AbstractMojo
 
 	private MojoRascalMonitor monitor;
 
+	private static final List<ISourceLocation> IGNORES = Arrays.asList(new ISourceLocation[] {
+			URIUtil.correctLocation("std", "", ""),
+	});
 	
-
-
 	private Evaluator makeEvaluator(PathConfig pcfg) throws URISyntaxException, FactTypeUseException, IOException {
 		getLog().info("start loading the compiler");
 		GlobalEnvironment heap = new GlobalEnvironment();
@@ -119,6 +121,10 @@ public class CompileRascalMojo extends AbstractMojo
 		getLog().info("\timporting " + MAIN_COMPILER_MODULE);
 		eval.doImport(monitor, MAIN_COMPILER_MODULE);
 
+		for (ISourceLocation ignore : IGNORES) {
+			getLog().info("\tinitial compile todo list does not search for modules below : " + ignore);
+		}
+		
 		getLog().info("done loading the compiler");
 
 		return eval;
@@ -130,6 +136,10 @@ public class CompileRascalMojo extends AbstractMojo
 			List<ISourceLocation> srcLocs = locations(srcs);
 			List<ISourceLocation> libLocs = locations(libs);
 
+			libLocs.add(URIUtil.rootLocation("std"));
+			getLog().warn("To be removed: |std:///| is both on the source path and the lib path, for bootstrapping reasons.");
+			srcLocs.add(URIUtil.rootLocation("std"));
+			
 			PathConfig pcfg = new PathConfig(srcLocs, libLocs, binLoc, location(boot));
 			Evaluator eval = makeEvaluator(pcfg);
 
@@ -154,11 +164,13 @@ public class CompileRascalMojo extends AbstractMojo
 		}
 	}
 
+	
+	
 	private void findAllRascalFiles(ISourceLocation[] todo, IListWriter result) throws FactTypeUseException, URISyntaxException, IOException {
 		URIResolverRegistry reg = URIResolverRegistry.getInstance();
 
 		for (ISourceLocation loc : todo) {
-			if (reg.isDirectory(loc)) {
+			if (reg.isDirectory(loc) && !IGNORES.contains(loc)) {
 				findAllRascalFiles(reg.list(loc), result);
 			}
 			else if (loc.getPath().endsWith(".rsc")) {

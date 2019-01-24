@@ -23,7 +23,7 @@
               <boot>/Users/jurgenv/git/rascal-core/src/org/rascalmpl/core/library</boot>
               <bin>${project.build.outputDirectory}</bin>
               <srcs>
-                 <src>${project.baseDir}/src/it/simple-it</src>
+                 <src>${project.basedir}</src>
               </srcs>
         </configuration>
         <executions>

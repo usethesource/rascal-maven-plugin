@@ -10,38 +10,40 @@
  */
 package org.rascalmpl.maven;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringReader;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
-import org.apache.maven.artifact.DependencyResolutionRequiredException;
-import org.apache.maven.model.Plugin;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.project.MavenProject;
+import org.rascalmpl.debug.IRascalMonitor;
 import org.rascalmpl.interpreter.Evaluator;
 import org.rascalmpl.interpreter.env.GlobalEnvironment;
 import org.rascalmpl.interpreter.env.ModuleEnvironment;
 import org.rascalmpl.library.util.PathConfig;
 import org.rascalmpl.uri.URIResolverRegistry;
 import org.rascalmpl.uri.URIUtil;
-import org.rascalmpl.uri.libraries.ClassResourceInput;
 import org.rascalmpl.values.ValueFactoryFactory;
 
 import io.usethesource.vallang.IConstructor;
 import io.usethesource.vallang.IList;
 import io.usethesource.vallang.IListWriter;
+import io.usethesource.vallang.ISet;
 import io.usethesource.vallang.ISourceLocation;
 import io.usethesource.vallang.IString;
 import io.usethesource.vallang.IValue;
+import io.usethesource.vallang.IValueFactory;
 import io.usethesource.vallang.exceptions.FactTypeUseException;
 import io.usethesource.vallang.io.StandardTextReader;
 
@@ -65,64 +67,76 @@ import io.usethesource.vallang.io.StandardTextReader;
 @Mojo(name="compile-rascal", defaultPhase = LifecyclePhase.COMPILE,  requiresDependencyResolution = ResolutionScope.COMPILE )
 public class CompileRascalMojo extends AbstractMojo
 {
-    private static final String MAIN_COMPILER_MODULE = "lang::rascalcore::check::Checker";
+	private static final String MAIN_COMPILER_MODULE = "lang::rascalcore::check::Checker";
 
-    @Parameter(defaultValue="${project}", readonly=true, required=true)
-    private MavenProject project;
-    
+	@Parameter(defaultValue="${project}", readonly=true, required=true)
+	private MavenProject project;
+
 	@Parameter(defaultValue = "${project.baseDir}/src", property = "boot", required = true )
-    private String boot;
-    
-    @Parameter(defaultValue = "${project.build.outputDirectory}", property = "bin", required = true )
-    private String bin;
-    
-    @Parameter(property = "srcs", required = true )
-    private List<String> srcs;
-    
-    @Parameter(property = "libs", required = true )
-    private List<String> libs;
+	private String boot;
 
-    private final PrintWriter err = new PrintWriter(System.err);
-    private final PrintWriter out = new PrintWriter(System.out);
-    
-	private Evaluator makeEvaluator(String boot) throws URISyntaxException, FactTypeUseException, IOException {
+	@Parameter(defaultValue = "${project.build.outputDirectory}", property = "bin", required = true )
+	private String bin;
+
+	@Parameter(property = "srcs", required = true )
+	private List<String> srcs;
+
+	@Parameter(property = "libs", required = true )
+	private List<String> libs;
+
+	private final PrintWriter err = new PrintWriter(System.err);
+	private final PrintWriter out = new PrintWriter(System.out);
+
+	private MojoRascalMonitor monitor;
+
+	private Evaluator makeEvaluator(PathConfig pcfg) throws URISyntaxException, FactTypeUseException, IOException {
 		getLog().info("start loading the compiler");
 		GlobalEnvironment heap = new GlobalEnvironment();
-    	Evaluator eval = new Evaluator(ValueFactoryFactory.getValueFactory(), err, out, new ModuleEnvironment("***MVN Rascal Compiler***", heap), heap);
+		Evaluator eval = new Evaluator(ValueFactoryFactory.getValueFactory(), err, out, new ModuleEnvironment("***MVN Rascal Compiler***", heap), heap);
 
-    	getLog().info("\trascal module path addition: |typepal:///|");
-    	eval.addRascalSearchPath(URIUtil.rootLocation("typepal"));
-    	
-    	getLog().info("\trascal module path addition: |std:///|");
-    	eval.addRascalSearchPath(URIUtil.rootLocation("std"));
-    	
-    	getLog().info("\trascal module path addition: " + boot);
-    	eval.addRascalSearchPath(location(boot.trim()));
-		
-		getLog().info("\timporting " + "analysis::typepal::TypePal");
-		eval.doImport(null, "analysis::typepal::TypePal");
-		
-        getLog().info("\timporting " + MAIN_COMPILER_MODULE);
-    	eval.doImport(null, MAIN_COMPILER_MODULE);
-    	
-    	getLog().info("done loading the compiler");
-    	return eval;
+		URL vallangJarFile = IValueFactory.class.getProtectionDomain().getCodeSource().getLocation();
+		eval.getConfiguration().setRascalJavaClassPathProperty(new File(vallangJarFile.toURI()).toString());
+
+		monitor = new MojoRascalMonitor(getLog());
+		eval.setMonitor(monitor);
+
+		getLog().info("\trascal module path addition: " + pcfg.getBoot());
+		eval.addRascalSearchPath(pcfg.getBoot());
+
+		getLog().info("\trascal module path addition: |typepal:///|");
+		eval.addRascalSearchPath(URIUtil.rootLocation("typepal"));
+
+		getLog().info("\trascal module path addition: |std:///|");
+		eval.addRascalSearchPath(URIUtil.rootLocation("std"));
+
+		getLog().info("\timporting " + MAIN_COMPILER_MODULE);
+		eval.doImport(monitor, MAIN_COMPILER_MODULE);
+
+		getLog().info("done loading the compiler");
+
+		return eval;
 	}
-    
-    public void execute() throws MojoExecutionException {
-    	try {
-			Evaluator eval = makeEvaluator(boot);
+
+	public void execute() throws MojoExecutionException {
+		try {
 			ISourceLocation binLoc = location(bin);
 			List<ISourceLocation> srcLocs = locations(srcs);
 			List<ISourceLocation> libLocs = locations(libs);
-			
-			PathConfig pcfg = new PathConfig(srcLocs, libLocs, binLoc, URIUtil.rootLocation("std"));
+
+			PathConfig pcfg = new PathConfig(srcLocs, libLocs, binLoc, location(boot));
+			Evaluator eval = makeEvaluator(pcfg);
+
 			IConstructor config = pcfg.asConstructor();
 			IListWriter files = eval.getValueFactory().listWriter();
+
+			getLog().info("source files: " + srcLocs);
 			findAllRascalFiles(srcLocs.toArray(new ISourceLocation[srcLocs.size()]), files);
-			
-			getLog().info("calling checker on the todo list");
-			IList messages = (IList) eval.call("check", files.done(), config);
+
+			IList todoList = files.done();
+
+			getLog().info("calling checker on the todo list: " + todoList);
+			IList messages = (IList) eval.call(monitor, "check", todoList, config);
+
 			getLog().info("checker is done, reporting errors now.");
 			handleMessages(pcfg, messages);
 			getLog().info("error reporting done");
@@ -131,11 +145,11 @@ public class CompileRascalMojo extends AbstractMojo
 		} catch (IOException e) {
 			getLog().error(e);
 		}
-    }
+	}
 
 	private void findAllRascalFiles(ISourceLocation[] todo, IListWriter result) throws FactTypeUseException, URISyntaxException, IOException {
 		URIResolverRegistry reg = URIResolverRegistry.getInstance();
-		
+
 		for (ISourceLocation loc : todo) {
 			if (reg.isDirectory(loc)) {
 				findAllRascalFiles(reg.list(loc), result);
@@ -145,73 +159,85 @@ public class CompileRascalMojo extends AbstractMojo
 			}
 		}
 	}
-	
-	private void handleMessages(PathConfig pcfg, IList messages) {
-	    int maxLine = 0;
-	    int maxColumn = 0;
 
-	    for (IValue val : messages) {
-	        ISourceLocation loc = (ISourceLocation) ((IConstructor) val).get("at");
-	        maxLine = Math.max(loc.getBeginLine(), maxLine);
-	        maxColumn = Math.max(loc.getBeginColumn(), maxColumn);
-	    }
+	private void handleMessages(PathConfig pcfg, IList moduleMessages) {
+		int maxLine = 0;
+		int maxColumn = 0;
 
 
-	    int lineWidth = (int) Math.log10(maxLine + 1) + 1;
-	    int colWidth = (int) Math.log10(maxColumn + 1) + 1;
+		for (IValue val : moduleMessages) {
+			ISet messages =  (ISet) ((IConstructor) val).get("messages");
+			
+			for (IValue error : messages) {
+				ISourceLocation loc = (ISourceLocation) ((IConstructor) error).get("at");
+				maxLine = Math.max(loc.getBeginLine(), maxLine);
+				maxColumn = Math.max(loc.getBeginColumn(), maxColumn);
+			}
+		}
 
-	    for (IValue val : messages) {
-	    	IConstructor msg = (IConstructor) val;
-	    	String type = msg.getName();
-			boolean isError = type.equals("error");
-	    	boolean isWarning = type.equals("warning");
-	    	
-	    	ISourceLocation loc = (ISourceLocation) msg.get("at");
-	    	int col = loc.getBeginColumn();
-	    	int line = loc.getBeginLine();
 
-	    	String output 
-	    	= type + "@" + abbreviate(loc, pcfg) 
-	    	+ ":" 
-	    	+ String.format("%0" + lineWidth + "d", line)
-	    	+ ":"
-	    	+ String.format("%0" + colWidth + "d", col)
-	    	+ ": "
-	    	+ ((IString) msg.get("msg")).getValue();
-	    	
-	    	if (isError) {
-	    		getLog().error(output);
-	    	}
-	    	else if (isWarning) {
-	    		getLog().warn(output);
-	    	}
-	    	else {
-	    		getLog().info(output);
-	    	}
-	    }
+		int lineWidth = (int) Math.log10(maxLine + 1) + 1;
+		int colWidth = (int) Math.log10(maxColumn + 1) + 1;
 
-	    return;
+		for (IValue val : moduleMessages) {
+			ISourceLocation module = (ISourceLocation) ((IConstructor) val).get("src");
+			ISet messages =  (ISet) ((IConstructor) val).get("messages");
+
+			getLog().info("Warnings and errors for " + module);
+			
+			for (IValue error : messages) {
+				IConstructor msg = (IConstructor) error;
+				String type = msg.getName();
+				boolean isError = type.equals("error");
+				boolean isWarning = type.equals("warning");
+
+				ISourceLocation loc = (ISourceLocation) msg.get("at");
+				int col = loc.getBeginColumn();
+				int line = loc.getBeginLine();
+
+				String output 
+				= abbreviate(loc, pcfg) 
+				+ ":" 
+				+ String.format("%0" + lineWidth + "d", line)
+				+ ":"
+				+ String.format("%0" + colWidth + "d", col)
+				+ ": "
+				+ ((IString) msg.get("msg")).getValue();
+
+				if (isError) {
+					getLog().error(output);
+				}
+				else if (isWarning) {
+					getLog().warn(output);
+				}
+				else {
+					getLog().info(output);
+				}
+			}
+		}
+
+		return;
 	}
 
 	private static String abbreviate(ISourceLocation loc, PathConfig pcfg) {
-        for (IValue src : pcfg.getSrcs()) {
-            String path = ((ISourceLocation) src).getURI().getPath();
-            
-            if (loc.getURI().getPath().startsWith(path)) {
-                return loc.getURI().getPath().substring(path.length()); 
-            }
-        }
-        
-        return loc.getURI().getPath();
-    }
+		for (IValue src : pcfg.getSrcs()) {
+			String path = ((ISourceLocation) src).getURI().getPath();
+
+			if (loc.getURI().getPath().startsWith(path)) {
+				return loc.getURI().getPath().substring(path.length()); 
+			}
+		}
+
+		return loc.getURI().getPath();
+	}
 
 	private List<ISourceLocation> locations(List<String> files) throws URISyntaxException, FactTypeUseException, IOException {
 		List<ISourceLocation> result = new ArrayList<ISourceLocation>(files.size());
-		
+
 		for (String f : files) {
 			result.add(location(f));
 		}
-		
+
 		return result;
 	}
 
@@ -221,6 +247,53 @@ public class CompileRascalMojo extends AbstractMojo
 		}
 		else {
 			return URIUtil.createFileLocation(file);
+		}
+	}
+
+	private static class MojoRascalMonitor implements IRascalMonitor {
+		private final Log log;
+
+		public MojoRascalMonitor(Log log) {
+			this.log = log;
+		}
+
+		public void startJob(String name) {
+		}
+
+		public void startJob(String name, int totalWork) {
+			startJob(name);
+		}
+
+		public void startJob(String name, int workShare, int totalWork) {
+			startJob(name);
+		}
+
+		public void event(String name) {
+		}
+
+		public void event(String name, int inc) {
+			event(name);
+
+		}
+
+		public void event(int inc) {
+
+		}
+
+		public int endJob(boolean succeeded) {
+			return 0;
+		}
+
+		public boolean isCanceled() {
+			return false;
+		}
+
+		public void todo(int work) {
+
+		}
+
+		public void warning(String message, ISourceLocation src) {
+			log.warn(src.toString() + ": " + message);
 		}
 	}
 }

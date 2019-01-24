@@ -68,11 +68,12 @@ import io.usethesource.vallang.io.StandardTextReader;
 public class CompileRascalMojo extends AbstractMojo
 {
 	private static final String MAIN_COMPILER_MODULE = "lang::rascalcore::check::Checker";
-
+	private static final String INFO_PREFIX_MODULE_PATH = "\trascal module path addition: ";
+	
 	@Parameter(defaultValue="${project}", readonly=true, required=true)
 	private MavenProject project;
 
-	@Parameter(defaultValue = "${project.baseDir}/src", property = "boot", required = true )
+	@Parameter(defaultValue = "|boot:///|", property = "boot", required = true )
 	private String boot;
 
 	@Parameter(defaultValue = "${project.build.outputDirectory}", property = "bin", required = true )
@@ -89,6 +90,9 @@ public class CompileRascalMojo extends AbstractMojo
 
 	private MojoRascalMonitor monitor;
 
+	
+
+
 	private Evaluator makeEvaluator(PathConfig pcfg) throws URISyntaxException, FactTypeUseException, IOException {
 		getLog().info("start loading the compiler");
 		GlobalEnvironment heap = new GlobalEnvironment();
@@ -100,15 +104,18 @@ public class CompileRascalMojo extends AbstractMojo
 		monitor = new MojoRascalMonitor(getLog());
 		eval.setMonitor(monitor);
 
-		getLog().info("\trascal module path addition: " + pcfg.getBoot());
-		eval.addRascalSearchPath(pcfg.getBoot());
+		getLog().info(INFO_PREFIX_MODULE_PATH + "|rascalcore:///|");
+		eval.addRascalSearchPath(URIUtil.rootLocation("rascalcore"));
 
-		getLog().info("\trascal module path addition: |typepal:///|");
+		getLog().info(INFO_PREFIX_MODULE_PATH + "|typepal:///|");
 		eval.addRascalSearchPath(URIUtil.rootLocation("typepal"));
 
-		getLog().info("\trascal module path addition: |std:///|");
+		getLog().info(INFO_PREFIX_MODULE_PATH + "|std:///|");
 		eval.addRascalSearchPath(URIUtil.rootLocation("std"));
 
+		getLog().info(INFO_PREFIX_MODULE_PATH + pcfg.getBoot());
+		eval.addRascalSearchPath(pcfg.getBoot());
+		
 		getLog().info("\timporting " + MAIN_COMPILER_MODULE);
 		eval.doImport(monitor, MAIN_COMPILER_MODULE);
 

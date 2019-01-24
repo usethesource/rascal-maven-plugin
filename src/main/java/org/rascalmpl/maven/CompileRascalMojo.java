@@ -162,6 +162,7 @@ public class CompileRascalMojo extends AbstractMojo
 		} catch (IOException e) {
 			getLog().error(e);
 		}
+		
 	}
 
 	
@@ -179,10 +180,10 @@ public class CompileRascalMojo extends AbstractMojo
 		}
 	}
 
-	private void handleMessages(PathConfig pcfg, IList moduleMessages) {
+	private void handleMessages(PathConfig pcfg, IList moduleMessages) throws MojoExecutionException {
 		int maxLine = 0;
 		int maxColumn = 0;
-
+		boolean hasErrors = false;
 
 		for (IValue val : moduleMessages) {
 			ISet messages =  (ISet) ((IConstructor) val).get("messages");
@@ -210,6 +211,8 @@ public class CompileRascalMojo extends AbstractMojo
 				boolean isError = type.equals("error");
 				boolean isWarning = type.equals("warning");
 
+				hasErrors |= isError;
+				
 				ISourceLocation loc = (ISourceLocation) msg.get("at");
 				int col = loc.getBeginColumn();
 				int line = loc.getBeginLine();
@@ -235,6 +238,10 @@ public class CompileRascalMojo extends AbstractMojo
 			}
 		}
 
+		if (hasErrors) {
+			throw new MojoExecutionException("Rascal compiler found compile-time errors");
+		}
+		
 		return;
 	}
 

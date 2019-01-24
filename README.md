@@ -15,7 +15,6 @@ This MVN plugin runs the experimental Rascal checker and compiler.
         <artifactId>rascal-maven-plugin</artifactId>
         <version>0.0.1-SNAPSHOT</version>
         <configuration>
-              <boot>/Users/jurgenv/git/rascal-core/src/org/rascalmpl/core/library</boot>
               <bin>${project.build.outputDirectory}</bin>
               <srcs>
                  <src>${project.baseDir}/src</src>

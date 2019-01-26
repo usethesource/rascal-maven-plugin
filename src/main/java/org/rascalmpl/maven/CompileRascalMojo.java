@@ -19,7 +19,10 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Consumer;
 
+import org.apache.maven.artifact.Artifact;
+import org.apache.maven.model.Dependency;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.logging.Log;
@@ -32,6 +35,7 @@ import org.rascalmpl.debug.IRascalMonitor;
 import org.rascalmpl.interpreter.Evaluator;
 import org.rascalmpl.interpreter.env.GlobalEnvironment;
 import org.rascalmpl.interpreter.env.ModuleEnvironment;
+import org.rascalmpl.interpreter.utils.RascalManifest;
 import org.rascalmpl.library.util.PathConfig;
 import org.rascalmpl.uri.URIResolverRegistry;
 import org.rascalmpl.uri.URIUtil;
@@ -65,7 +69,7 @@ import io.usethesource.vallang.io.StandardTextReader;
  * source of the compiler. After the bootstrap, this parameter will become optional.
  * 
  */
-@Mojo(name="compile-rascal", defaultPhase = LifecyclePhase.COMPILE,  requiresDependencyResolution = ResolutionScope.COMPILE )
+@Mojo(name="compile-rascal", defaultPhase = LifecyclePhase.COMPILE, requiresDependencyCollection = ResolutionScope.COMPILE_PLUS_RUNTIME, requiresDependencyResolution = ResolutionScope.COMPILE_PLUS_RUNTIME)
 public class CompileRascalMojo extends AbstractMojo
 {
 	private static final String UNEXPECTED_ERROR = "unexpected error during Rascal compiler run";
@@ -122,6 +126,7 @@ public class CompileRascalMojo extends AbstractMojo
 		eval.doImport(monitor, MAIN_COMPILER_MODULE);
 
 		
+		
 		getLog().info("done loading the compiler");
 
 		return eval;
@@ -129,32 +134,59 @@ public class CompileRascalMojo extends AbstractMojo
 
 	public void execute() throws MojoExecutionException {
 		try {
+			URIResolverRegistry reg = URIResolverRegistry.getInstance();
 			ISourceLocation binLoc = location(bin);
 			List<ISourceLocation> srcLocs = locations(srcs);
 			List<ISourceLocation> ignoredLocs = locations(srcIgnores);
 			List<ISourceLocation> libLocs = locations(libs);
 			
+			getLog().info("configuring paths");
+			for (ISourceLocation src : srcLocs) {
+				getLog().info("\tregistered source location: " + src);
+			}
+			
+			for (ISourceLocation ignore : ignoredLocs) {
+				getLog().info("\tignoring sources in: " + ignore);
+			}
+			
 			libLocs.add(URIUtil.rootLocation("std"));
-			getLog().warn("To be removed: |std:///| is both on the source path and the lib path, for bootstrapping reasons.");
+			getLog().warn("\t|std:///| is put both on the source path and the lib path, for bootstrapping reasons.");
 			srcLocs.add(URIUtil.rootLocation("std"));
 			ignoredLocs.add(org.rascalmpl.core.uri.URIUtil.rootLocation("std"));
+			
+			for (ISourceLocation lib : libLocs) {
+				getLog().info("\tregistered library location: " + lib);
+			}
+
+			// complete libraries with maven artifacts which include a META-INF/RASCAL.MF file
+			for (Object o : project.getArtifacts()) {
+				Artifact a = (Artifact) o;
+				File file = a.getFile().getAbsoluteFile();
+				ISourceLocation jarLoc = RascalManifest.jarify(location(file.toString()));
+				
+				if (reg.exists(URIUtil.getChildLocation(jarLoc, "META-INF/RASCAL.MF"))) {
+					getLog().info("\tregistered library location: " + jarLoc);
+					libLocs.add(jarLoc);
+				}
+			}
+			
+			getLog().info("paths have been configured");
 			
 			PathConfig pcfg = new PathConfig(srcLocs, libLocs, binLoc, location(boot));
 			Evaluator eval = makeEvaluator(pcfg);
 
-			IConstructor config = pcfg.asConstructor();
+			getLog().info("crawling source files for todo list");
 			IListWriter files = eval.getValueFactory().listWriter();
-
-			for (ISourceLocation ignore : ignoredLocs) {
-				getLog().info("\tinitial compile todo list does not search for modules below : " + ignore);
-			}
-			
-			getLog().info("source files: " + srcLocs);
 			findAllRascalFiles(srcLocs.toArray(new ISourceLocation[srcLocs.size()]), files, ignoredLocs);
-
 			IList todoList = files.done();
 
-			getLog().info("calling checker on the todo list: " + todoList);
+			getLog().info("calling checker on the todo list of " + todoList.length() + " Rascal modules:");
+			for (IValue todo : todoList) {
+				getLog().info("\t" + todo);
+			}
+			
+			IConstructor config = pcfg.asConstructor();
+			
 			IList messages = (IList) eval.call(monitor, "check", todoList, config);
 
 			getLog().info("checker is done, reporting errors now.");
@@ -167,8 +199,6 @@ public class CompileRascalMojo extends AbstractMojo
 		} catch (IOException e) {
 			throw new MojoExecutionException(UNEXPECTED_ERROR, e);
 		}
-		
-		
 	}
 
 	

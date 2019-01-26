@@ -68,6 +68,7 @@ import io.usethesource.vallang.io.StandardTextReader;
 @Mojo(name="compile-rascal", defaultPhase = LifecyclePhase.COMPILE,  requiresDependencyResolution = ResolutionScope.COMPILE )
 public class CompileRascalMojo extends AbstractMojo
 {
+	private static final String UNEXPECTED_ERROR = "unexpected error during Rascal compiler run";
 	private static final String MAIN_COMPILER_MODULE = "lang::rascalcore::check::Checker";
 	private static final String INFO_PREFIX_MODULE_PATH = "\trascal module path addition: ";
 	
@@ -82,6 +83,9 @@ public class CompileRascalMojo extends AbstractMojo
 
 	@Parameter(property = "srcs", required = true )
 	private List<String> srcs;
+	
+	@Parameter(property = "srcIgnores", required = false )
+	private List<String> srcIgnores;    
 
 	@Parameter(property = "libs", required = true )
 	private List<String> libs;
@@ -91,10 +95,6 @@ public class CompileRascalMojo extends AbstractMojo
 
 	private MojoRascalMonitor monitor;
 
-	private static final List<ISourceLocation> IGNORES = Arrays.asList(new ISourceLocation[] {
-			URIUtil.correctLocation("std", "", ""),
-	});
-	
 	private Evaluator makeEvaluator(PathConfig pcfg) throws URISyntaxException, FactTypeUseException, IOException {
 		getLog().info("start loading the compiler");
 		GlobalEnvironment heap = new GlobalEnvironment();
@@ -121,9 +121,6 @@ public class CompileRascalMojo extends AbstractMojo
 		getLog().info("\timporting " + MAIN_COMPILER_MODULE);
 		eval.doImport(monitor, MAIN_COMPILER_MODULE);
 
-		for (ISourceLocation ignore : IGNORES) {
-			getLog().info("\tinitial compile todo list does not search for modules below : " + ignore);
-		}
 		
 		getLog().info("done loading the compiler");
 
@@ -134,11 +131,13 @@ public class CompileRascalMojo extends AbstractMojo
 		try {
 			ISourceLocation binLoc = location(bin);
 			List<ISourceLocation> srcLocs = locations(srcs);
+			List<ISourceLocation> ignoredLocs = locations(srcIgnores);
 			List<ISourceLocation> libLocs = locations(libs);
-
+			
 			libLocs.add(URIUtil.rootLocation("std"));
 			getLog().warn("To be removed: |std:///| is both on the source path and the lib path, for bootstrapping reasons.");
 			srcLocs.add(URIUtil.rootLocation("std"));
+			ignoredLocs.add(org.rascalmpl.core.uri.URIUtil.rootLocation("std"));
 			
 			PathConfig pcfg = new PathConfig(srcLocs, libLocs, binLoc, location(boot));
 			Evaluator eval = makeEvaluator(pcfg);
@@ -146,8 +145,12 @@ public class CompileRascalMojo extends AbstractMojo
 			IConstructor config = pcfg.asConstructor();
 			IListWriter files = eval.getValueFactory().listWriter();
 
+			for (ISourceLocation ignore : ignoredLocs) {
+				getLog().info("\tinitial compile todo list does not search for modules below : " + ignore);
+			}
+			
 			getLog().info("source files: " + srcLocs);
-			findAllRascalFiles(srcLocs.toArray(new ISourceLocation[srcLocs.size()]), files);
+			findAllRascalFiles(srcLocs.toArray(new ISourceLocation[srcLocs.size()]), files, ignoredLocs);
 
 			IList todoList = files.done();
 
@@ -157,22 +160,29 @@ public class CompileRascalMojo extends AbstractMojo
 			getLog().info("checker is done, reporting errors now.");
 			handleMessages(pcfg, messages);
 			getLog().info("error reporting done");
+			
+			return;
 		} catch (URISyntaxException e) {
-			getLog().error(e);
+			throw new MojoExecutionException(UNEXPECTED_ERROR, e);
 		} catch (IOException e) {
-			getLog().error(e);
+			throw new MojoExecutionException(UNEXPECTED_ERROR, e);
 		}
+		
 		
 	}
 
 	
 	
-	private void findAllRascalFiles(ISourceLocation[] todo, IListWriter result) throws FactTypeUseException, URISyntaxException, IOException {
+	private void findAllRascalFiles(ISourceLocation[] todo, IListWriter result, List<ISourceLocation> ignores) throws FactTypeUseException, URISyntaxException, IOException {
 		URIResolverRegistry reg = URIResolverRegistry.getInstance();
 
 		for (ISourceLocation loc : todo) {
-			if (reg.isDirectory(loc) && !IGNORES.contains(loc)) {
-				findAllRascalFiles(reg.list(loc), result);
+			if (ignores.contains(loc)) {
+				continue;
+			}
+			
+			if (reg.isDirectory(loc)) {
+				findAllRascalFiles(reg.list(loc), result, ignores);
 			}
 			else if (loc.getPath().endsWith(".rsc")) {
 				result.insert(loc);

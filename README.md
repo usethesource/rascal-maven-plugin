@@ -19,6 +19,9 @@ This MVN plugin runs the experimental Rascal checker and compiler.
               <srcs>
                  <src>${project.baseDir}/src</src>
               </srcs>
+              <srcIgnores>
+                 <ignore>${project.baseDir}/src/experimental</ignore>
+              </srcIgnores>
         </configuration>
         <executions>
           <execution>

@@ -17,12 +17,9 @@ import java.io.StringReader;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.function.Consumer;
 
 import org.apache.maven.artifact.Artifact;
-import org.apache.maven.model.Dependency;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.logging.Log;
@@ -250,7 +247,9 @@ public class CompileRascalMojo extends AbstractMojo
 			ISourceLocation module = (ISourceLocation) ((IConstructor) val).get("src");
 			ISet messages =  (ISet) ((IConstructor) val).get("messages");
 
-			getLog().info("Warnings and errors for " + module);
+			if (!messages.isEmpty()) {
+				getLog().info("Warnings and errors for " + module);
+			}
 			
 			for (IValue error : messages) {
 				IConstructor msg = (IConstructor) error;

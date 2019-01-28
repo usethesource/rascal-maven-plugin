@@ -24,6 +24,7 @@
               <srcs>
                  <src>${project.basedir}</src>
               </srcs>
+              <errorsAsWarnings>true</errorsAsWarnings>
         </configuration>
         <executions>
           <execution>

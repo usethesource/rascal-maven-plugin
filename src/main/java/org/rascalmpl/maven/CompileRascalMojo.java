@@ -91,9 +91,16 @@ public class CompileRascalMojo extends AbstractMojo
 	@Parameter(property = "srcIgnores", required = false )
 	private List<String> srcIgnores;    
 
-	@Parameter(property = "libs", required = true )
+	@Parameter(property = "libs", required = false )
 	private List<String> libs;
 
+	@Parameter(property = "errorsAsWarnings", required = false, defaultValue = "false" )
+	private boolean errorsAsWarnings;
+
+	@Parameter(property = "warningsAsErrors", required = false, defaultValue = "false" )
+	private boolean warningsAsErrors;
+
+	
 	private final PrintWriter err = new PrintWriter(System.err);
 	private final PrintWriter out = new PrintWriter(System.out);
 
@@ -251,7 +258,7 @@ public class CompileRascalMojo extends AbstractMojo
 				boolean isError = type.equals("error");
 				boolean isWarning = type.equals("warning");
 
-				hasErrors |= isError;
+				hasErrors |= isError || warningsAsErrors;
 				
 				ISourceLocation loc = (ISourceLocation) msg.get("at");
 				int col = loc.getBeginColumn();
@@ -278,7 +285,7 @@ public class CompileRascalMojo extends AbstractMojo
 			}
 		}
 
-		if (hasErrors) {
+		if (hasErrors && !errorsAsWarnings) {
 			throw new MojoExecutionException("Rascal compiler found compile-time errors");
 		}
 		

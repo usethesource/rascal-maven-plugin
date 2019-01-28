@@ -25,10 +25,10 @@ This MVN plugin runs the experimental Rascal checker (and later also the compile
         <configuration>
               <bin>${project.build.outputDirectory}</bin>
               <srcs>
-                 <src>${project.baseDir}/src</src>
+                 <src>${project.basedir}/src</src>
               </srcs>
               <srcIgnores>
-                 <ignore>${project.baseDir}/src/experimental</ignore>
+                 <ignore>${project.basedir}/src/experimental</ignore>
               </srcIgnores>
         </configuration>
         <executions>

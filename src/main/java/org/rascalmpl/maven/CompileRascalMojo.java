@@ -17,7 +17,9 @@ import java.io.StringReader;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.plugin.AbstractMojo;
@@ -28,6 +30,10 @@ import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.project.MavenProject;
+import org.codehaus.plexus.compiler.util.scan.InclusionScanException;
+import org.codehaus.plexus.compiler.util.scan.StaleSourceScanner;
+import org.codehaus.plexus.compiler.util.scan.mapping.SourceMapping;
+import org.codehaus.plexus.compiler.util.scan.mapping.SuffixMapping;
 import org.rascalmpl.debug.IRascalMonitor;
 import org.rascalmpl.interpreter.Evaluator;
 import org.rascalmpl.interpreter.env.GlobalEnvironment;
@@ -140,6 +146,7 @@ public class CompileRascalMojo extends AbstractMojo
 
 	public void execute() throws MojoExecutionException {
 		try {
+			
 			URIResolverRegistry reg = URIResolverRegistry.getInstance();
 			ISourceLocation binLoc = location(bin);
 			List<ISourceLocation> srcLocs = locations(srcs);
@@ -154,6 +161,27 @@ public class CompileRascalMojo extends AbstractMojo
 			for (ISourceLocation ignore : ignoredLocs) {
 				getLog().info("\tignoring sources in: " + ignore);
 			}
+			
+			getLog().info("checking if any files need compilation");
+			boolean needCompilation = false;
+			StaleSourceScanner scanner = new StaleSourceScanner(100);
+			scanner.addSourceMapping(new SuffixMapping(".rsc", ".tpl"));
+			
+			for (ISourceLocation src : srcLocs) {
+				if (!scanner.getIncludedSources(new File(src.getURI()), new File(binLoc.getURI())).isEmpty()) {
+					needCompilation = true;
+					break;
+				}
+			}
+			
+			if (needCompilation) {
+				getLog().info("stale source files have been found.");
+			}
+			else {
+				getLog().info("no stale source files have been found, skipping compilation.");
+				return;
+			}
+			
 			
 			if (configureStandardLibrarySource) {
 				libLocs.add(URIUtil.rootLocation("std"));
@@ -205,6 +233,8 @@ public class CompileRascalMojo extends AbstractMojo
 		} catch (URISyntaxException e) {
 			throw new MojoExecutionException(UNEXPECTED_ERROR, e);
 		} catch (IOException e) {
+			throw new MojoExecutionException(UNEXPECTED_ERROR, e);
+		} catch (InclusionScanException e) {
 			throw new MojoExecutionException(UNEXPECTED_ERROR, e);
 		}
 	}

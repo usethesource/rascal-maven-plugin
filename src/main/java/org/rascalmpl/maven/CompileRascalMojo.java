@@ -97,6 +97,8 @@ public class CompileRascalMojo extends AbstractMojo
 	@Parameter(property = "warningsAsErrors", required = false, defaultValue = "false" )
 	private boolean warningsAsErrors;
 
+	@Parameter(property="configureStandardLibrarySource", required = false, defaultValue="true")
+	private boolean configureStandardLibrarySource;
 	
 	private final PrintWriter err = new PrintWriter(System.err);
 	private final PrintWriter out = new PrintWriter(System.out);
@@ -153,10 +155,12 @@ public class CompileRascalMojo extends AbstractMojo
 				getLog().info("\tignoring sources in: " + ignore);
 			}
 			
-			libLocs.add(URIUtil.rootLocation("std"));
-			getLog().warn("\t|std:///| is put both on the source path and the lib path, for bootstrapping reasons.");
-			srcLocs.add(URIUtil.rootLocation("std"));
-			ignoredLocs.add(org.rascalmpl.core.uri.URIUtil.rootLocation("std"));
+			if (configureStandardLibrarySource) {
+				libLocs.add(URIUtil.rootLocation("std"));
+				getLog().warn("\t|std:///| is put both on the source path and the lib path, for bootstrapping reasons.");
+				srcLocs.add(URIUtil.rootLocation("std"));
+				ignoredLocs.add(org.rascalmpl.core.uri.URIUtil.rootLocation("std"));
+			}
 			
 			for (ISourceLocation lib : libLocs) {
 				getLog().info("\tregistered library location: " + lib);

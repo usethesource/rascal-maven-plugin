@@ -167,7 +167,6 @@ public class CompileRascalMojo extends AbstractMojo
 			for (ISourceLocation src : srcLocs) {
 				Set<File> changes = scanner.getIncludedSources(new File(src.getURI()), new File(binLoc.getURI()));
 				if (!changes.isEmpty()) {
-					getLog().info("Changes detected in files: " + changes.toString());
 					needCompilation = true;
 					break;
 				}

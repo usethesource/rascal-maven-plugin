@@ -16,7 +16,9 @@ import java.io.PrintWriter;
 import java.io.StringReader;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import org.apache.maven.artifact.Artifact;
@@ -164,16 +166,32 @@ public class CompileRascalMojo extends AbstractMojo
 			StaleSourceScanner scanner = new StaleSourceScanner(100);
 			scanner.addSourceMapping(new SuffixMapping(".rsc", ".tpl"));
 			
+			Set<File> staleSources = new HashSet<>();
 			for (ISourceLocation src : srcLocs) {
-				Set<File> changes = scanner.getIncludedSources(new File(src.getURI()), new File(binLoc.getURI()));
-				if (!changes.isEmpty()) {
-					needCompilation = true;
-					break;
-				}
+				staleSources.addAll(scanner.getIncludedSources(new File(src.getURI()), new File(binLoc.getURI())));
 			}
 			
-			if (needCompilation) {
-				getLog().info("stale source files have been found.");
+			IListWriter filteredStaleSources = ValueFactoryFactory.getValueFactory().listWriter();
+			
+			OUTER:for (File file : staleSources) {
+				ISourceLocation loc = URIUtil.createFileLocation(file.getAbsolutePath());
+				
+				for (ISourceLocation iloc : ignoredLocs) {
+					if (isIgnoredBy(iloc, loc)) {
+						continue OUTER;
+					}
+				}
+				
+				filteredStaleSources.append(loc);
+			}
+			
+			IList todoList = filteredStaleSources.done();
+
+			if (!todoList.isEmpty()) {
+				getLog().info("stale source files have been found:");
+				for (IValue todo : todoList) {
+					getLog().info("\t" + todo);
+				}
 			}
 			else {
 				getLog().info("no stale source files have been found, skipping compilation.");
@@ -207,15 +225,6 @@ public class CompileRascalMojo extends AbstractMojo
 			PathConfig pcfg = new PathConfig(srcLocs, libLocs, binLoc, location(boot));
 			Evaluator eval = makeEvaluator(pcfg);
 
-			getLog().info("crawling source files for todo list");
-			IListWriter files = eval.getValueFactory().listWriter();
-			findAllRascalFiles(srcLocs.toArray(new ISourceLocation[srcLocs.size()]), files, ignoredLocs);
-			IList todoList = files.done();
-
-			getLog().info("calling checker on the todo list of " + todoList.length() + " Rascal modules:");
-			for (IValue todo : todoList) {
-				getLog().info("\t" + todo);
-			}
 			
 			IConstructor config = pcfg.asConstructor();
 			
@@ -234,9 +243,17 @@ public class CompileRascalMojo extends AbstractMojo
 			throw new MojoExecutionException(UNEXPECTED_ERROR, e);
 		}
 	}
+	
+	private boolean isIgnoredBy(ISourceLocation prefix, ISourceLocation loc) {
+		assert prefix.getScheme().equals("file");
+		assert loc.getScheme().equals("file");
+		
+		String prefixPath = prefix.getPath();
+		String locPath = loc.getPath();
+		
+		return locPath.startsWith(prefixPath);
+	}
 
-	
-	
 	private void findAllRascalFiles(ISourceLocation[] todo, IListWriter result, List<ISourceLocation> ignores) throws FactTypeUseException, URISyntaxException, IOException {
 		URIResolverRegistry reg = URIResolverRegistry.getInstance();
 

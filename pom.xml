@@ -9,6 +9,11 @@
 	<packaging>maven-plugin</packaging>
 
 	<name>Rascal Maven Plugin</name>
+	
+	
+      <prerequisites>
+        <maven>3.5.0</maven>
+      </prerequisites>
 
 	<url>http://www.rascalmpl.org</url>
 
@@ -115,7 +120,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-shade-plugin</artifactId>
-				<version>2.4.1</version>
+				<version>3.2.1</version>
 				<executions>
 					<execution>
 						<phase>package</phase>
@@ -158,7 +163,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-plugin-plugin</artifactId>
-				<version>3.5.1</version>
+				<version>3.6.0</version>
 				<configuration>
 					<skipErrorNoDescriptorsFound>true</skipErrorNoDescriptorsFound>
 					<mojoDependencies>

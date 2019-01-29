@@ -17,6 +17,7 @@ import java.io.StringReader;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.apache.maven.artifact.Artifact;
@@ -181,8 +182,10 @@ public class CompileRascalMojo extends AbstractMojo
 			}
 			
 			if (enableStandardLibrary) {
-				getLog().info(INFO_PREFIX_LIB_PATH +  "|stdlib:///| ");
 				libLocs.add(URIUtil.rootLocation("stdlib"));
+				
+				// DEBUG
+				getLog().info(Arrays.toString(reg.list(URIUtil.rootLocation("stdlib"))));
 			}
 			
 			for (ISourceLocation lib : libLocs) {
@@ -302,13 +305,15 @@ public class CompileRascalMojo extends AbstractMojo
 				+ ((IString) msg.get("msg")).getValue();
 
 				if (isError) {
-					getLog().error(output);
+					// align "[ERROR]" with "[WARNING]" by adding two spaces
+					getLog().error("  " + output); 
 				}
 				else if (isWarning) {
 					getLog().warn(output);
 				}
 				else {
-					getLog().info(output);
+					// align "[INFO]" with "[WARNING]" by adding three spaces
+					getLog().info("   " + output);
 				}
 			}
 		}

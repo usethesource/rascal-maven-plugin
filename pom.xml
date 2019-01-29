@@ -12,7 +12,7 @@
 	
 	
       <prerequisites>
-        <maven>3.5.0</maven>
+        <maven>3.3.9</maven>
       </prerequisites>
 
 	<url>http://www.rascalmpl.org</url>

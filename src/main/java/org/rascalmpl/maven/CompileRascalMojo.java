@@ -182,10 +182,9 @@ public class CompileRascalMojo extends AbstractMojo
 			}
 			
 			if (enableStandardLibrary) {
-				libLocs.add(URIUtil.rootLocation("stdlib"));
-				
-				// DEBUG
-				getLog().info("IO.tpl? " + (reg.exists(URIUtil.correctLocation("stdlib", "", "IO.tpl")) ? "true" : "false"));
+				// TODO: add stdlib location resolver to Rascal project, for now: |manifest:///| will do since it resolves to the same root location
+				// in the rascal-maven-plugin (shaded) jar
+				libLocs.add(URIUtil.rootLocation("manifest"));
 			}
 			
 			for (ISourceLocation lib : libLocs) {

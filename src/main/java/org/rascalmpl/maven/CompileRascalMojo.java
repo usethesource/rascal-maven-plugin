@@ -18,7 +18,7 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
-
+import java.util.Set;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -165,7 +165,9 @@ public class CompileRascalMojo extends AbstractMojo
 			scanner.addSourceMapping(new SuffixMapping(".rsc", ".tpl"));
 			
 			for (ISourceLocation src : srcLocs) {
-				if (!scanner.getIncludedSources(new File(src.getURI()), new File(binLoc.getURI())).isEmpty()) {
+				Set<File> changes = scanner.getIncludedSources(new File(src.getURI()), new File(binLoc.getURI()));
+				if (!changes.isEmpty()) {
+					getLog().info("Changes detected in files: " + changes.toString());
 					needCompilation = true;
 					break;
 				}

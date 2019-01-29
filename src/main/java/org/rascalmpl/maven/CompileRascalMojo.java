@@ -77,6 +77,7 @@ public class CompileRascalMojo extends AbstractMojo
 	private static final String UNEXPECTED_ERROR = "unexpected error during Rascal compiler run";
 	private static final String MAIN_COMPILER_MODULE = "lang::rascalcore::check::Checker";
 	private static final String INFO_PREFIX_MODULE_PATH = "\trascal module path addition: ";
+	private static final URIResolverRegistry reg = URIResolverRegistry.getInstance();
 	
 	@Parameter(defaultValue="${project}", readonly=true, required=true)
 	private MavenProject project;
@@ -136,8 +137,6 @@ public class CompileRascalMojo extends AbstractMojo
 		getLog().info("\timporting " + MAIN_COMPILER_MODULE);
 		eval.doImport(monitor, MAIN_COMPILER_MODULE);
 
-		
-		
 		getLog().info("done loading the compiler");
 
 		return eval;
@@ -145,8 +144,6 @@ public class CompileRascalMojo extends AbstractMojo
 
 	public void execute() throws MojoExecutionException {
 		try {
-			
-			URIResolverRegistry reg = URIResolverRegistry.getInstance();
 			ISourceLocation binLoc = location(bin);
 			List<ISourceLocation> srcLocs = locations(srcs);
 			List<ISourceLocation> ignoredLocs = locations(srcIgnores);
@@ -182,20 +179,11 @@ public class CompileRascalMojo extends AbstractMojo
 				libLocs.add(URIUtil.rootLocation("manifest"));
 			}
 			
+			// complete libraries with maven artifacts which include a META-INF/RASCAL.MF file
+			collectDependentArtifactLibraries(libLocs);
+			
 			for (ISourceLocation lib : libLocs) {
 				getLog().info("\tregistered library location: " + lib);
-			}
-
-			// complete libraries with maven artifacts which include a META-INF/RASCAL.MF file
-			for (Object o : project.getArtifacts()) {
-				Artifact a = (Artifact) o;
-				File file = a.getFile().getAbsoluteFile();
-				ISourceLocation jarLoc = RascalManifest.jarify(location(file.toString()));
-				
-				if (reg.exists(URIUtil.getChildLocation(jarLoc, "META-INF/RASCAL.MF"))) {
-					getLog().info("\tregistered library location: " + jarLoc);
-					libLocs.add(jarLoc);
-				}
 			}
 			
 			getLog().info("paths have been configured");
@@ -219,6 +207,18 @@ public class CompileRascalMojo extends AbstractMojo
 			throw new MojoExecutionException(UNEXPECTED_ERROR, e);
 		} catch (InclusionScanException e) {
 			throw new MojoExecutionException(UNEXPECTED_ERROR, e);
+		}
+	}
+
+	private void collectDependentArtifactLibraries(List<ISourceLocation> libLocs) throws URISyntaxException, IOException {
+		for (Object o : project.getArtifacts()) {
+			Artifact a = (Artifact) o;
+			File file = a.getFile().getAbsoluteFile();
+			ISourceLocation jarLoc = RascalManifest.jarify(location(file.toString()));
+			
+			if (reg.exists(URIUtil.getChildLocation(jarLoc, "META-INF/RASCAL.MF"))) {
+				libLocs.add(jarLoc);
+			}
 		}
 	}
 

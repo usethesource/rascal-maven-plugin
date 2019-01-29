@@ -185,7 +185,7 @@ public class CompileRascalMojo extends AbstractMojo
 				libLocs.add(URIUtil.rootLocation("stdlib"));
 				
 				// DEBUG
-				getLog().info(Arrays.toString(reg.list(URIUtil.rootLocation("stdlib"))));
+				getLog().info("IO.tpl? " + (reg.exists(URIUtil.correctLocation("stdlib", "", "IO.tpl")) ? "true" : "false"));
 			}
 			
 			for (ISourceLocation lib : libLocs) {

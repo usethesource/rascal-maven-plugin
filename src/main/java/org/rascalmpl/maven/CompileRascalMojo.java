@@ -17,7 +17,6 @@ import java.io.StringReader;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import org.apache.maven.artifact.Artifact;
@@ -76,7 +75,6 @@ public class CompileRascalMojo extends AbstractMojo
 	private static final String UNEXPECTED_ERROR = "unexpected error during Rascal compiler run";
 	private static final String MAIN_COMPILER_MODULE = "lang::rascalcore::check::Checker";
 	private static final String INFO_PREFIX_MODULE_PATH = "\trascal module path addition: ";
-	private static final String INFO_PREFIX_LIB_PATH = "\tregistered library location: ";
 	
 	@Parameter(defaultValue="${project}", readonly=true, required=true)
 	private MavenProject project;
@@ -158,7 +156,7 @@ public class CompileRascalMojo extends AbstractMojo
 			}
 			
 			for (ISourceLocation ignore : ignoredLocs) {
-				getLog().info("\tignoring sources in: " + ignore);
+				getLog().warn("\tignoring sources in: " + ignore);
 			}
 			
 			getLog().info("checking if any files need compilation");

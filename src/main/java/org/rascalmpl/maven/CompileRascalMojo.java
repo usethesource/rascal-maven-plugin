@@ -16,11 +16,11 @@ import java.io.PrintWriter;
 import java.io.StringReader;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -162,30 +162,8 @@ public class CompileRascalMojo extends AbstractMojo
 			}
 			
 			getLog().info("checking if any files need compilation");
-			boolean needCompilation = false;
-			StaleSourceScanner scanner = new StaleSourceScanner(100);
-			scanner.addSourceMapping(new SuffixMapping(".rsc", ".tpl"));
-			
-			Set<File> staleSources = new HashSet<>();
-			for (ISourceLocation src : srcLocs) {
-				staleSources.addAll(scanner.getIncludedSources(new File(src.getURI()), new File(binLoc.getURI())));
-			}
-			
-			IListWriter filteredStaleSources = ValueFactoryFactory.getValueFactory().listWriter();
-			
-			OUTER:for (File file : staleSources) {
-				ISourceLocation loc = URIUtil.createFileLocation(file.getAbsolutePath());
-				
-				for (ISourceLocation iloc : ignoredLocs) {
-					if (isIgnoredBy(iloc, loc)) {
-						continue OUTER;
-					}
-				}
-				
-				filteredStaleSources.append(loc);
-			}
-			
-			IList todoList = filteredStaleSources.done();
+
+			IList todoList = getTodoList(binLoc, srcLocs, ignoredLocs);
 
 			if (!todoList.isEmpty()) {
 				getLog().info("stale source files have been found:");
@@ -243,6 +221,34 @@ public class CompileRascalMojo extends AbstractMojo
 			throw new MojoExecutionException(UNEXPECTED_ERROR, e);
 		}
 	}
+
+	private IList getTodoList(ISourceLocation binLoc, List<ISourceLocation> srcLocs, List<ISourceLocation> ignoredLocs)
+			throws InclusionScanException, URISyntaxException {
+		StaleSourceScanner scanner = new StaleSourceScanner(100);
+		scanner.addSourceMapping(new SuffixMapping(".rsc", ".tpl"));
+		
+		Set<File> staleSources = new HashSet<>();
+		for (ISourceLocation src : srcLocs) {
+			staleSources.addAll(scanner.getIncludedSources(new File(src.getURI()), new File(binLoc.getURI())));
+		}
+		
+		IListWriter filteredStaleSources = ValueFactoryFactory.getValueFactory().listWriter();
+		
+		OUTER:for (File file : staleSources) {
+			ISourceLocation loc = URIUtil.createFileLocation(file.getAbsolutePath());
+			
+			for (ISourceLocation iloc : ignoredLocs) {
+				if (isIgnoredBy(iloc, loc)) {
+					continue OUTER;
+				}
+			}
+			
+			filteredStaleSources.append(loc);
+		}
+		
+		IList todoList = filteredStaleSources.done();
+		return todoList;
+	}
 	
 	private boolean isIgnoredBy(ISourceLocation prefix, ISourceLocation loc) {
 		assert prefix.getScheme().equals("file");
@@ -252,23 +258,6 @@ public class CompileRascalMojo extends AbstractMojo
 		String locPath = loc.getPath();
 		
 		return locPath.startsWith(prefixPath);
-	}
-
-	private void findAllRascalFiles(ISourceLocation[] todo, IListWriter result, List<ISourceLocation> ignores) throws FactTypeUseException, URISyntaxException, IOException {
-		URIResolverRegistry reg = URIResolverRegistry.getInstance();
-
-		for (ISourceLocation loc : todo) {
-			if (ignores.contains(loc)) {
-				continue;
-			}
-			
-			if (reg.isDirectory(loc)) {
-				findAllRascalFiles(reg.list(loc), result, ignores);
-			}
-			else if (loc.getPath().endsWith(".rsc")) {
-				result.insert(loc);
-			}
-		}
 	}
 
 	private void handleMessages(PathConfig pcfg, IList moduleMessages) throws MojoExecutionException {

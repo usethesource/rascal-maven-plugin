@@ -75,6 +75,7 @@ public class CompileRascalMojo extends AbstractMojo
 	private static final String UNEXPECTED_ERROR = "unexpected error during Rascal compiler run";
 	private static final String MAIN_COMPILER_MODULE = "lang::rascalcore::check::Checker";
 	private static final String INFO_PREFIX_MODULE_PATH = "\trascal module path addition: ";
+	private static final String INFO_PREFIX_LIB_PATH = "\tregistered library location: ";
 	
 	@Parameter(defaultValue="${project}", readonly=true, required=true)
 	private MavenProject project;
@@ -100,8 +101,8 @@ public class CompileRascalMojo extends AbstractMojo
 	@Parameter(property = "warningsAsErrors", required = false, defaultValue = "false" )
 	private boolean warningsAsErrors;
 
-	@Parameter(property="configureStandardLibrarySource", required = false, defaultValue="true")
-	private boolean configureStandardLibrarySource;
+	@Parameter(property="enableStandardLibrary", required = false, defaultValue="true")
+	private boolean enableStandardLibrary;
 	
 	private final PrintWriter err = new PrintWriter(System.err);
 	private final PrintWriter out = new PrintWriter(System.out);
@@ -179,12 +180,9 @@ public class CompileRascalMojo extends AbstractMojo
 				return;
 			}
 			
-			
-			if (configureStandardLibrarySource) {
-				libLocs.add(URIUtil.rootLocation("std"));
-				getLog().warn("\t|std:///| is put both on the source path and the lib path, for bootstrapping reasons.");
-				srcLocs.add(URIUtil.rootLocation("std"));
-				ignoredLocs.add(org.rascalmpl.core.uri.URIUtil.rootLocation("std"));
+			if (enableStandardLibrary) {
+				getLog().info(INFO_PREFIX_LIB_PATH +  "|stdlib:///| ");
+				libLocs.add(URIUtil.rootLocation("stdlib"));
 			}
 			
 			for (ISourceLocation lib : libLocs) {

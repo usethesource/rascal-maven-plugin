@@ -344,12 +344,12 @@ public class CompileRascalMojo extends AbstractMojo
 		for (IValue src : pcfg.getSrcs()) {
 			String path = ((ISourceLocation) src).getURI().getPath();
 
-			if (loc.getURI().getPath().startsWith(path)) {
-				return loc.getURI().getPath().substring(path.length()); 
+			if (loc.getPath().startsWith(path)) {
+				return loc.getPath().substring(path.length()); 
 			}
 		}
 
-		return loc.getURI().getPath();
+		return loc.getPath();
 	}
 
 	private List<ISourceLocation> locations(List<String> files) throws URISyntaxException, FactTypeUseException, IOException {

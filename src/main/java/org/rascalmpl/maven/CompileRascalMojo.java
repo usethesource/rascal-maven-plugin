@@ -122,12 +122,13 @@ public class CompileRascalMojo extends AbstractMojo
 		monitor = new MojoRascalMonitor(getLog());
 		eval.setMonitor(monitor);
 
-		getLog().info(INFO_PREFIX_MODULE_PATH + "|rascalcore:///|");
-		eval.addRascalSearchPath(URIUtil.rootLocation("rascalcore"));
+		getLog().info(INFO_PREFIX_MODULE_PATH + "|lib://typepal/|");
+        eval.addRascalSearchPath(URIUtil.correctLocation("lib", "typepal", ""));
 
-		getLog().info(INFO_PREFIX_MODULE_PATH + "|typepal:///|");
-		eval.addRascalSearchPath(URIUtil.rootLocation("typepal"));
-
+		getLog().info(INFO_PREFIX_MODULE_PATH + "|lib://rascal-core/|");
+		eval.addRascalSearchPath(URIUtil.correctLocation("lib", "rascal-core", ""));
+		
+		System.err.println("LET OP: " + URIResolverRegistry.getInstance().list(URIUtil.correctLocation("lib", "rascal-core", "")));
 		getLog().info(INFO_PREFIX_MODULE_PATH + "|std:///|");
 		eval.addRascalSearchPath(URIUtil.rootLocation("std"));
 

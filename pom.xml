@@ -8,6 +8,10 @@
 	<version>0.1.0-SNAPSHOT</version>
 	<packaging>maven-plugin</packaging>
 
+        <scm>
+            <developerConnection>scm:git:ssh://git@github.com/usethesource/rascal-maven-plugin.git</developerConnection>
+        </scm>
+
 	<name>Rascal Maven Plugin</name>
 	
 	

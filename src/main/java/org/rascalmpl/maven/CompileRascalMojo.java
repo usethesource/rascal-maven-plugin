@@ -128,7 +128,6 @@ public class CompileRascalMojo extends AbstractMojo
 		getLog().info(INFO_PREFIX_MODULE_PATH + "|lib://rascal-core/|");
 		eval.addRascalSearchPath(URIUtil.correctLocation("lib", "rascal-core", ""));
 		
-		System.err.println("LET OP: " + URIResolverRegistry.getInstance().list(URIUtil.correctLocation("lib", "rascal-core", "")));
 		getLog().info(INFO_PREFIX_MODULE_PATH + "|std:///|");
 		eval.addRascalSearchPath(URIUtil.rootLocation("std"));
 

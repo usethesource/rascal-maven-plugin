@@ -5,7 +5,7 @@
 
 	<groupId>org.rascalmpl</groupId>
 	<artifactId>rascal-maven-plugin</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>0.1.0-SNAPSHOT</version>
 	<packaging>maven-plugin</packaging>
 
 	<name>Rascal Maven Plugin</name>
@@ -48,21 +48,21 @@
 			<groupId>org.rascalmpl</groupId>
 			<artifactId>rascal</artifactId>
                         <!-- WARNING: do not use a SNAPSHOT dependency here, because that breaks the bootstrap chain -->
-			<version>0.13.0</version>
+			<version>0.14.0</version>
                         <scope>compile</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.rascalmpl</groupId>
 			<artifactId>typepal</artifactId>
                         <!-- WARNING: do not use a SNAPSHOT dependency here, because that breaks the bootstrap chain -->
-			<version>0.2.0-SNAPSHOT</version>
+			<version>0.3.0</version>
                         <scope>compile</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.rascalmpl</groupId>
 			<artifactId>rascal-core</artifactId>
                         <!-- WARNING: do not use a SNAPSHOT dependency here, because that breaks the bootstrap chain -->
-			<version>0.2.0-SNAPSHOT</version>
+			<version>0.3.1</version>
                         <scope>compile</scope>
 		</dependency>
 		<dependency>
@@ -120,49 +120,6 @@
                         </resource>
                 </resources>
 		<plugins>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-shade-plugin</artifactId>
-				<version>3.2.1</version>
-				<executions>
-					<execution>
-						<phase>package</phase>
-						<goals>
-							<goal>shade</goal>
-						</goals>
-						<configuration>
-							<transformers>
-								<transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-								<manifestEntries>
-									<Name>Rascal Maven Plugin</Name>
-									<Specification-Version>${project.version}</Specification-Version>
-									<Specification-Vendor>http://www.usethesource.io</Specification-Vendor>
-								</manifestEntries>
-								</transformer>
-								<transformer
-									implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
-									<resource>io/usethesource/vallang/type/types.config</resource>
-								</transformer>
-								<transformer
-									implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
-									<resource>org/rascalmpl/uri/resolvers.config</resource>
-								</transformer>
-							</transformers>
-							<filters>
-								<filter>
-									<artifact>*:*</artifact>
-									<excludes>
-										<exclude>META-INF/*.SF</exclude>
-										<exclude>META-INF/*.DSA</exclude>
-										<exclude>META-INF/*.RSA</exclude>
-										<exclude>META-INF/DEPENDENCIES</exclude>
-									</excludes>
-								</filter>
-							</filters>
-						</configuration>
-					</execution>
-				</executions>
-			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-plugin-plugin</artifactId>

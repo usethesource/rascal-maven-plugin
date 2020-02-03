@@ -11,9 +11,6 @@
 package org.rascalmpl.maven;
 
 import java.io.File;
-import java.io.IOException;
-import java.util.LinkedList;
-import java.util.List;
 
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.plugin.AbstractMojo;
@@ -37,22 +34,13 @@ public class RascalConsoleMojo extends AbstractMojo
 	    String javaHome = System.getProperty("java.home");
         String javaBin = javaHome + File.separator + "bin" + File.separator + "java";
 
-        List<String> command = new LinkedList<String>();
-        command.add(javaBin);
-        command.add("-cp");
-        command.add(collectClasspath());
-        command.add("org.rascalmpl.shell.RascalShell");
+        StringBuilder command = new StringBuilder();
+        command.append(javaBin);
+        command.append(" -cp ");
+        command.append(collectClasspath());
+        command.append(" org.rascalmpl.shell.RascalShell");
 
-        try {
-            ProcessBuilder builder = new ProcessBuilder(command);
-            Process process = builder.inheritIO().start();
-            process.waitFor();
-        } catch (IOException e) {
-            getLog().error(e);
-        } catch (InterruptedException e) {
-            getLog().warn(e);
-        }
-        finally {}
+        getLog().info(command);
 	}
 	
 	private String collectClasspath() {

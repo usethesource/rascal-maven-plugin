@@ -131,7 +131,8 @@
 					<skipErrorNoDescriptorsFound>true</skipErrorNoDescriptorsFound>
 					<mojoDependencies>
 						<param>org.rascalmpl:maven-plugin</param>
-					</mojoDependencies>
+                                            </mojoDependencies>
+                                            <goalPrefix>rascal</goalPrefix>
 				</configuration>
 				<executions>
 					<execution>

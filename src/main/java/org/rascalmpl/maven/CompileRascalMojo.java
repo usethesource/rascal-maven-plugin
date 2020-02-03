@@ -71,7 +71,7 @@ import io.usethesource.vallang.io.StandardTextReader;
  * source of the compiler. After the bootstrap, this parameter will become optional.
  * 
  */
-@Mojo(name="compile-rascal", defaultPhase = LifecyclePhase.COMPILE, requiresDependencyCollection = ResolutionScope.COMPILE_PLUS_RUNTIME, requiresDependencyResolution = ResolutionScope.COMPILE_PLUS_RUNTIME)
+@Mojo(name="compile", defaultPhase = LifecyclePhase.COMPILE, requiresDependencyCollection = ResolutionScope.COMPILE_PLUS_RUNTIME, requiresDependencyResolution = ResolutionScope.COMPILE_PLUS_RUNTIME)
 public class CompileRascalMojo extends AbstractMojo
 {
 	private static final String UNEXPECTED_ERROR = "unexpected error during Rascal compiler run";

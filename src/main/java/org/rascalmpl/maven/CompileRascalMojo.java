@@ -82,9 +82,6 @@ public class CompileRascalMojo extends AbstractMojo
 	@Parameter(defaultValue="${project}", readonly=true, required=true)
 	private MavenProject project;
 
-	@Parameter(defaultValue = "|boot:///|", property = "boot", required = true )
-	private String boot;
-
 	@Parameter(defaultValue = "${project.build.outputDirectory}", property = "bin", required = true )
 	private String bin;
 
@@ -188,7 +185,7 @@ public class CompileRascalMojo extends AbstractMojo
 			
 			getLog().info("paths have been configured");
 			
-			PathConfig pcfg = new PathConfig(srcLocs, libLocs, binLoc, location(boot));
+			PathConfig pcfg = new PathConfig(srcLocs, libLocs, binLoc);
 			Evaluator eval = makeEvaluator(pcfg);
 
 			

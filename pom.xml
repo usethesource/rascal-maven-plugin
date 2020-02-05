@@ -47,7 +47,7 @@
 		<dependency>
 			<groupId>org.rascalmpl</groupId>
 			<artifactId>rascal</artifactId>
-			<version>0.13.0-simulated-annotations-SNAPSHOT</version>
+			<version>0.15.0-simulated-annotations-SNAPSHOT</version>
                         <scope>compile</scope>
 		</dependency>
 		<dependency>

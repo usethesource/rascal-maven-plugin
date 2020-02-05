@@ -1,12 +1,15 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
 	<groupId>org.rascalmpl</groupId>
 	<artifactId>rascal-maven-plugin</artifactId>
-	<version>0.0.1-simulated-annotations-SNAPSHOT</version>
+	<version>0.2.0-simulated-annotations-SNAPSHOT</version>
 	<packaging>maven-plugin</packaging>
+
+        <scm>
+            <developerConnection>scm:git:ssh://git@github.com/usethesource/rascal-maven-plugin.git</developerConnection>
+          <tag>HEAD</tag>
+  </scm>
 
 	<name>Rascal Maven Plugin</name>
 	
@@ -47,19 +50,22 @@
 		<dependency>
 			<groupId>org.rascalmpl</groupId>
 			<artifactId>rascal</artifactId>
+                        <!-- WARNING: do not use a SNAPSHOT dependency here, because that breaks the bootstrap chain -->
 			<version>0.15.0-simulated-annotations-SNAPSHOT</version>
                         <scope>compile</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.rascalmpl</groupId>
 			<artifactId>typepal</artifactId>
-			<version>0.2.0-SNAPSHOT</version>
+                        <!-- WARNING: do not use a SNAPSHOT dependency here, because that breaks the bootstrap chain -->
+			<version>0.3.0</version>
                         <scope>compile</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.rascalmpl</groupId>
 			<artifactId>rascal-core</artifactId>
-			<version>0.2.0-SNAPSHOT</version>
+                        <!-- WARNING: do not use a SNAPSHOT dependency here, because that breaks the bootstrap chain -->
+			<version>0.3.1</version>
                         <scope>compile</scope>
 		</dependency>
 		<dependency>
@@ -119,56 +125,14 @@
 		<plugins>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-shade-plugin</artifactId>
-				<version>3.2.1</version>
-				<executions>
-					<execution>
-						<phase>package</phase>
-						<goals>
-							<goal>shade</goal>
-						</goals>
-						<configuration>
-							<transformers>
-								<transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-								<manifestEntries>
-									<Name>Rascal Maven Plugin</Name>
-									<Specification-Version>${project.version}</Specification-Version>
-									<Specification-Vendor>http://www.usethesource.io</Specification-Vendor>
-								</manifestEntries>
-								</transformer>
-								<transformer
-									implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
-									<resource>io/usethesource/vallang/type/types.config</resource>
-								</transformer>
-								<transformer
-									implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
-									<resource>org/rascalmpl/uri/resolvers.config</resource>
-								</transformer>
-							</transformers>
-							<filters>
-								<filter>
-									<artifact>*:*</artifact>
-									<excludes>
-										<exclude>META-INF/*.SF</exclude>
-										<exclude>META-INF/*.DSA</exclude>
-										<exclude>META-INF/*.RSA</exclude>
-										<exclude>META-INF/DEPENDENCIES</exclude>
-									</excludes>
-								</filter>
-							</filters>
-						</configuration>
-					</execution>
-				</executions>
-			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-plugin-plugin</artifactId>
 				<version>3.6.0</version>
 				<configuration>
 					<skipErrorNoDescriptorsFound>true</skipErrorNoDescriptorsFound>
 					<mojoDependencies>
 						<param>org.rascalmpl:maven-plugin</param>
-					</mojoDependencies>
+                                            </mojoDependencies>
+                                            <goalPrefix>rascal</goalPrefix>
 				</configuration>
 				<executions>
 					<execution>

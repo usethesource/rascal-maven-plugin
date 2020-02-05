@@ -71,7 +71,7 @@ import io.usethesource.vallang.io.StandardTextReader;
  * source of the compiler. After the bootstrap, this parameter will become optional.
  * 
  */
-@Mojo(name="compile-rascal", defaultPhase = LifecyclePhase.COMPILE, requiresDependencyCollection = ResolutionScope.COMPILE_PLUS_RUNTIME, requiresDependencyResolution = ResolutionScope.COMPILE_PLUS_RUNTIME)
+@Mojo(name="compile", defaultPhase = LifecyclePhase.COMPILE, requiresDependencyCollection = ResolutionScope.COMPILE_PLUS_RUNTIME, requiresDependencyResolution = ResolutionScope.COMPILE_PLUS_RUNTIME)
 public class CompileRascalMojo extends AbstractMojo
 {
 	private static final String UNEXPECTED_ERROR = "unexpected error during Rascal compiler run";
@@ -81,9 +81,6 @@ public class CompileRascalMojo extends AbstractMojo
 	
 	@Parameter(defaultValue="${project}", readonly=true, required=true)
 	private MavenProject project;
-
-	@Parameter(defaultValue = "|boot:///|", property = "boot", required = true )
-	private String boot;
 
 	@Parameter(defaultValue = "${project.build.outputDirectory}", property = "bin", required = true )
 	private String bin;
@@ -122,12 +119,12 @@ public class CompileRascalMojo extends AbstractMojo
 		monitor = new MojoRascalMonitor(getLog());
 		eval.setMonitor(monitor);
 
-		getLog().info(INFO_PREFIX_MODULE_PATH + "|rascalcore:///|");
-		eval.addRascalSearchPath(URIUtil.rootLocation("rascalcore"));
+		getLog().info(INFO_PREFIX_MODULE_PATH + "|lib://typepal/|");
+        eval.addRascalSearchPath(URIUtil.correctLocation("lib", "typepal", ""));
 
-		getLog().info(INFO_PREFIX_MODULE_PATH + "|typepal:///|");
-		eval.addRascalSearchPath(URIUtil.rootLocation("typepal"));
-
+		getLog().info(INFO_PREFIX_MODULE_PATH + "|lib://rascal-core/|");
+		eval.addRascalSearchPath(URIUtil.correctLocation("lib", "rascal-core", ""));
+		
 		getLog().info(INFO_PREFIX_MODULE_PATH + "|std:///|");
 		eval.addRascalSearchPath(URIUtil.rootLocation("std"));
 
@@ -188,7 +185,7 @@ public class CompileRascalMojo extends AbstractMojo
 			
 			getLog().info("paths have been configured");
 			
-			PathConfig pcfg = new PathConfig(srcLocs, libLocs, binLoc, location(boot));
+			PathConfig pcfg = new PathConfig(srcLocs, libLocs, binLoc);
 			Evaluator eval = makeEvaluator(pcfg);
 
 			

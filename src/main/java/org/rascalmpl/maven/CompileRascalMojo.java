@@ -24,7 +24,6 @@ import java.util.Set;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
-import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
@@ -33,7 +32,6 @@ import org.apache.maven.project.MavenProject;
 import org.codehaus.plexus.compiler.util.scan.InclusionScanException;
 import org.codehaus.plexus.compiler.util.scan.StaleSourceScanner;
 import org.codehaus.plexus.compiler.util.scan.mapping.SuffixMapping;
-import org.rascalmpl.debug.IRascalMonitor;
 import org.rascalmpl.interpreter.Evaluator;
 import org.rascalmpl.interpreter.env.GlobalEnvironment;
 import org.rascalmpl.interpreter.env.ModuleEnvironment;
@@ -128,9 +126,6 @@ public class CompileRascalMojo extends AbstractMojo
 		getLog().info(INFO_PREFIX_MODULE_PATH + "|std:///|");
 		eval.addRascalSearchPath(URIUtil.rootLocation("std"));
 
-		getLog().info(INFO_PREFIX_MODULE_PATH + pcfg.getBoot());
-		eval.addRascalSearchPath(pcfg.getBoot());
-		
 		getLog().info("\timporting " + MAIN_COMPILER_MODULE);
 		eval.doImport(monitor, MAIN_COMPILER_MODULE);
 
@@ -354,53 +349,6 @@ public class CompileRascalMojo extends AbstractMojo
 		}
 		else {
 			return URIUtil.createFileLocation(file);
-		}
-	}
-
-	private static class MojoRascalMonitor implements IRascalMonitor {
-		private final Log log;
-
-		public MojoRascalMonitor(Log log) {
-			this.log = log;
-		}
-
-		public void startJob(String name) {
-		}
-
-		public void startJob(String name, int totalWork) {
-			startJob(name);
-		}
-
-		public void startJob(String name, int workShare, int totalWork) {
-			startJob(name);
-		}
-
-		public void event(String name) {
-		}
-
-		public void event(String name, int inc) {
-			event(name);
-
-		}
-
-		public void event(int inc) {
-
-		}
-
-		public int endJob(boolean succeeded) {
-			return 0;
-		}
-
-		public boolean isCanceled() {
-			return false;
-		}
-
-		public void todo(int work) {
-
-		}
-
-		public void warning(String message, ISourceLocation src) {
-			log.warn(src.toString() + ": " + message);
 		}
 	}
 }

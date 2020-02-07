@@ -166,7 +166,7 @@ public class CompileRascalMojo extends AbstractMojo
 			}
 			
 			if (enableStandardLibrary) {
-				libLocs.add(URIUtil.rootLocation("lib://rascal/"));
+				libLocs.add(URIUtil.correctLocation("lib", "rascal", ""));
 			}
 			
 			// complete libraries with maven artifacts which include a META-INF/RASCAL.MF file

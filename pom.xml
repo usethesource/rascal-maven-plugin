@@ -51,21 +51,21 @@
 			<groupId>org.rascalmpl</groupId>
 			<artifactId>rascal</artifactId>
                         <!-- WARNING: do not use a SNAPSHOT dependency here, because that breaks the bootstrap chain -->
-			<version>0.14.0</version>
+			<version>0.15.1</version>
                         <scope>compile</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.rascalmpl</groupId>
 			<artifactId>typepal</artifactId>
                         <!-- WARNING: do not use a SNAPSHOT dependency here, because that breaks the bootstrap chain -->
-			<version>0.3.0</version>
+			<version>0.4.0</version>
                         <scope>compile</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.rascalmpl</groupId>
 			<artifactId>rascal-core</artifactId>
                         <!-- WARNING: do not use a SNAPSHOT dependency here, because that breaks the bootstrap chain -->
-			<version>0.3.1</version>
+			<version>0.4.0</version>
                         <scope>compile</scope>
 		</dependency>
 		<dependency>

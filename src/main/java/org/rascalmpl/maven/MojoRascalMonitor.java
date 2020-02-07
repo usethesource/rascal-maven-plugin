@@ -7,9 +7,11 @@ import io.usethesource.vallang.ISourceLocation;
 
 public class MojoRascalMonitor implements IRascalMonitor {
 	private final Log log;
+    private final boolean chatty;
 
-	public MojoRascalMonitor(Log log) {
+	public MojoRascalMonitor(Log log, boolean chatty) {
 		this.log = log;
+		this.chatty = chatty;
 	}
 
 	public void startJob(String name) {
@@ -24,6 +26,9 @@ public class MojoRascalMonitor implements IRascalMonitor {
 	}
 
 	public void event(String name) {
+	    if (chatty) {
+	        log.info(name);
+	    }
 	}
 
 	public void event(String name, int inc) {

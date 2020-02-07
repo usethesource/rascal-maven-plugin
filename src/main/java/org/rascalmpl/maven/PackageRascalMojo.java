@@ -62,8 +62,8 @@ public class PackageRascalMojo extends AbstractMojo
 	@Parameter(property = "srcs", required = true)
 	private List<String> srcs;
 	
-	@Parameter(defaultValue = "lib://${project}/sources", property = "target", required = true )
-    private String target;
+	@Parameter(defaultValue = "|lib://${project.name}/|", property = "sourceLookup", required = true )
+    private String sourceLookup;
     
 	private final PrintWriter err = new PrintWriter(System.err);
 	private final PrintWriter out = new PrintWriter(System.out);
@@ -71,12 +71,12 @@ public class PackageRascalMojo extends AbstractMojo
 	private Evaluator makeEvaluator() throws URISyntaxException, FactTypeUseException, IOException {
 		getLog().info("start loading the packager");
 		GlobalEnvironment heap = new GlobalEnvironment();
-		Evaluator eval = new Evaluator(ValueFactoryFactory.getValueFactory(), err, out, new ModuleEnvironment("***MVN Rascal Compiler***", heap), heap);
+		Evaluator eval = new Evaluator(ValueFactoryFactory.getValueFactory(), err, out, new ModuleEnvironment("***MVN Rascal Packager***", heap), heap);
 
 		URL vallangJarFile = IValueFactory.class.getProtectionDomain().getCodeSource().getLocation();
 		eval.getConfiguration().setRascalJavaClassPathProperty(new File(vallangJarFile.toURI()).toString());
 
-		MojoRascalMonitor monitor = new MojoRascalMonitor(getLog());
+		MojoRascalMonitor monitor = new MojoRascalMonitor(getLog(), false);
         eval.setMonitor(monitor);
 
 		getLog().info(INFO_PREFIX_MODULE_PATH + "|lib://typepal/|");
@@ -101,10 +101,10 @@ public class PackageRascalMojo extends AbstractMojo
 		    Evaluator eval = makeEvaluator();
 		    
 			ISourceLocation binLoc = location(bin);
-			ISourceLocation targetLoc = location(target);
+			ISourceLocation sourceLookupLoc = location(sourceLookup);
 			IList srcLocs = locations(srcs);
 			
-			eval.call(new MojoRascalMonitor(getLog()), "package", srcLocs, binLoc, targetLoc);
+			eval.call(new MojoRascalMonitor(getLog(), true), "package", srcLocs, binLoc, sourceLookupLoc);
 
 			getLog().info("packager is done.");
 			

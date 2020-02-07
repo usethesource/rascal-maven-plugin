@@ -114,7 +114,7 @@ public class CompileRascalMojo extends AbstractMojo
 		URL vallangJarFile = IValueFactory.class.getProtectionDomain().getCodeSource().getLocation();
 		eval.getConfiguration().setRascalJavaClassPathProperty(new File(vallangJarFile.toURI()).toString());
 
-		monitor = new MojoRascalMonitor(getLog());
+		monitor = new MojoRascalMonitor(getLog(), false);
 		eval.setMonitor(monitor);
 
 		getLog().info(INFO_PREFIX_MODULE_PATH + "|lib://typepal/|");

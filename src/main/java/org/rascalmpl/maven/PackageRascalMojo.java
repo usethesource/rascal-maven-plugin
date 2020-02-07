@@ -46,7 +46,7 @@ import io.usethesource.vallang.io.StandardTextReader;
  *      to the copied source files in the jar rather than source files of the current project.
  * 
  */
-@Mojo(name="package", defaultPhase = LifecyclePhase.PACKAGE, requiresDependencyCollection = ResolutionScope.COMPILE_PLUS_RUNTIME, requiresDependencyResolution = ResolutionScope.COMPILE_PLUS_RUNTIME)
+@Mojo(name="package", defaultPhase = LifecyclePhase.PREPARE_PACKAGE, requiresDependencyCollection = ResolutionScope.COMPILE_PLUS_RUNTIME, requiresDependencyResolution = ResolutionScope.COMPILE_PLUS_RUNTIME)
 public class PackageRascalMojo extends AbstractMojo
 {
     private static final String UNEXPECTED_ERROR = "unexpected error during Rascal compiler run";

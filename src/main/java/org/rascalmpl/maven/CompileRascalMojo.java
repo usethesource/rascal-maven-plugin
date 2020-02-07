@@ -166,9 +166,7 @@ public class CompileRascalMojo extends AbstractMojo
 			}
 			
 			if (enableStandardLibrary) {
-				// TODO: add stdlib location resolver to Rascal project, for now: |manifest:///| will do since it resolves to the same root location
-				// in the rascal-maven-plugin (shaded) jar
-				libLocs.add(URIUtil.rootLocation("manifest"));
+				libLocs.add(URIUtil.rootLocation("lib://rascal/"));
 			}
 			
 			// complete libraries with maven artifacts which include a META-INF/RASCAL.MF file

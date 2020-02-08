@@ -260,8 +260,10 @@ public class CompileRascalMojo extends AbstractMojo
 			
 			for (IValue error : messages) {
 				ISourceLocation loc = (ISourceLocation) ((IConstructor) error).get("at");
-				maxLine = Math.max(loc.getBeginLine(), maxLine);
-				maxColumn = Math.max(loc.getBeginColumn(), maxColumn);
+				if(loc.hasLineColumn()) {
+					maxLine = Math.max(loc.getBeginLine(), maxLine);
+					maxColumn = Math.max(loc.getBeginColumn(), maxColumn);
+				}
 			}
 		}
 
@@ -286,8 +288,12 @@ public class CompileRascalMojo extends AbstractMojo
 				hasErrors |= isError || warningsAsErrors;
 				
 				ISourceLocation loc = (ISourceLocation) msg.get("at");
-				int col = loc.getBeginColumn();
-				int line = loc.getBeginLine();
+				int col = 0;
+				int line = 0;
+				if(loc.hasLineColumn()) {
+					col = loc.getBeginColumn();
+					line = loc.getBeginLine();
+				}
 
 				String output 
 				= abbreviate(loc, pcfg) 

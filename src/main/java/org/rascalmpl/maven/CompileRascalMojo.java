@@ -263,6 +263,8 @@ public class CompileRascalMojo extends AbstractMojo
 				if(loc.hasLineColumn()) {
 					maxLine = Math.max(loc.getBeginLine(), maxLine);
 					maxColumn = Math.max(loc.getBeginColumn(), maxColumn);
+				} else {
+					getLog().error("loc without line/column: " + loc);
 				}
 			}
 		}

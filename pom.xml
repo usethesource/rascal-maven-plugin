@@ -142,9 +142,17 @@
 						</goals>
 					</execution>
 				</executions>
-			</plugin>
-		</plugins>
-	</build>
+                            </plugin>
+                            <plugin>
+                                <groupId>org.apache.maven.plugins</groupId>
+                                <artifactId>maven-release-plugin</artifactId>
+                                <version>2.5.3</version>
+                                <configuration>
+                                    <tagNameFormat>v@{project.version}</tagNameFormat>
+                                </configuration>
+                            </plugin>
+                        </plugins>
+                    </build>
 	<profiles>
 		<profile>
 			<id>run-its</id>

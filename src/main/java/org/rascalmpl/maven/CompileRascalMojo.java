@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.plugin.AbstractMojo;
@@ -201,13 +202,22 @@ public class CompileRascalMojo extends AbstractMojo
 	}
 
 	private void collectDependentArtifactLibraries(List<ISourceLocation> libLocs) throws URISyntaxException, IOException {
+	    RascalManifest mf = new RascalManifest();
+	    Set<String> projects = libLocs.stream().map(l -> mf.getProjectName(l)).collect(Collectors.toSet());
+	    
 		for (Object o : project.getArtifacts()) {
 			Artifact a = (Artifact) o;
 			File file = a.getFile().getAbsoluteFile();
 			ISourceLocation jarLoc = RascalManifest.jarify(location(file.toString()));
 			
 			if (reg.exists(URIUtil.getChildLocation(jarLoc, "META-INF/RASCAL.MF"))) {
-				libLocs.add(jarLoc);
+			    String projectName = mf.getProjectName(jarLoc);
+			    
+			    // only add a library if it is not already on the lib path
+			    if (!projects.contains(projectName)) {
+			        libLocs.add(jarLoc);
+			        projects.add(projectName);
+			    }
 			}
 		}
 	}

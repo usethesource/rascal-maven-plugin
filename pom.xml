@@ -58,14 +58,14 @@
 			<groupId>org.rascalmpl</groupId>
 			<artifactId>typepal</artifactId>
                         <!-- WARNING: do not use a SNAPSHOT dependency here, because that breaks the bootstrap chain -->
-			<version>0.4.2</version>
+			<version>0.4.3</version>
                         <scope>compile</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.rascalmpl</groupId>
 			<artifactId>rascal-core</artifactId>
                         <!-- WARNING: do not use a SNAPSHOT dependency here, because that breaks the bootstrap chain -->
-			<version>0.4.7</version>
+			<version>0.4.8</version>
                         <scope>compile</scope>
 		</dependency>
 		<dependency>

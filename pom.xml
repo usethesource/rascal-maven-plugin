@@ -65,7 +65,7 @@
 			<groupId>org.rascalmpl</groupId>
 			<artifactId>rascal-core</artifactId>
                         <!-- WARNING: do not use a SNAPSHOT dependency here, because that breaks the bootstrap chain -->
-			<version>0.4.9</version>
+			<version>0.4.10</version>
                         <scope>compile</scope>
 		</dependency>
 		<dependency>

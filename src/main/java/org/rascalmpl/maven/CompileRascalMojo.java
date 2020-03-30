@@ -200,7 +200,7 @@ public class CompileRascalMojo extends AbstractMojo
 		} catch (InclusionScanException e) {
 			throw new MojoExecutionException(UNEXPECTED_ERROR, e);
 		} catch (Throw e) {
-		    getLog().error(e);
+		    getLog().error(e.getLocation() + ": " + e.getMessage());
 		    getLog().error(e.getTrace().toString());
 		    throw new MojoExecutionException(UNEXPECTED_ERROR, e); 
 		}

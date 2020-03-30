@@ -34,6 +34,7 @@ import org.codehaus.plexus.compiler.util.scan.InclusionScanException;
 import org.codehaus.plexus.compiler.util.scan.StaleSourceScanner;
 import org.codehaus.plexus.compiler.util.scan.mapping.SuffixMapping;
 import org.rascalmpl.interpreter.Evaluator;
+import org.rascalmpl.interpreter.control_exceptions.Throw;
 import org.rascalmpl.interpreter.env.GlobalEnvironment;
 import org.rascalmpl.interpreter.env.ModuleEnvironment;
 import org.rascalmpl.interpreter.utils.RascalManifest;
@@ -198,6 +199,10 @@ public class CompileRascalMojo extends AbstractMojo
 			throw new MojoExecutionException(UNEXPECTED_ERROR, e);
 		} catch (InclusionScanException e) {
 			throw new MojoExecutionException(UNEXPECTED_ERROR, e);
+		} catch (Throw e) {
+		    getLog().error(e);
+		    getLog().error(e.getTrace().toString());
+		    throw new MojoExecutionException(UNEXPECTED_ERROR, e); 
 		}
 	}
 

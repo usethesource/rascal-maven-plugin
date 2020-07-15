@@ -103,15 +103,12 @@ public class CompileRascalMojo extends AbstractMojo
 	@Parameter(property="enableStandardLibrary", required = false, defaultValue="true")
 	private boolean enableStandardLibrary;
 	
-	private final PrintWriter err = new PrintWriter(System.err);
-	private final PrintWriter out = new PrintWriter(System.out);
-
 	private MojoRascalMonitor monitor;
 
 	private Evaluator makeEvaluator(PathConfig pcfg) throws URISyntaxException, FactTypeUseException, IOException {
 		getLog().info("start loading the compiler");
 		GlobalEnvironment heap = new GlobalEnvironment();
-		Evaluator eval = new Evaluator(ValueFactoryFactory.getValueFactory(), err, out, new ModuleEnvironment("***MVN Rascal Compiler***", heap), heap);
+		Evaluator eval = new Evaluator(ValueFactoryFactory.getValueFactory(), System.in, System.err, System.out, new ModuleEnvironment("***MVN Rascal Compiler***", heap), heap);
 
 		URL vallangJarFile = IValueFactory.class.getProtectionDomain().getCodeSource().getLocation();
 		eval.getConfiguration().setRascalJavaClassPathProperty(new File(vallangJarFile.toURI()).toString());

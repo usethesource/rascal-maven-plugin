@@ -65,13 +65,10 @@ public class PackageRascalMojo extends AbstractMojo
 	@Parameter(defaultValue = "|lib://${project.name}/|", property = "sourceLookup", required = true )
     private String sourceLookup;
     
-	private final PrintWriter err = new PrintWriter(System.err);
-	private final PrintWriter out = new PrintWriter(System.out);
-
 	private Evaluator makeEvaluator() throws URISyntaxException, FactTypeUseException, IOException {
 		getLog().info("start loading the packager");
 		GlobalEnvironment heap = new GlobalEnvironment();
-		Evaluator eval = new Evaluator(ValueFactoryFactory.getValueFactory(), err, out, new ModuleEnvironment("***MVN Rascal Packager***", heap), heap);
+		Evaluator eval = new Evaluator(ValueFactoryFactory.getValueFactory(), System.in, System.err, System.out, new ModuleEnvironment("***MVN Rascal Packager***", heap), heap);
 
 		URL vallangJarFile = IValueFactory.class.getProtectionDomain().getCodeSource().getLocation();
 		eval.getConfiguration().setRascalJavaClassPathProperty(new File(vallangJarFile.toURI()).toString());

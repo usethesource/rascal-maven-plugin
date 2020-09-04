@@ -3,12 +3,12 @@
 
 	<groupId>org.rascalmpl</groupId>
 	<artifactId>rascal-maven-plugin</artifactId>
-	<version>0.3.3-SNAPSHOT</version>
+	<version>0.3.3</version>
 	<packaging>maven-plugin</packaging>
 
         <scm>
             <developerConnection>scm:git:ssh://git@github.com/usethesource/rascal-maven-plugin.git</developerConnection>
-    <tag>HEAD</tag>
+    <tag>v0.3.3</tag>
   </scm>
 
 	<name>Rascal Maven Plugin</name>
@@ -51,7 +51,7 @@
 			<groupId>org.rascalmpl</groupId>
 			<artifactId>rascal</artifactId>
                         <!-- WARNING: do not use a SNAPSHOT dependency here, because that breaks the bootstrap chain -->
-			<version>0.19.1-SNAPSHOT</version>
+			<version>0.19.1</version>
                         <scope>compile</scope>
 		</dependency>
 		<dependency>

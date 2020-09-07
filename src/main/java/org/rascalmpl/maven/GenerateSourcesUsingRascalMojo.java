@@ -32,6 +32,7 @@ import org.rascalmpl.interpreter.Evaluator;
 import org.rascalmpl.interpreter.control_exceptions.Throw;
 import org.rascalmpl.interpreter.env.GlobalEnvironment;
 import org.rascalmpl.interpreter.env.ModuleEnvironment;
+import org.rascalmpl.interpreter.staticErrors.StaticError;
 import org.rascalmpl.interpreter.utils.RascalManifest;
 import org.rascalmpl.library.util.PathConfig;
 import org.rascalmpl.uri.URIResolverRegistry;
@@ -109,6 +110,8 @@ public class GenerateSourcesUsingRascalMojo extends AbstractMojo
     }
 
     public void execute() throws MojoExecutionException {
+        Evaluator eval = null;
+        
         try {
             ISourceLocation binLoc = location(generated);
             List<ISourceLocation> srcLocs = locations(srcs);
@@ -124,7 +127,9 @@ public class GenerateSourcesUsingRascalMojo extends AbstractMojo
             
             PathConfig pcfg = new PathConfig(srcLocs, libLocs, binLoc);
 
-            makeEvaluator(pcfg).call(monitor, mainFunction, pcfg.asConstructor());
+            eval = makeEvaluator(pcfg);
+
+            eval.call(monitor, mainFunction, pcfg.asConstructor());
 
             getLog().info(mainFunction + " is done.");
             
@@ -137,6 +142,12 @@ public class GenerateSourcesUsingRascalMojo extends AbstractMojo
             getLog().error(e.getLocation() + ": " + e.getMessage());
             getLog().error(e.getTrace().toString());
             throw new MojoExecutionException(UNEXPECTED_ERROR, e); 
+        } catch (StaticError e) {
+            if (eval != null) {
+                getLog().error(e.getLocation() + ": " + e.getMessage());
+                getLog().error(eval.getStackTrace().toString());
+            }
+            throw e;
         }
     }
 

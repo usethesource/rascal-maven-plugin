@@ -35,6 +35,7 @@ import org.rascalmpl.interpreter.env.ModuleEnvironment;
 import org.rascalmpl.interpreter.staticErrors.StaticError;
 import org.rascalmpl.interpreter.utils.RascalManifest;
 import org.rascalmpl.library.util.PathConfig;
+import org.rascalmpl.uri.ILogicalSourceLocationResolver;
 import org.rascalmpl.uri.URIResolverRegistry;
 import org.rascalmpl.uri.URIUtil;
 import org.rascalmpl.values.ValueFactoryFactory;
@@ -105,6 +106,25 @@ public class GenerateSourcesUsingRascalMojo extends AbstractMojo
         eval.doImport(monitor, mainModule);
 
         getLog().info("\tdone loading " + mainModule);
+        
+        URIResolverRegistry.getInstance().registerLogical(new ILogicalSourceLocationResolver() {
+            ISourceLocation root = URIUtil.createFileLocation(project.getBasedir().getAbsolutePath());
+            
+            @Override
+            public String scheme() {
+                return "project";
+            }
+            
+            @Override
+            public ISourceLocation resolve(ISourceLocation input) throws IOException {
+                return URIUtil.getChildLocation(root, input.getPath()); 
+            }
+            
+            @Override
+            public String authority() {
+                return project.getName();
+            }
+        });
 
         return eval;
     }

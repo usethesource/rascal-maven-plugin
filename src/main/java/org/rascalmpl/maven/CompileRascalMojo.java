@@ -31,6 +31,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -61,6 +62,7 @@ import org.rascalmpl.interpreter.utils.RascalManifest;
 import org.rascalmpl.library.util.PathConfig;
 import org.rascalmpl.uri.URIResolverRegistry;
 import org.rascalmpl.uri.URIUtil;
+import org.rascalmpl.util.ConcurrentSoftReferenceObjectPool;
 import org.rascalmpl.values.ValueFactoryFactory;
 
 import io.usethesource.vallang.IConstructor;
@@ -136,8 +138,8 @@ public class CompileRascalMojo extends AbstractMojo
 		safeLog(l -> l.info("start loading the compiler"));
 		GlobalEnvironment heap = new GlobalEnvironment();
 		Evaluator eval = new Evaluator(ValueFactoryFactory.getValueFactory(), System.in, err, out, new ModuleEnvironment("***MVN Rascal Compiler***", heap), heap);
-		URL vallangJarFile = IValueFactory.class.getProtectionDomain().getCodeSource().getLocation();
-		eval.getConfiguration().setRascalJavaClassPathProperty(new File(vallangJarFile.toURI()).toString());
+		URL rascalJarFile = ValueFactoryFactory.class.getProtectionDomain().getCodeSource().getLocation();
+		eval.getConfiguration().setRascalJavaClassPathProperty(new File(rascalJarFile.toURI()).toString());
 
 		monitor = new MojoRascalMonitor(getLog(), false);
 		eval.setMonitor(monitor);
@@ -299,6 +301,8 @@ public class CompileRascalMojo extends AbstractMojo
 	    	getLog().debug("Running checker in single threaded mode");
 	        return runCheckerSingle(monitor, todoList, makeEvaluator(System.err, System.out), pcfg);
 		}
+		ConcurrentSoftReferenceObjectPool<Evaluator> evaluators = createEvaluatorPool();
+
 		Queue<IList> errorMessages = new ConcurrentLinkedQueue<>();
 		IListWriter start = VF.listWriter();
 		List<IList> chunks = splitTodoList(todoList, parallelPreChecks, start);
@@ -312,11 +316,9 @@ public class CompileRascalMojo extends AbstractMojo
 				executor.execute(() -> {
 					try {
 						safeLog(l -> l.debug("Running pre-phase: " + initialTodo));
-						Evaluator eval = makeEvaluator(
-								new SynchronizedOutputStream(System.err),
-								new SynchronizedOutputStream(System.out)
-						);
-						errorMessages.add(runCheckerSingle(monitor, initialTodo, eval, pcfg));
+						errorMessages.add(evaluators.useAndReturn(eval ->
+							runCheckerSingle(monitor, initialTodo, eval, pcfg)
+						));
 						safeLog(l -> l.debug("Finished running the pre-phase checker"));
 					} catch (Exception e) {
 						safeLog(l -> l.error("Failure executing pre-phase:", e));
@@ -343,10 +345,15 @@ public class CompileRascalMojo extends AbstractMojo
 							try {
 								Thread.sleep(1000);  // give the other evaluator a head start
 								safeLog(l -> l.debug("Starting fresh evaluator"));
-								Evaluator myEval = makeEvaluator(new SynchronizedOutputStream(System.err), new SynchronizedOutputStream(System.out));
-								prePhaseDone.acquire();
-								safeLog(l -> l.debug("Starting checking chunk with " + todo.size() +  " entries"));
-								errorMessages.add(runCheckerSingle(monitor, todo, myEval, myConfig));
+								errorMessages.add(evaluators.useAndReturn(e -> {
+									try {
+										prePhaseDone.acquire();
+										safeLog(l -> l.debug("Starting checking chunk with " + todo.size() +  " entries"));
+										return runCheckerSingle(monitor, todo, e, myConfig);
+									} catch (InterruptedException interruptedException) {
+									    return VF.list();
+									}
+								}));
 							} catch (Exception e) {
 								safeLog(l -> l.error("Failure executing:", e));
 								failure.compareAndSet(null, e);
@@ -378,6 +385,22 @@ public class CompileRascalMojo extends AbstractMojo
 			result.appendAll(err);
 		}
 		return result.done();
+	}
+
+	private ConcurrentSoftReferenceObjectPool<Evaluator> createEvaluatorPool() {
+		return new ConcurrentSoftReferenceObjectPool<>(
+				1, TimeUnit.MINUTES,
+				1, parallelAmount(),
+				() -> {
+					try {
+						return makeEvaluator(
+								new SynchronizedOutputStream(System.err),
+								new SynchronizedOutputStream(System.out)
+						);
+					} catch (URISyntaxException | IOException e) {
+						throw new RuntimeException(e);
+					}
+		});
 	}
 
 	private static void mergeBinFolders(ISourceLocation bin, List<ISourceLocation> binFolders) throws IOException {

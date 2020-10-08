@@ -1,4 +1,4 @@
-module Example
+module Example2
 
 import Pre;
 

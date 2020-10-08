@@ -10,32 +10,52 @@
  */
 package org.rascalmpl.maven;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.StringReader;
+import java.io.UnsupportedEncodingException;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import java.util.stream.IntStream;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.project.MavenProject;
+import org.checkerframework.checker.units.qual.A;
 import org.codehaus.plexus.compiler.util.scan.InclusionScanException;
 import org.codehaus.plexus.compiler.util.scan.StaleSourceScanner;
 import org.codehaus.plexus.compiler.util.scan.mapping.SuffixMapping;
+import org.rascalmpl.debug.IRascalMonitor;
 import org.rascalmpl.exceptions.Throw;
 import org.rascalmpl.interpreter.Evaluator;
+import org.rascalmpl.interpreter.IEvaluator;
 import org.rascalmpl.interpreter.env.GlobalEnvironment;
 import org.rascalmpl.interpreter.env.ModuleEnvironment;
+import org.rascalmpl.interpreter.result.Result;
 import org.rascalmpl.interpreter.utils.RascalManifest;
 import org.rascalmpl.library.util.PathConfig;
 import org.rascalmpl.uri.URIResolverRegistry;
@@ -77,6 +97,7 @@ public class CompileRascalMojo extends AbstractMojo
 	private static final String MAIN_COMPILER_MODULE = "lang::rascalcore::check::Checker";
 	private static final String INFO_PREFIX_MODULE_PATH = "\trascal module path addition: ";
 	private static final URIResolverRegistry reg = URIResolverRegistry.getInstance();
+	private static final IValueFactory VF = ValueFactoryFactory.getValueFactory();
 	
 	@Parameter(defaultValue="${project}", readonly=true, required=true)
 	private MavenProject project;
@@ -101,14 +122,19 @@ public class CompileRascalMojo extends AbstractMojo
 
 	@Parameter(property="enableStandardLibrary", required = false, defaultValue="true")
 	private boolean enableStandardLibrary;
-	
+
+	@Parameter(property="parallel", required = false, defaultValue="false")
+	private boolean parallel;
+
+	@Parameter(property = "parallelPreChecks", required = false )
+	private List<String> parallelPreChecks;
+
 	private MojoRascalMonitor monitor;
 
-	private Evaluator makeEvaluator(PathConfig pcfg) throws URISyntaxException, FactTypeUseException, IOException {
+	private Evaluator makeEvaluator(OutputStream err, OutputStream out) throws URISyntaxException, FactTypeUseException, IOException {
 		getLog().info("start loading the compiler");
 		GlobalEnvironment heap = new GlobalEnvironment();
-		Evaluator eval = new Evaluator(ValueFactoryFactory.getValueFactory(), System.in, System.err, System.out, new ModuleEnvironment("***MVN Rascal Compiler***", heap), heap);
-
+		Evaluator eval = new Evaluator(ValueFactoryFactory.getValueFactory(), System.in, err, out, new ModuleEnvironment("***MVN Rascal Compiler***", heap), heap);
 		URL vallangJarFile = IValueFactory.class.getProtectionDomain().getCodeSource().getLocation();
 		eval.getConfiguration().setRascalJavaClassPathProperty(new File(vallangJarFile.toURI()).toString());
 
@@ -176,13 +202,11 @@ public class CompileRascalMojo extends AbstractMojo
 			
 			getLog().info("paths have been configured");
 			
-			PathConfig pcfg = new PathConfig(srcLocs, libLocs, binLoc);
-			Evaluator eval = makeEvaluator(pcfg);
 
-			
-			IConstructor config = pcfg.asConstructor();
-			
-			IList messages = (IList) eval.call(monitor, "check", todoList, config);
+			PathConfig pcfg = new PathConfig(srcLocs, libLocs, binLoc);
+
+			IList messages = runChecker(monitor, todoList, pcfg);
+
 
 			getLog().info("checker is done, reporting errors now.");
 			handleMessages(pcfg, messages);
@@ -200,6 +224,210 @@ public class CompileRascalMojo extends AbstractMojo
 		    getLog().error(e.getTrace().toString());
 		    throw new MojoExecutionException(UNEXPECTED_ERROR, e); 
 		}
+	}
+
+	private static int parallelAmount() {
+	    // check available CPUs
+		long result = Runtime.getRuntime().availableProcessors() / 2;
+		if (result < 2) {
+			return 1;
+		}
+		// check available memory
+		result = Math.min(result, Runtime.getRuntime().maxMemory() / (1024 * 1024));
+		if (result < 2) {
+			return 1;
+		}
+		return (int) Math.max(4, result);
+	}
+
+
+	private void safeLog(Consumer<Log> action) {
+		Log log = getLog();
+		synchronized (log) {
+			action.accept(log);
+		}
+	}
+
+
+	private final static class SynchronizedOutputStream extends OutputStream {
+		private final OutputStream target;
+
+		private SynchronizedOutputStream(OutputStream target) {
+		    this.target = target;
+
+		}
+
+		@Override
+		public void close() throws IOException {
+			target.close();
+		}
+
+		@Override
+		public void flush() throws IOException {
+		    synchronized (target) {
+		    	target.flush();
+			}
+		}
+
+		@Override
+		public void write(byte[] b, int off, int len) throws IOException {
+			synchronized (target) {
+				target.write(b, off, len);
+			}
+		}
+
+		@Override
+		public void write(byte[] b) throws IOException {
+			synchronized (target) {
+				target.write(b);
+			}
+		}
+
+		@Override
+		public void write(int b) throws IOException {
+			synchronized (target) {
+				target.write(b);
+			}
+		}
+	}
+
+
+	private IList runChecker(IRascalMonitor monitor, IList todoList, PathConfig pcfg)
+			throws IOException, URISyntaxException {
+	    if (!parallel || todoList.size() <= 10 || parallelAmount() <= 1) {
+	    	getLog().debug("Running checker in single threaded mode");
+	        return runCheckerSingle(monitor, todoList, makeEvaluator(System.err, System.out), pcfg);
+		}
+		Queue<IList> errorMessages = new ConcurrentLinkedQueue<>();
+		IListWriter start = VF.listWriter();
+		List<IList> chunks = splitTodoList(todoList, parallelPreChecks, start);
+
+		AtomicReference<Exception> failure = new AtomicReference<>(null);
+		ExecutorService executor = Executors.newFixedThreadPool(parallelAmount());
+		try {
+			IList initialTodo = start.done();
+			Semaphore prePhaseDone = new Semaphore(0);
+			if (!initialTodo.isEmpty()) {
+				executor.execute(() -> {
+					try {
+						safeLog(l -> l.debug("Running pre-phase: " + initialTodo));
+						Evaluator eval = makeEvaluator(
+								new SynchronizedOutputStream(System.err),
+								new SynchronizedOutputStream(System.out)
+						);
+						errorMessages.add(runCheckerSingle(monitor, initialTodo, eval, pcfg));
+						safeLog(l -> l.debug("Finished running the pre-phase checker"));
+					} catch (Exception e) {
+						safeLog(l -> l.error("Failure executing pre-phase:", e));
+						failure.compareAndSet(null, e);
+					} finally {
+						prePhaseDone.release(chunks.size() + 1);
+					}
+				});
+				Thread.sleep(100); // give executor time to startup and avoid race
+			}
+			else {
+				prePhaseDone.release(chunks.size() + 1);
+			}
+			if (!chunks.isEmpty()) {
+				safeLog(l -> l.debug("Preparing checker for in " + chunks.size() + " parallel threads"));
+				try {
+					List<ISourceLocation> binFolders = new ArrayList<>();
+					Semaphore done = new Semaphore(0);
+					for (IList todo: chunks) {
+						ISourceLocation myBin = VF.sourceLocation("tmp", "","tmp-" + System.identityHashCode(todo) + "-" + Instant.now().getEpochSecond());
+						binFolders.add(myBin);
+						PathConfig myConfig = new PathConfig(pcfg.getSrcs(), pcfg.getLibs().append(pcfg.getBin()), myBin);
+						executor.execute(() -> {
+							try {
+								Thread.sleep(1000);  // give the other evaluator a head start
+								safeLog(l -> l.debug("Starting fresh evaluator"));
+								Evaluator myEval = makeEvaluator(new SynchronizedOutputStream(System.err), new SynchronizedOutputStream(System.out));
+								prePhaseDone.acquire();
+								safeLog(l -> l.debug("Starting checking chunk with " + todo.size() +  " entries"));
+								errorMessages.add(runCheckerSingle(monitor, todo, myEval, myConfig));
+							} catch (Exception e) {
+								safeLog(l -> l.error("Failure executing:", e));
+								failure.compareAndSet(null, e);
+							} finally {
+								done.release();
+							}
+						});
+					}
+					done.acquire(chunks.size());
+					// now have to merge the result bins
+					mergeBinFolders(pcfg.getBin(), binFolders);
+
+				} catch (URISyntaxException | IOException | InterruptedException e) {
+					getLog().error("Failed to start the nested evaluator", e);
+				}
+			}
+			prePhaseDone.acquire();
+		} catch (InterruptedException e) {
+		    // ingore
+		} finally {
+			executor.shutdown();
+		}
+		Exception failed = failure.get();
+		if (failed != null) {
+			throw new RuntimeException("One of the checkers failed", failed);
+		}
+		IListWriter result = VF.listWriter();
+		for (IList err : errorMessages) {
+			result.appendAll(err);
+		}
+		return result.done();
+	}
+
+	private static void mergeBinFolders(ISourceLocation bin, List<ISourceLocation> binFolders) throws IOException {
+		for (ISourceLocation b : binFolders) {
+			mergeBinFolders(bin, b);
+		}
+	}
+	private static void mergeBinFolders(ISourceLocation dst, ISourceLocation src) throws IOException {
+		for (String entry : reg.listEntries(src)) {
+			ISourceLocation srcEntry = URIUtil.getChildLocation(src, entry);
+			ISourceLocation dstEntry = URIUtil.getChildLocation(dst, entry);
+			if (reg.isDirectory(srcEntry)) {
+				if (!reg.exists(dstEntry)) {
+					reg.mkDirectory(dstEntry);
+				}
+				mergeBinFolders(dstEntry, srcEntry);
+			}
+			else if (!reg.exists(dstEntry)) {
+				reg.copy(srcEntry, dstEntry);
+			}
+			try {
+				reg.remove(srcEntry); // cleanup the temp directory
+			}
+			catch (Exception e) {
+				// IGNORE
+			}
+		}
+    }
+
+
+
+	private IList runCheckerSingle(IRascalMonitor monitor, IList todoList, IEvaluator<Result<IValue>> eval, PathConfig pcfg) {
+		return (IList) eval.call(monitor, "check", todoList, pcfg.asConstructor());
+	}
+
+	private List<IList> splitTodoList(IList todoList, List<String> parallelPreList, IListWriter start) {
+		Set<ISourceLocation> reserved = parallelPreList.stream().map(CompileRascalMojo::location).collect(Collectors.toSet());
+		start.appendAll(reserved);
+		int bucket = 0;
+		IListWriter[] buckets = new IListWriter[parallelAmount()];
+		IntStream.range(0, buckets.length).forEach(i -> buckets[i] = VF.listWriter());
+		for (IValue todo : todoList) {
+			ISourceLocation module = (ISourceLocation) todo;
+			if (!reserved.contains(module)) {
+			    buckets[bucket++].append(module);
+			}
+		}
+		return Arrays.stream(buckets)
+				.map(IListWriter::done)
+				.filter(l -> !l.isEmpty())
+				.collect(Collectors.toList());
 	}
 
 	private void collectDependentArtifactLibraries(List<ISourceLocation> libLocs) throws URISyntaxException, IOException {
@@ -360,12 +588,20 @@ public class CompileRascalMojo extends AbstractMojo
 		return result;
 	}
 
-	private ISourceLocation location(String file) throws URISyntaxException, FactTypeUseException, IOException {
+	private static ISourceLocation location(String file) {
 		if (file.startsWith("|") && file.endsWith("|")) {
-			return (ISourceLocation) new StandardTextReader().read(ValueFactoryFactory.getValueFactory(), new StringReader(file));
+			try {
+				return (ISourceLocation) new StandardTextReader().read(ValueFactoryFactory.getValueFactory(), new StringReader(file));
+			} catch (IOException e) {
+			    throw new RuntimeException(e);
+			}
 		}
 		else {
-			return URIUtil.createFileLocation(file);
+			try {
+				return URIUtil.createFileLocation(file);
+			} catch (URISyntaxException e) {
+				throw new RuntimeException(e);
+			}
 		}
 	}
 }

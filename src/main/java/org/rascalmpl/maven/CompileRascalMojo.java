@@ -23,6 +23,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Queue;
@@ -461,7 +462,7 @@ public class CompileRascalMojo extends AbstractMojo
 		int currentChunkSize = 0;
 		IListWriter currentChunk = VF.listWriter();
 		List<IList> result = new ArrayList<>();
-		for (IValue todo : todoList) {
+		for (IValue todo : todoList.stream().sorted(Comparator.comparing(v -> ((ISourceLocation)v).getPath())).collect(Collectors.toList())) {
 			ISourceLocation module = (ISourceLocation) todo;
 			if (!reserved.contains(module)) {
 				currentChunk.append(module);

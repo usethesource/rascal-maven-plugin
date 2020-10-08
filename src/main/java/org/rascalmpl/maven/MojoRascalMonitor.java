@@ -27,7 +27,7 @@ public class MojoRascalMonitor implements IRascalMonitor {
 
 	public void event(String name) {
 	    if (chatty) {
-			synchronized (log)
+			synchronized (log) {
 				log.info(name);
 			}
 	    }

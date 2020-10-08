@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
+import java.lang.reflect.Array;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
@@ -132,7 +133,7 @@ public class CompileRascalMojo extends AbstractMojo
 	private MojoRascalMonitor monitor;
 
 	private Evaluator makeEvaluator(OutputStream err, OutputStream out) throws URISyntaxException, FactTypeUseException, IOException {
-		getLog().info("start loading the compiler");
+		safeLog(l -> l.info("start loading the compiler"));
 		GlobalEnvironment heap = new GlobalEnvironment();
 		Evaluator eval = new Evaluator(ValueFactoryFactory.getValueFactory(), System.in, err, out, new ModuleEnvironment("***MVN Rascal Compiler***", heap), heap);
 		URL vallangJarFile = IValueFactory.class.getProtectionDomain().getCodeSource().getLocation();
@@ -141,19 +142,19 @@ public class CompileRascalMojo extends AbstractMojo
 		monitor = new MojoRascalMonitor(getLog(), false);
 		eval.setMonitor(monitor);
 
-		getLog().info(INFO_PREFIX_MODULE_PATH + "|lib://typepal/|");
+		safeLog(l -> l.info(INFO_PREFIX_MODULE_PATH + "|lib://typepal/|"));
         eval.addRascalSearchPath(URIUtil.correctLocation("lib", "typepal", ""));
 
-		getLog().info(INFO_PREFIX_MODULE_PATH + "|lib://rascal-core/|");
+		safeLog(l -> l.info(INFO_PREFIX_MODULE_PATH + "|lib://rascal-core/|"));
 		eval.addRascalSearchPath(URIUtil.correctLocation("lib", "rascal-core", ""));
 		
-		getLog().info(INFO_PREFIX_MODULE_PATH + "|std:///|");
+		safeLog(l -> l.info(INFO_PREFIX_MODULE_PATH + "|std:///|"));
 		eval.addRascalSearchPath(URIUtil.rootLocation("std"));
 
-		getLog().info("\timporting " + MAIN_COMPILER_MODULE);
+		safeLog(l -> l.info("\timporting " + MAIN_COMPILER_MODULE));
 		eval.doImport(monitor, MAIN_COMPILER_MODULE);
 
-		getLog().info("done loading the compiler");
+		safeLog(l -> l.info("done loading the compiler"));
 
 		return eval;
 	}
@@ -415,19 +416,28 @@ public class CompileRascalMojo extends AbstractMojo
 	private List<IList> splitTodoList(IList todoList, List<String> parallelPreList, IListWriter start) {
 		Set<ISourceLocation> reserved = parallelPreList.stream().map(CompileRascalMojo::location).collect(Collectors.toSet());
 		start.appendAll(reserved);
-		int bucket = 0;
-		IListWriter[] buckets = new IListWriter[parallelAmount()];
-		IntStream.range(0, buckets.length).forEach(i -> buckets[i] = VF.listWriter());
+		int chunkSize = todoList.size() / parallelAmount();
+		if (chunkSize < 10) {
+			chunkSize = 10;
+		}
+		int currentChunkSize = 0;
+		IListWriter currentChunk = VF.listWriter();
+		List<IList> result = new ArrayList<>();
 		for (IValue todo : todoList) {
 			ISourceLocation module = (ISourceLocation) todo;
 			if (!reserved.contains(module)) {
-			    buckets[bucket++].append(module);
+				currentChunk.append(module);
+				if (currentChunkSize++ > chunkSize) {
+					result.add(currentChunk.done());
+					currentChunkSize = 0;
+					currentChunk = VF.listWriter();
+				}
 			}
 		}
-		return Arrays.stream(buckets)
-				.map(IListWriter::done)
-				.filter(l -> !l.isEmpty())
-				.collect(Collectors.toList());
+		if (currentChunkSize > 0) {
+			result.add(currentChunk.done());
+		}
+		return result;
 	}
 
 	private void collectDependentArtifactLibraries(List<ISourceLocation> libLocs) throws URISyntaxException, IOException {

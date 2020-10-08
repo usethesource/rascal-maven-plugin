@@ -27,7 +27,9 @@ public class MojoRascalMonitor implements IRascalMonitor {
 
 	public void event(String name) {
 	    if (chatty) {
-	        log.info(name);
+			synchronized (log)
+				log.info(name);
+			}
 	    }
 	}
 
@@ -53,6 +55,8 @@ public class MojoRascalMonitor implements IRascalMonitor {
 	}
 
 	public void warning(String message, ISourceLocation src) {
-		log.warn(src.toString() + ": " + message);
+		synchronized (log) {
+			log.warn(src.toString() + ": " + message);
+		}
 	}
 }

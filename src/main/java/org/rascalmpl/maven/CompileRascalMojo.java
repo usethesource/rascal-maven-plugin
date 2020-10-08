@@ -134,12 +134,27 @@ public class CompileRascalMojo extends AbstractMojo
 
 	private MojoRascalMonitor monitor;
 
+	private static String toClassPath(URL... urls) {
+	    return Arrays.stream(urls)
+				.map(u -> {
+					try {
+						return u.toURI();
+					} catch (URISyntaxException e) {
+					    throw new RuntimeException(e);
+					}
+				})
+				.map(File::new)
+				.map(File::toString)
+				.collect(Collectors.joining(System.getProperty("path.separator")));
+	}
+
 	private Evaluator makeEvaluator(OutputStream err, OutputStream out) throws URISyntaxException, FactTypeUseException, IOException {
 		safeLog(l -> l.info("start loading the compiler"));
 		GlobalEnvironment heap = new GlobalEnvironment();
 		Evaluator eval = new Evaluator(ValueFactoryFactory.getValueFactory(), System.in, err, out, new ModuleEnvironment("***MVN Rascal Compiler***", heap), heap);
 		URL rascalJarFile = ValueFactoryFactory.class.getProtectionDomain().getCodeSource().getLocation();
-		eval.getConfiguration().setRascalJavaClassPathProperty(new File(rascalJarFile.toURI()).toString());
+		URL vallangJarFile = IValueFactory.class.getProtectionDomain().getCodeSource().getLocation();
+		eval.getConfiguration().setRascalJavaClassPathProperty(toClassPath(rascalJarFile, vallangJarFile));
 
 		monitor = new MojoRascalMonitor(getLog(), false);
 		eval.setMonitor(monitor);

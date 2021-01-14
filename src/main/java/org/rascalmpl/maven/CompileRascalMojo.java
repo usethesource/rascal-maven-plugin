@@ -184,6 +184,11 @@ public class CompileRascalMojo extends AbstractMojo
 			List<ISourceLocation> ignoredLocs = locations(srcIgnores);
 			List<ISourceLocation> libLocs = locations(libs);
 			
+			if (System.getProperty("rascal.compile.skip") != null)) {
+				getLog().info("Skipping Rascal compiler completely");
+				return;
+			}
+
 			getLog().info("configuring paths");
 			for (ISourceLocation src : srcLocs) {
 				getLog().info("\tregistered source location: " + src);

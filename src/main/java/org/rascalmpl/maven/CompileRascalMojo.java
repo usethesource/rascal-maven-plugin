@@ -90,9 +90,6 @@ import io.usethesource.vallang.io.StandardTextReader;
  * TODO When the compiler will be bootstrapped, this mojo will run a generated
  * compiler instead of the source code of the compiler inside the Rascal interpreter.
  * 
- * TODO This Mojo always requires a 'boot' parameter which points to the file location of the
- * source of the compiler. After the bootstrap, this parameter will become optional.
- * 
  */
 @Mojo(name="compile", defaultPhase = LifecyclePhase.COMPILE, requiresDependencyCollection = ResolutionScope.COMPILE_PLUS_RUNTIME, requiresDependencyResolution = ResolutionScope.COMPILE_PLUS_RUNTIME)
 public class CompileRascalMojo extends AbstractMojo

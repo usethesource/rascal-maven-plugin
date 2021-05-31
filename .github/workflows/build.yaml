@@ -31,7 +31,7 @@ jobs:
           restore-keys: m2
 
       - name: Compile
-        run: mvn -B compile 
+        run: mvn -B install
 
       - name: Test
         run: mvn -B verify -Prun-its

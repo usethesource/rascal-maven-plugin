@@ -34,7 +34,7 @@ jobs:
         run: mvn -B compile 
 
       - name: Test
-        run: mvn verify -Prun-its
+        run: mvn -B verify -Prun-its
 
       - name: Attach artifact
         id: build-artifact

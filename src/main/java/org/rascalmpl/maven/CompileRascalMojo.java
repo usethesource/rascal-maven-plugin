@@ -242,16 +242,16 @@ public class CompileRascalMojo extends AbstractMojo
 
 	private static int parallelAmount() {
 	    // check available CPUs
-		long result = Runtime.getRuntime().availableProcessors() / 2;
+		long result = Runtime.getRuntime().availableProcessors();
 		if (result < 2) {
 			return 1;
 		}
 		// check available memory
-		result = Math.min(result, Runtime.getRuntime().maxMemory() / (1024 * 1024));
+		result = Math.min(result, Runtime.getRuntime().maxMemory() / (2 * 1024 * 1024));
 		if (result < 2) {
 			return 1;
 		}
-		return (int) Math.max(4, result);
+		return (int) Math.min(4, result);
 	}
 
 
@@ -317,11 +317,11 @@ public class CompileRascalMojo extends AbstractMojo
 		Queue<IList> errorMessages = new ConcurrentLinkedQueue<>();
 		IListWriter start = VF.listWriter();
 		List<IList> chunks = splitTodoList(todoList, parallelPreChecks, start);
+		IList initialTodo = start.done();
 
 		AtomicReference<Exception> failure = new AtomicReference<>(null);
 		ExecutorService executor = Executors.newFixedThreadPool(parallelAmount());
 		try {
-			IList initialTodo = start.done();
 			Semaphore prePhaseDone = new Semaphore(0);
 			if (!initialTodo.isEmpty()) {
 				executor.execute(() -> {

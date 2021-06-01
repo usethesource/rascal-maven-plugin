@@ -364,6 +364,13 @@ public class CompileRascalMojo extends AbstractMojo
 									} catch (InterruptedException interruptedException) {
 									    return VF.list();
 									}
+									finally {
+										try {
+											e.getStdErr().flush();
+											e.getStdOut().flush();
+										} catch (IOException ignored) {
+										}
+									}
 								}));
 							} catch (Exception e) {
 								safeLog(l -> l.error("Failure executing:", e));
@@ -405,7 +412,7 @@ public class CompileRascalMojo extends AbstractMojo
 				() -> {
 					try {
 						return makeEvaluator(
-								new SynchronizedOutputStream(System.err),
+								new BufferedOutputStream(new SynchronizedOutputStream(System.err)),
 								new SynchronizedOutputStream(System.out)
 						);
 					} catch (URISyntaxException | IOException e) {

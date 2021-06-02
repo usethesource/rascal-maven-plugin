@@ -10,6 +10,7 @@
  */
 package org.rascalmpl.maven;
 
+import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -32,7 +33,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
-
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -58,7 +58,6 @@ import org.rascalmpl.uri.URIResolverRegistry;
 import org.rascalmpl.uri.URIUtil;
 import org.rascalmpl.util.ConcurrentSoftReferenceObjectPool;
 import org.rascalmpl.values.ValueFactoryFactory;
-
 import io.usethesource.vallang.IConstructor;
 import io.usethesource.vallang.IList;
 import io.usethesource.vallang.IListWriter;
@@ -123,7 +122,7 @@ public class CompileRascalMojo extends AbstractMojo
 	@Parameter(property = "parallelPreChecks", required = false )
 	private List<String> parallelPreChecks;
 
-	private MojoRascalMonitor monitor;
+	private final MojoRascalMonitor monitor = new MojoRascalMonitor(getLog(), false);
 
 	private static String toClassPath(URL... urls) {
 	    return Arrays.stream(urls)
@@ -147,7 +146,6 @@ public class CompileRascalMojo extends AbstractMojo
 		URL vallangJarFile = IValueFactory.class.getProtectionDomain().getCodeSource().getLocation();
 		eval.getConfiguration().setRascalJavaClassPathProperty(toClassPath(rascalJarFile, vallangJarFile));
 
-		monitor = new MojoRascalMonitor(getLog(), false);
 		eval.setMonitor(monitor);
 
 		safeLog(l -> l.info(INFO_PREFIX_MODULE_PATH + "|lib://typepal/|"));
@@ -364,13 +362,6 @@ public class CompileRascalMojo extends AbstractMojo
 									} catch (InterruptedException interruptedException) {
 									    return VF.list();
 									}
-									finally {
-										try {
-											e.getStdErr().flush();
-											e.getStdOut().flush();
-										} catch (IOException ignored) {
-										}
-									}
 								}));
 							} catch (Exception e) {
 								safeLog(l -> l.error("Failure executing:", e));
@@ -451,7 +442,16 @@ public class CompileRascalMojo extends AbstractMojo
 
 
 	private IList runCheckerSingle(IRascalMonitor monitor, IList todoList, IEvaluator<Result<IValue>> eval, PathConfig pcfg) {
-		return (IList) eval.call(monitor, "check", todoList, pcfg.asConstructor());
+		try {
+			return (IList) eval.call(monitor, "check", todoList, pcfg.asConstructor());
+		}
+		finally {
+			try {
+				eval.getStdErr().flush();
+				eval.getStdOut().flush();
+			} catch (IOException ignored) {
+			}
+		}
 	}
 
 	private List<IList> splitTodoList(IList todoList, List<String> parallelPreList, IListWriter start) {

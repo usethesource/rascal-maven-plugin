@@ -486,7 +486,7 @@ public class CompileRascalMojo extends AbstractMojo
 
 	private void collectDependentArtifactLibraries(List<ISourceLocation> libLocs) throws URISyntaxException, IOException {
 	    RascalManifest mf = new RascalManifest();
-	    Set<String> projects = libLocs.stream().map(l -> mf.getProjectName(l)).collect(Collectors.toSet());
+	    Set<String> projects = libLocs.stream().map(mf::getProjectName).collect(Collectors.toSet());
 	    
 		for (Object o : project.getArtifacts()) {
 			Artifact a = (Artifact) o;
@@ -517,20 +517,15 @@ public class CompileRascalMojo extends AbstractMojo
 		
 		IListWriter filteredStaleSources = ValueFactoryFactory.getValueFactory().listWriter();
 		
-		OUTER:for (File file : staleSources) {
+		for (File file : staleSources) {
 			ISourceLocation loc = URIUtil.createFileLocation(file.getAbsolutePath());
 			
-			for (ISourceLocation iloc : ignoredLocs) {
-				if (isIgnoredBy(iloc, loc)) {
-					continue OUTER;
-				}
+			if (ignoredLocs.stream().noneMatch(l -> isIgnoredBy(l, loc))) {
+				filteredStaleSources.append(loc);
 			}
-			
-			filteredStaleSources.append(loc);
 		}
 		
-		IList todoList = filteredStaleSources.done();
-		return todoList;
+		return filteredStaleSources.done();
 	}
 	
 	private boolean isIgnoredBy(ISourceLocation prefix, ISourceLocation loc) {
@@ -632,14 +627,8 @@ public class CompileRascalMojo extends AbstractMojo
 		return loc.getPath();
 	}
 
-	private List<ISourceLocation> locations(List<String> files) throws URISyntaxException, FactTypeUseException, IOException {
-		List<ISourceLocation> result = new ArrayList<ISourceLocation>(files.size());
-
-		for (String f : files) {
-			result.add(location(f));
-		}
-
-		return result;
+	private List<ISourceLocation> locations(List<String> files) {
+		return files.stream().map(CompileRascalMojo::location).collect(Collectors.toCollection(ArrayList::new));
 	}
 
 	private static ISourceLocation location(String file) {

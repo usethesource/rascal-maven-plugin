@@ -47,7 +47,7 @@ import io.usethesource.vallang.io.StandardTextReader;
 
 /**
  * Maven Goal for running local Rascal programs during the maven generate-source phase.
- * 
+ *
  * When invoked it will make sure local Rascal programs are runnable and execute them.
  * The running Rascal program is assumed to have code generation as a (side) effect.
  */
@@ -55,9 +55,7 @@ import io.usethesource.vallang.io.StandardTextReader;
 public class GenerateSourcesUsingRascalMojo extends AbstractMojo
 {
     private static final String UNEXPECTED_ERROR = "unexpected error during Rascal run";
-    private static final String INFO_PREFIX_MODULE_PATH = "\trascal module path addition: ";
-    private static final URIResolverRegistry reg = URIResolverRegistry.getInstance();
-    
+
     @Parameter(defaultValue="${project}", readonly=true, required=true)
     private MavenProject project;
 
@@ -66,85 +64,75 @@ public class GenerateSourcesUsingRascalMojo extends AbstractMojo
 
     @Parameter(property = "mainModule", required=true)
     private String mainModule;
-    
+
     @Parameter(property = "mainFunction", required=true)
     private String mainFunction;
-    
+
     @Parameter(property = "libs", required=false)
     private List<String> libs;
 
     @Parameter(property = "srcs", required=true)
     private List<String> srcs;
- 
-    private MojoRascalMonitor monitor;
+
+    private final  MojoRascalMonitor monitor = new MojoRascalMonitor(getLog(), false);
 
     private Evaluator makeEvaluator(PathConfig pcfg) throws URISyntaxException, FactTypeUseException, IOException {
-        getLog().info("start loading the Rascal interpreter");
-        GlobalEnvironment heap = new GlobalEnvironment();
-        Evaluator eval = new Evaluator(ValueFactoryFactory.getValueFactory(), System.in, System.err, System.out, new ModuleEnvironment("***MVN Rascal Generate Sources***", heap), heap);
 
-        URL vallangJarFile = IValueFactory.class.getProtectionDomain().getCodeSource().getLocation();
-        eval.getConfiguration().setRascalJavaClassPathProperty(new File(vallangJarFile.toURI()).toString());
-
-        monitor = new MojoRascalMonitor(getLog(), false);
-        eval.setMonitor(monitor);
-
-        getLog().info(INFO_PREFIX_MODULE_PATH + "|std:///|");
-        eval.addRascalSearchPath(URIUtil.rootLocation("std"));
-
-        for (String lib : libs) {
-            getLog().info("module search path addition: " + lib);
-            eval.addRascalSearchPath(location(lib));
-        }
-
+		ISourceLocation[] searchPath = new ISourceLocation[libs.size() + srcs.size()];
+		int spIndex = 0;
+		for (String lib : libs) {
+			searchPath[spIndex++] = MojoUtils.location(lib);
+		}
         for (String src: srcs) {
-            getLog().info("module search path addition: " + src);
-            eval.addRascalSearchPath(location(src));
-        }
-        
-        getLog().info("\timporting " + mainModule);
-        eval.doImport(monitor, mainModule);
+			searchPath[spIndex++] = MojoUtils.location(src);
+		}
 
-        getLog().info("\tdone loading " + mainModule);
-        
         URIResolverRegistry.getInstance().registerLogical(new ILogicalSourceLocationResolver() {
             ISourceLocation root = URIUtil.createFileLocation(project.getBasedir().getAbsolutePath());
-            
+
             @Override
             public String scheme() {
                 return "project";
             }
-            
+
             @Override
             public ISourceLocation resolve(ISourceLocation input) throws IOException {
-                return URIUtil.getChildLocation(root, input.getPath()); 
+                return URIUtil.getChildLocation(root, input.getPath());
             }
-            
+
             @Override
             public String authority() {
                 return project.getName();
             }
         });
 
-        return eval;
+		return MojoUtils.makeEvaluator(
+			getLog(),
+			monitor,
+			System.err,
+			System.out,
+			searchPath,
+			false, // TODO: figure out why this one is not putting rascal jar on the class path
+			mainModule
+		);
     }
 
     public void execute() throws MojoExecutionException {
         Evaluator eval = null;
-        
+
         try {
-            ISourceLocation binLoc = location(generated);
-            List<ISourceLocation> srcLocs = locations(srcs);
-            List<ISourceLocation> libLocs = locations(libs);
-            
-            collectDependentArtifactLibraries(libLocs);
-            
+            ISourceLocation binLoc = MojoUtils.location(generated);
+            List<ISourceLocation> srcLocs = MojoUtils.locations(srcs);
+            List<ISourceLocation> libLocs = MojoUtils.locations(libs);
+
+            MojoUtils.collectDependentArtifactLibraries(project, libLocs);
+
             for (ISourceLocation lib : libLocs) {
                 getLog().info("\tregistered library location: " + lib);
             }
-            
+
             getLog().info("paths have been configured");
-            
+
             PathConfig pcfg = new PathConfig(srcLocs, libLocs, binLoc);
 
             eval = makeEvaluator(pcfg);
@@ -152,62 +140,20 @@ public class GenerateSourcesUsingRascalMojo extends AbstractMojo
             eval.call(monitor, mainFunction, pcfg.asConstructor());
 
             getLog().info(mainFunction + " is done.");
-            
+
             return;
-        } catch (URISyntaxException e) {
-            throw new MojoExecutionException(UNEXPECTED_ERROR, e);
-        } catch (IOException e) {
+        } catch (URISyntaxException | IOException e) {
             throw new MojoExecutionException(UNEXPECTED_ERROR, e);
         } catch (Throw e) {
             getLog().error(e.getLocation() + ": " + e.getMessage());
             getLog().error(e.getTrace().toString());
-            throw new MojoExecutionException(UNEXPECTED_ERROR, e); 
+            throw new MojoExecutionException(UNEXPECTED_ERROR, e);
         } catch (StaticError e) {
             if (eval != null) {
                 getLog().error(e.getLocation() + ": " + e.getMessage());
                 getLog().error(eval.getStackTrace().toString());
             }
             throw e;
-        }
-    }
-
-    private void collectDependentArtifactLibraries(List<ISourceLocation> libLocs) throws URISyntaxException, IOException {
-        RascalManifest mf = new RascalManifest();
-        Set<String> projects = libLocs.stream().map(l -> mf.getProjectName(l)).collect(Collectors.toSet());
-        
-        for (Object o : project.getArtifacts()) {
-            Artifact a = (Artifact) o;
-            File file = a.getFile().getAbsoluteFile();
-            ISourceLocation jarLoc = RascalManifest.jarify(location(file.toString()));
-            
-            if (reg.exists(URIUtil.getChildLocation(jarLoc, "META-INF/RASCAL.MF"))) {
-                String projectName = mf.getProjectName(jarLoc);
-                
-                // only add a library if it is not already on the lib path
-                if (!projects.contains(projectName)) {
-                    libLocs.add(jarLoc);
-                    projects.add(projectName);
-                }
-            }
-        }
-    }
-
-    private List<ISourceLocation> locations(List<String> files) throws URISyntaxException, FactTypeUseException, IOException {
-        List<ISourceLocation> result = new ArrayList<ISourceLocation>(files.size());
-
-        for (String f : files) {
-            result.add(location(f));
-        }
-
-        return result;
-    }
-
-    private ISourceLocation location(String file) throws URISyntaxException, FactTypeUseException, IOException {
-        if (file.startsWith("|") && file.endsWith("|")) {
-            return (ISourceLocation) new StandardTextReader().read(ValueFactoryFactory.getValueFactory(), new StringReader(file));
-        }
-        else {
-            return URIUtil.createFileLocation(file);
         }
     }
 }

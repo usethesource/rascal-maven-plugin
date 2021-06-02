@@ -7,6 +7,7 @@
  *
  * Contributors:
  *   * Jurgen J. Vinju - Jurgen.Vinju@cwi.nl - CWI
+ *   * Davy Landman - davy.landman@swat.engineering - Swat.engineering
  */
 package org.rascalmpl.maven;
 
@@ -14,12 +15,9 @@ import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.StringReader;
 import java.net.URISyntaxException;
-import java.net.URL;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
@@ -33,7 +31,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
-import org.apache.maven.artifact.Artifact;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.logging.Log;
@@ -49,10 +46,7 @@ import org.rascalmpl.debug.IRascalMonitor;
 import org.rascalmpl.exceptions.Throw;
 import org.rascalmpl.interpreter.Evaluator;
 import org.rascalmpl.interpreter.IEvaluator;
-import org.rascalmpl.interpreter.env.GlobalEnvironment;
-import org.rascalmpl.interpreter.env.ModuleEnvironment;
 import org.rascalmpl.interpreter.result.Result;
-import org.rascalmpl.interpreter.utils.RascalManifest;
 import org.rascalmpl.library.util.PathConfig;
 import org.rascalmpl.uri.URIResolverRegistry;
 import org.rascalmpl.uri.URIUtil;
@@ -67,31 +61,33 @@ import io.usethesource.vallang.IString;
 import io.usethesource.vallang.IValue;
 import io.usethesource.vallang.IValueFactory;
 import io.usethesource.vallang.exceptions.FactTypeUseException;
-import io.usethesource.vallang.io.StandardTextReader;
 
 /**
  * Maven Goal for Rascal compilation. The input is a list of
  * Rascal source folders, the output is for each module in the source tree:
  * a .tpl file and possibly/optionally a .class file. Also a list of errors
- * and warnings is printed on stderr. 
- * 
- * TODO The Mojo currently uses the Rascal interpreter to run 
- * what is currently finished of the compiler and type-checker. Since the compiler 
- * is not finished yet, the behavior of this mojo is highly experimental and fluid. 
- * 
+ * and warnings is printed on stderr.
+ *
+ * TODO The Mojo currently uses the Rascal interpreter to run
+ * what is currently finished of the compiler and type-checker. Since the compiler
+ * is not finished yet, the behavior of this mojo is highly experimental and fluid.
+ *
  * TODO When the compiler will be bootstrapped, this mojo will run a generated
  * compiler instead of the source code of the compiler inside the Rascal interpreter.
- * 
+ *
  */
 @Mojo(name="compile", defaultPhase = LifecyclePhase.COMPILE, requiresDependencyCollection = ResolutionScope.COMPILE_PLUS_RUNTIME, requiresDependencyResolution = ResolutionScope.COMPILE_PLUS_RUNTIME)
 public class CompileRascalMojo extends AbstractMojo
 {
 	private static final String UNEXPECTED_ERROR = "unexpected error during Rascal compiler run";
 	private static final String MAIN_COMPILER_MODULE = "lang::rascalcore::check::Checker";
-	private static final String INFO_PREFIX_MODULE_PATH = "\trascal module path addition: ";
+	private static final ISourceLocation[] MAIN_COMPILER_SEARCH_PATH = new ISourceLocation[] {
+		URIUtil.correctLocation("lib", "typepal", ""),
+		URIUtil.correctLocation("lib", "rascal-core", "")
+	};
 	private static final URIResolverRegistry reg = URIResolverRegistry.getInstance();
 	private static final IValueFactory VF = ValueFactoryFactory.getValueFactory();
-	
+
 	@Parameter(defaultValue="${project}", readonly=true, required=true)
 	private MavenProject project;
 
@@ -100,9 +96,9 @@ public class CompileRascalMojo extends AbstractMojo
 
 	@Parameter(property = "srcs", required = true )
 	private List<String> srcs;
-	
+
 	@Parameter(property = "srcIgnores", required = false )
-	private List<String> srcIgnores;    
+	private List<String> srcIgnores;
 
 	@Parameter(property = "libs", required = false )
 	private List<String> libs;
@@ -127,54 +123,17 @@ public class CompileRascalMojo extends AbstractMojo
 
 	private final MojoRascalMonitor monitor = new MojoRascalMonitor(getLog(), false);
 
-	private static String toClassPath(URL... urls) {
-	    return Arrays.stream(urls)
-				.map(u -> {
-					try {
-						return u.toURI();
-					} catch (URISyntaxException e) {
-					    throw new RuntimeException(e);
-					}
-				})
-				.map(File::new)
-				.map(File::toString)
-				.collect(Collectors.joining(System.getProperty("path.separator")));
-	}
-
 	private Evaluator makeEvaluator(OutputStream err, OutputStream out) throws URISyntaxException, FactTypeUseException, IOException {
-		safeLog(l -> l.info("start loading the compiler"));
-		GlobalEnvironment heap = new GlobalEnvironment();
-		Evaluator eval = new Evaluator(ValueFactoryFactory.getValueFactory(), System.in, err, out, new ModuleEnvironment("***MVN Rascal Compiler***", heap), heap);
-		URL rascalJarFile = ValueFactoryFactory.class.getProtectionDomain().getCodeSource().getLocation();
-		URL vallangJarFile = IValueFactory.class.getProtectionDomain().getCodeSource().getLocation();
-		eval.getConfiguration().setRascalJavaClassPathProperty(toClassPath(rascalJarFile, vallangJarFile));
-
-		eval.setMonitor(monitor);
-
-		safeLog(l -> l.info(INFO_PREFIX_MODULE_PATH + "|lib://typepal/|"));
-        eval.addRascalSearchPath(URIUtil.correctLocation("lib", "typepal", ""));
-
-		safeLog(l -> l.info(INFO_PREFIX_MODULE_PATH + "|lib://rascal-core/|"));
-		eval.addRascalSearchPath(URIUtil.correctLocation("lib", "rascal-core", ""));
-		
-		safeLog(l -> l.info(INFO_PREFIX_MODULE_PATH + "|std:///|"));
-		eval.addRascalSearchPath(URIUtil.rootLocation("std"));
-
-		safeLog(l -> l.info("\timporting " + MAIN_COMPILER_MODULE));
-		eval.doImport(monitor, MAIN_COMPILER_MODULE);
-
-		safeLog(l -> l.info("done loading the compiler"));
-
-		return eval;
+		return MojoUtils.makeEvaluator(getLog(), monitor,err, out, MAIN_COMPILER_SEARCH_PATH, true, MAIN_COMPILER_MODULE);
 	}
 
 	public void execute() throws MojoExecutionException {
 		try {
-			ISourceLocation binLoc = location(bin);
-			List<ISourceLocation> srcLocs = locations(srcs);
-			List<ISourceLocation> ignoredLocs = locations(srcIgnores);
-			List<ISourceLocation> libLocs = locations(libs);
-			
+			ISourceLocation binLoc = MojoUtils.location(bin);
+			List<ISourceLocation> srcLocs = MojoUtils.locations(srcs);
+			List<ISourceLocation> ignoredLocs = MojoUtils.locations(srcIgnores);
+			List<ISourceLocation> libLocs = MojoUtils.locations(libs);
+
 			if (System.getProperty("rascal.compile.skip") != null) {
 				getLog().info("Skipping Rascal compiler completely");
 				return;
@@ -184,11 +143,11 @@ public class CompileRascalMojo extends AbstractMojo
 			for (ISourceLocation src : srcLocs) {
 				getLog().info("\tregistered source location: " + src);
 			}
-			
+
 			for (ISourceLocation ignore : ignoredLocs) {
 				getLog().warn("\tignoring sources in: " + ignore);
 			}
-			
+
 			getLog().info("checking if any files need compilation");
 
 			IList todoList = getTodoList(binLoc, srcLocs, ignoredLocs);
@@ -203,20 +162,20 @@ public class CompileRascalMojo extends AbstractMojo
 				getLog().info("no stale source files have been found, skipping compilation.");
 				return;
 			}
-			
+
 			if (enableStandardLibrary) {
 				libLocs.add(URIUtil.correctLocation("lib", "rascal", ""));
 			}
-			
+
 			// complete libraries with maven artifacts which include a META-INF/RASCAL.MF file
-			collectDependentArtifactLibraries(libLocs);
-			
+			MojoUtils.collectDependentArtifactLibraries(project, libLocs);
+
 			for (ISourceLocation lib : libLocs) {
 				getLog().info("\tregistered library location: " + lib);
 			}
-			
+
 			getLog().info("paths have been configured");
-			
+
 
 			PathConfig pcfg = new PathConfig(srcLocs, libLocs, binLoc);
 
@@ -226,7 +185,7 @@ public class CompileRascalMojo extends AbstractMojo
 			getLog().info("checker is done, reporting errors now.");
 			handleMessages(pcfg, messages);
 			getLog().info("error reporting done");
-			
+
 			return;
 		} catch (URISyntaxException e) {
 			throw new MojoExecutionException(UNEXPECTED_ERROR, e);
@@ -237,7 +196,7 @@ public class CompileRascalMojo extends AbstractMojo
 		} catch (Throw e) {
 		    getLog().error(e.getLocation() + ": " + e.getMessage());
 		    getLog().error(e.getTrace().toString());
-		    throw new MojoExecutionException(UNEXPECTED_ERROR, e); 
+		    throw new MojoExecutionException(UNEXPECTED_ERROR, e);
 		}
 	}
 
@@ -310,7 +269,7 @@ public class CompileRascalMojo extends AbstractMojo
 	private IList runChecker(IRascalMonitor monitor, IList todoList, PathConfig pcfg)
 			throws IOException, URISyntaxException {
 	    if (!parallel || todoList.size() <= 10 || parallelAmount() <= 1) {
-	    	getLog().debug("Running checker in single threaded mode");
+	    	getLog().info("Running checker in single threaded mode");
 	        return runCheckerSingle(monitor, todoList, makeEvaluator(System.err, System.out), pcfg);
 		}
 		ConcurrentSoftReferenceObjectPool<Evaluator> evaluators = createEvaluatorPool();
@@ -327,13 +286,13 @@ public class CompileRascalMojo extends AbstractMojo
 			if (!initialTodo.isEmpty()) {
 				executor.execute(() -> {
 					try {
-						safeLog(l -> l.debug("Running pre-phase: " + initialTodo));
+						safeLog(l -> l.info("Running pre-phase: " + initialTodo));
 						errorMessages.add(evaluators.useAndReturn(eval ->
 							runCheckerSingle(monitor, initialTodo, eval, pcfg)
 						));
-						safeLog(l -> l.debug("Finished running the pre-phase checker"));
+						safeLog(l -> l.info("Finished running the pre-phase checker"));
 					} catch (Exception e) {
-						safeLog(l -> l.error("Failure executing pre-phase:", e));
+						safeLog(l -> l.info("Failure executing pre-phase:", e));
 						failure.compareAndSet(null, e);
 					} finally {
 						prePhaseDone.release(chunks.size() + 1);
@@ -400,14 +359,14 @@ public class CompileRascalMojo extends AbstractMojo
 	}
 
 	private ConcurrentSoftReferenceObjectPool<Evaluator> createEvaluatorPool() {
-		return new ConcurrentSoftReferenceObjectPool<>(
+		return new ConcurrentSoftReferenceObjectPool<Evaluator>(
 				1, TimeUnit.MINUTES,
 				1, parallelAmount(),
 				() -> {
 					try {
 						return makeEvaluator(
-								new BufferedOutputStream(new SynchronizedOutputStream(System.err)),
-								new SynchronizedOutputStream(System.out)
+							new BufferedOutputStream(new SynchronizedOutputStream(System.err)),
+							new SynchronizedOutputStream(System.out)
 						);
 					} catch (URISyntaxException | IOException e) {
 						throw new RuntimeException(e);
@@ -458,7 +417,7 @@ public class CompileRascalMojo extends AbstractMojo
 	}
 
 	private List<IList> splitTodoList(IList todoList, List<String> parallelPreList, IListWriter start) {
-		Set<ISourceLocation> reserved = parallelPreList.stream().map(CompileRascalMojo::location).collect(Collectors.toSet());
+		Set<ISourceLocation> reserved = parallelPreList.stream().map(MojoUtils::location).collect(Collectors.toSet());
 		start.appendAll(reserved);
 		int chunkSize = todoList.size() / parallelAmount();
 		if (chunkSize < 10) {
@@ -484,57 +443,36 @@ public class CompileRascalMojo extends AbstractMojo
 		return result;
 	}
 
-	private void collectDependentArtifactLibraries(List<ISourceLocation> libLocs) throws URISyntaxException, IOException {
-	    RascalManifest mf = new RascalManifest();
-	    Set<String> projects = libLocs.stream().map(mf::getProjectName).collect(Collectors.toSet());
-	    
-		for (Object o : project.getArtifacts()) {
-			Artifact a = (Artifact) o;
-			File file = a.getFile().getAbsoluteFile();
-			ISourceLocation jarLoc = RascalManifest.jarify(location(file.toString()));
-			
-			if (reg.exists(URIUtil.getChildLocation(jarLoc, "META-INF/RASCAL.MF"))) {
-			    String projectName = mf.getProjectName(jarLoc);
-			    
-			    // only add a library if it is not already on the lib path
-			    if (!projects.contains(projectName)) {
-			        libLocs.add(jarLoc);
-			        projects.add(projectName);
-			    }
-			}
-		}
-	}
-
 	private IList getTodoList(ISourceLocation binLoc, List<ISourceLocation> srcLocs, List<ISourceLocation> ignoredLocs)
 			throws InclusionScanException, URISyntaxException {
 		StaleSourceScanner scanner = new StaleSourceScanner(100);
 		scanner.addSourceMapping(new SuffixMapping(".rsc", ".tpl"));
-		
+
 		Set<File> staleSources = new HashSet<>();
 		for (ISourceLocation src : srcLocs) {
 			staleSources.addAll(scanner.getIncludedSources(new File(src.getURI()), new File(binLoc.getURI())));
 		}
-		
+
 		IListWriter filteredStaleSources = ValueFactoryFactory.getValueFactory().listWriter();
-		
+
 		for (File file : staleSources) {
 			ISourceLocation loc = URIUtil.createFileLocation(file.getAbsolutePath());
-			
+
 			if (ignoredLocs.stream().noneMatch(l -> isIgnoredBy(l, loc))) {
 				filteredStaleSources.append(loc);
 			}
 		}
-		
+
 		return filteredStaleSources.done();
 	}
-	
+
 	private boolean isIgnoredBy(ISourceLocation prefix, ISourceLocation loc) {
 		assert prefix.getScheme().equals("file");
 		assert loc.getScheme().equals("file");
-		
+
 		String prefixPath = prefix.getPath();
 		String locPath = loc.getPath();
-		
+
 		return locPath.startsWith(prefixPath);
 	}
 
@@ -545,7 +483,7 @@ public class CompileRascalMojo extends AbstractMojo
 
 		for (IValue val : moduleMessages) {
 			ISet messages =  (ISet) ((IConstructor) val).get("messages");
-			
+
 			for (IValue error : messages) {
 				ISourceLocation loc = (ISourceLocation) ((IConstructor) error).get("at");
 				if(loc.hasLineColumn()) {
@@ -568,7 +506,7 @@ public class CompileRascalMojo extends AbstractMojo
 			if (!messages.isEmpty()) {
 				getLog().info("Warnings and errors for " + module);
 			}
-			
+
 			for (IValue error : messages) {
 				IConstructor msg = (IConstructor) error;
 				String type = msg.getName();
@@ -576,7 +514,7 @@ public class CompileRascalMojo extends AbstractMojo
 				boolean isWarning = type.equals("warning");
 
 				hasErrors |= isError || warningsAsErrors;
-				
+
 				ISourceLocation loc = (ISourceLocation) msg.get("at");
 				int col = 0;
 				int line = 0;
@@ -585,9 +523,9 @@ public class CompileRascalMojo extends AbstractMojo
 					line = loc.getBeginLine();
 				}
 
-				String output 
-				= abbreviate(loc, pcfg) 
-				+ ":" 
+				String output
+				= abbreviate(loc, pcfg)
+				+ ":"
 				+ String.format("%0" + lineWidth + "d", line)
 				+ ":"
 				+ String.format("%0" + colWidth + "d", col)
@@ -596,7 +534,7 @@ public class CompileRascalMojo extends AbstractMojo
 
 				if (isError) {
 					// align "[ERROR]" with "[WARNING]" by adding two spaces
-					getLog().error("  " + output); 
+					getLog().error("  " + output);
 				}
 				else if (isWarning) {
 					getLog().warn(output);
@@ -611,7 +549,7 @@ public class CompileRascalMojo extends AbstractMojo
 		if (hasErrors && !errorsAsWarnings) {
 			throw new MojoExecutionException("Rascal compiler found compile-time errors");
 		}
-		
+
 		return;
 	}
 
@@ -620,31 +558,10 @@ public class CompileRascalMojo extends AbstractMojo
 			String path = ((ISourceLocation) src).getURI().getPath();
 
 			if (loc.getPath().startsWith(path)) {
-				return loc.getPath().substring(path.length()); 
+				return loc.getPath().substring(path.length());
 			}
 		}
 
 		return loc.getPath();
-	}
-
-	private List<ISourceLocation> locations(List<String> files) {
-		return files.stream().map(CompileRascalMojo::location).collect(Collectors.toCollection(ArrayList::new));
-	}
-
-	private static ISourceLocation location(String file) {
-		if (file.startsWith("|") && file.endsWith("|")) {
-			try {
-				return (ISourceLocation) new StandardTextReader().read(ValueFactoryFactory.getValueFactory(), new StringReader(file));
-			} catch (IOException e) {
-			    throw new RuntimeException(e);
-			}
-		}
-		else {
-			try {
-				return URIUtil.createFileLocation(file);
-			} catch (URISyntaxException e) {
-				throw new RuntimeException(e);
-			}
-		}
 	}
 }

@@ -119,6 +119,9 @@ public class CompileRascalMojo extends AbstractMojo
 	@Parameter(property="parallel", required = false, defaultValue="false")
 	private boolean parallel;
 
+	@Parameter(property="parallelMax", required = false, defaultValue="4")
+	private int parallelMax;
+
 	@Parameter(property = "parallelPreChecks", required = false )
 	private List<String> parallelPreChecks;
 
@@ -238,7 +241,7 @@ public class CompileRascalMojo extends AbstractMojo
 		}
 	}
 
-	private static int parallelAmount() {
+	private int parallelAmount() {
 	    // check available CPUs
 		long result = Runtime.getRuntime().availableProcessors();
 		if (result < 2) {
@@ -249,7 +252,7 @@ public class CompileRascalMojo extends AbstractMojo
 		if (result < 2) {
 			return 1;
 		}
-		return (int) Math.min(4, result);
+		return (int) Math.min(parallelMax, result);
 	}
 
 

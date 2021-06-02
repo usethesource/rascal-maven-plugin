@@ -49,26 +49,14 @@ public class MojoUtils {
 		eval.addRascalSearchPath(loc);
 	}
 
-	private static void setClassPath(Evaluator eval, boolean addRascal) {
-		if (addRascal) {
-			eval.getConfiguration().setRascalJavaClassPathProperty(toClassPath(
-				ValueFactoryFactory.class, // rascal jar
-				IValueFactory.class // vallang jar
-			));
-		}
-		else {
-			eval.getConfiguration().setRascalJavaClassPathProperty(toClassPath(
-				IValueFactory.class // vallang jar
-			));
-
-		}
-	}
-
-	static Evaluator makeEvaluator(Log log, IRascalMonitor monitor, OutputStream err, OutputStream out, ISourceLocation[] searchPath, boolean addRascal, String... importedModules) throws URISyntaxException, FactTypeUseException, IOException {
+	static Evaluator makeEvaluator(Log log, IRascalMonitor monitor, OutputStream err, OutputStream out, ISourceLocation[] searchPath,  String... importedModules) throws URISyntaxException, FactTypeUseException, IOException {
 		safeLog(log, l -> l.info("start loading the compiler"));
 		GlobalEnvironment heap = new GlobalEnvironment();
 		Evaluator eval = new Evaluator(ValueFactoryFactory.getValueFactory(), new ByteArrayInputStream(new byte[0]), err, out, new ModuleEnvironment("***MVN Rascal Compiler***", heap), heap);
-		setClassPath(eval, addRascal);
+		eval.getConfiguration().setRascalJavaClassPathProperty(toClassPath(
+			ValueFactoryFactory.class, // rascal jar
+			IValueFactory.class // vallang jar
+		));
 
 		eval.setMonitor(monitor);
 

@@ -112,7 +112,6 @@ public class GenerateSourcesUsingRascalMojo extends AbstractMojo
 			System.err,
 			System.out,
 			searchPath,
-			false, // TODO: figure out why this one is not putting rascal jar on the class path
 			mainModule
 		);
     }

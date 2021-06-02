@@ -64,7 +64,6 @@ public class PackageRascalMojo extends AbstractMojo
 			new MojoRascalMonitor(getLog(), false),
 			System.err, System.out,
 			MAIN_PACKAGER_SEARCH_PATH,
-			false, // TODO: figure out why we weren't adding rascal to the class path here
 			MAIN_PACKAGER_MODULE
 		);
 	}

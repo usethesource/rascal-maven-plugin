@@ -124,7 +124,7 @@ public class CompileRascalMojo extends AbstractMojo
 	private final MojoRascalMonitor monitor = new MojoRascalMonitor(getLog(), false);
 
 	private Evaluator makeEvaluator(OutputStream err, OutputStream out) throws URISyntaxException, FactTypeUseException, IOException {
-		return MojoUtils.makeEvaluator(getLog(), monitor,err, out, MAIN_COMPILER_SEARCH_PATH, true, MAIN_COMPILER_MODULE);
+		return MojoUtils.makeEvaluator(getLog(), monitor,err, out, MAIN_COMPILER_SEARCH_PATH, MAIN_COMPILER_MODULE);
 	}
 
 	public void execute() throws MojoExecutionException {

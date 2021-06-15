@@ -390,10 +390,10 @@ public class CompileRascalMojo extends AbstractMojo
 				mergeBinFolders(dstEntry, srcEntry);
 			}
 			else if (!reg.exists(dstEntry)) {
-				reg.copy(srcEntry, dstEntry);
+				reg.copy(srcEntry, dstEntry, true, true);
 			}
 			try {
-				reg.remove(srcEntry); // cleanup the temp directory
+				reg.remove(srcEntry, true); // cleanup the temp directory
 			}
 			catch (Exception e) {
 				// IGNORE

@@ -12,7 +12,7 @@
       </scm>
 
     <name>Rascal Maven Plugin</name>
-    
+
     <prerequisites>
         <maven>3.3.9</maven>
     </prerequisites>
@@ -37,7 +37,7 @@
         <dependency>
             <groupId>org.rascalmpl</groupId>
             <artifactId>rascal</artifactId>
-            <version>0.19.4-RC1</version>
+            <version>0.19.4-RC2</version>
             <scope>compile</scope>
         </dependency>
         <dependency>

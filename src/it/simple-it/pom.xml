@@ -30,13 +30,20 @@
               </parallelPreChecks>
         </configuration>
         <executions>
-          <execution>
-            <id>it-compile</id>
-            <phase>compile</phase>
-            <goals>
-              <goal>compile</goal>
-            </goals>
-          </execution>
+            <execution>
+                <id>it-compile</id>
+                <phase>compile</phase>
+                <goals>
+                    <goal>compile</goal>
+                </goals>
+            </execution>
+            <execution>
+                <id>it-package</id>
+                <phase>prepare-package</phase>
+                <goals>
+                    <goal>package</goal>
+                </goals>
+            </execution>
         </executions>
       </plugin>
     </plugins>

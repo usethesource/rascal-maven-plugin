@@ -12,14 +12,8 @@ package org.rascalmpl.maven;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.StringReader;
-import java.net.URISyntaxException;
-import java.net.URL;
-import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.plugin.AbstractMojo;
@@ -29,22 +23,6 @@ import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.project.MavenProject;
-import org.rascalmpl.exceptions.Throw;
-import org.rascalmpl.interpreter.Evaluator;
-import org.rascalmpl.interpreter.env.GlobalEnvironment;
-import org.rascalmpl.interpreter.env.ModuleEnvironment;
-import org.rascalmpl.interpreter.staticErrors.StaticError;
-import org.rascalmpl.interpreter.utils.RascalManifest;
-import org.rascalmpl.library.util.PathConfig;
-import org.rascalmpl.uri.ILogicalSourceLocationResolver;
-import org.rascalmpl.uri.URIResolverRegistry;
-import org.rascalmpl.uri.URIUtil;
-import org.rascalmpl.values.ValueFactoryFactory;
-
-import io.usethesource.vallang.ISourceLocation;
-import io.usethesource.vallang.IValueFactory;
-import io.usethesource.vallang.exceptions.FactTypeUseException;
-import io.usethesource.vallang.io.StandardTextReader;
 
 /**
  * Maven Goal for running local Rascal programs during the maven generate-source phase.

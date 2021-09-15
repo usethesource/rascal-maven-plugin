@@ -15,52 +15,32 @@ public class MojoRascalMonitor implements IRascalMonitor {
 	}
 
 	@Override
-	public void startJob(String name) {
+	public void jobStart(String name, int workShare, int totalWork) {
+		jobStep(name, "");
 	}
 
 	@Override
-	public void startJob(String name, int totalWork) {
-		startJob(name);
-	}
-
-	@Override
-	public void startJob(String name, int workShare, int totalWork) {
-		startJob(name);
-	}
-
-	@Override
-	public void event(String name) {
-	    if (chatty) {
+	public void jobStep(String name, String message, int workShare) {
+		if (chatty) {
 			synchronized (log) {
-				log.info(name);
+				log.info(name + ":" + message);
 			}
 	    }
 	}
 
 	@Override
-	public void event(String name, int inc) {
-		event(name);
-
-	}
-
-	@Override
-	public void event(int inc) {
-
-	}
-
-	@Override
-	public int endJob(boolean succeeded) {
+	public int jobEnd(String name, boolean succeeded) {
 		return 0;
 	}
 
 	@Override
-	public boolean isCanceled() {
+	public boolean jobIsCanceled(String name) {
 		return false;
 	}
 
 	@Override
-	public void todo(int work) {
-
+	public void jobTodo(String name, int work) {
+		// ignoring
 	}
 
 	@Override

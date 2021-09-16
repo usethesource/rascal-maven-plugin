@@ -40,6 +40,10 @@ public class GenerateSourcesUsingRascalMojo extends AbstractMojo
     private String mainModule;
 
     public void execute() throws MojoExecutionException {
+		if (System.getProperty("rascal.generate.skip") != null) {
+			return;
+		}
+
 	    String javaHome = System.getProperty("java.home");
         String javaBin = javaHome + File.separator + "bin" + File.separator + "java";
 

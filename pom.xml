@@ -41,13 +41,13 @@
         <dependency>
             <groupId>org.rascalmpl</groupId>
             <artifactId>typepal</artifactId>
-            <version>0.5.4</version>
+            <version>0.6.2</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>org.rascalmpl</groupId>
             <artifactId>rascal-core</artifactId>
-            <version>0.5.1</version>
+            <version>0.6.2</version>
             <scope>compile</scope>
         </dependency>
         <dependency>

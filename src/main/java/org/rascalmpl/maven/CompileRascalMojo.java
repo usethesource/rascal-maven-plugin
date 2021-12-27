@@ -448,6 +448,10 @@ public class CompileRascalMojo extends AbstractMojo
 		StaleSourceScanner scanner = new StaleSourceScanner(100);
 		scanner.addSourceMapping(new SuffixMapping(".rsc", ".tpl"));
 
+		// TODO: currently the compiler nests all files in a /rascal root
+		// It will stop doing that once the root library files have been moved into rascal::
+		binLoc = URIUtil.getChildLocation(binLoc, "rascal");
+
 		Set<File> staleSources = new HashSet<>();
 		for (ISourceLocation src : srcLocs) {
 			staleSources.addAll(scanner.getIncludedSources(new File(src.getURI()), new File(binLoc.getURI())));

@@ -61,7 +61,7 @@ public class RascalConsoleMojo extends AbstractMojo
         for (Object o : project.getArtifacts()) {
             Artifact a = (Artifact) o;
             File file = a.getFile().getAbsoluteFile();
-            builder.append(":" + file.getAbsolutePath());
+            builder.append(File.pathSeparator + file.getAbsolutePath());
         }
         
         return builder.toString().substring(1);

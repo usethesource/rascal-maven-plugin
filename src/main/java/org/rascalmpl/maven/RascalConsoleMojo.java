@@ -57,6 +57,11 @@ public class RascalConsoleMojo extends AbstractMojo
 	
 	private String collectClasspath() {
 	    StringBuilder builder = new StringBuilder();
+        
+        if ("rascal".equals(project.getName())){
+            File r = new File(project.getBasedir(), "target/classes");
+            builder.append(File.pathSeparator + r.getAbsolutePath());
+        }
 	    
         for (Object o : project.getArtifacts()) {
             Artifact a = (Artifact) o;

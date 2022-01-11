@@ -25,7 +25,7 @@ import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.project.MavenProject;
 
 /**
- * Maven Goal for starting a rascal console for the current mvn project. 
+ * Maven Goal for starting a rascal console for the current mvn project.
  */
 @Mojo(name="console", defaultPhase = LifecyclePhase.COMPILE, requiresDependencyCollection = ResolutionScope.COMPILE_PLUS_RUNTIME, requiresDependencyResolution = ResolutionScope.COMPILE_PLUS_RUNTIME)
 public class RascalConsoleMojo extends AbstractMojo
@@ -54,21 +54,21 @@ public class RascalConsoleMojo extends AbstractMojo
         }
         finally {}
 	}
-	
+
 	private String collectClasspath() {
 	    StringBuilder builder = new StringBuilder();
-        
-        if ("rascal".equals(project.getName())){
-            File r = new File(project.getBasedir(), "target/classes");
+
+        if ("org.rascalmpl".equals(project.getGroupId()) && "rascal".equals(project.getArtifactId())){
+            File r = new File(project.getBasedir(), project.getBuild().getOutputDirectory());
             builder.append(File.pathSeparator + r.getAbsolutePath());
         }
-	    
+
         for (Object o : project.getArtifacts()) {
             Artifact a = (Artifact) o;
             File file = a.getFile().getAbsoluteFile();
             builder.append(File.pathSeparator + file.getAbsolutePath());
         }
-        
+
         return builder.toString().substring(1);
     }
 

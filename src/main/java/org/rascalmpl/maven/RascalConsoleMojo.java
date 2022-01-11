@@ -57,18 +57,28 @@ public class RascalConsoleMojo extends AbstractMojo
 
 	private String collectClasspath() {
 	    StringBuilder builder = new StringBuilder();
+		boolean dependsOnRascal = false;
 
         if ("org.rascalmpl".equals(project.getGroupId()) && "rascal".equals(project.getArtifactId())){
-            File r = new File(project.getBasedir(), project.getBuild().getOutputDirectory());
+            File r = new File(project.getBuild().getOutputDirectory());
             builder.append(File.pathSeparator + r.getAbsolutePath());
+			dependsOnRascal = true;
         }
 
         for (Object o : project.getArtifacts()) {
             Artifact a = (Artifact) o;
             File file = a.getFile().getAbsoluteFile();
             builder.append(File.pathSeparator + file.getAbsolutePath());
+			if ("org.rascalmpl".equals(a.getGroupId()) && "rascal".equals(a.getArtifactId())) {
+				dependsOnRascal = true;
+			}
         }
 
+		if (!dependsOnRascal) {
+			// TODO: add rascal.jar to the PATH
+		}
+
+		System.err.println(builder.toString());
         return builder.toString().substring(1);
     }
 

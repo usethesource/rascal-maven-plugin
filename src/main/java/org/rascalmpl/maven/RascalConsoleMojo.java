@@ -16,6 +16,8 @@ import java.util.LinkedList;
 import java.util.List;
 
 import org.apache.maven.artifact.Artifact;
+import org.apache.maven.artifact.ArtifactUtils;
+import org.apache.maven.model.Plugin;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
@@ -23,6 +25,7 @@ import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.project.MavenProject;
+import org.apache.maven.project.artifact.PluginArtifact;
 
 /**
  * Maven Goal for starting a rascal console for the current mvn project.
@@ -75,10 +78,11 @@ public class RascalConsoleMojo extends AbstractMojo
         }
 
 		if (!dependsOnRascal) {
-			// TODO: add rascal.jar to the PATH
+			String msg = "Current project does not have a dependency on org.rascalmpl:rascal";
+			getLog().error(msg);
+			throw new RuntimeException(msg);
 		}
 
-		System.err.println(builder.toString());
         return builder.toString().substring(1);
     }
 

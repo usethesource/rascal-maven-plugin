@@ -3,7 +3,7 @@
 
     <groupId>org.rascalmpl</groupId>
     <artifactId>rascal-maven-plugin</artifactId>
-    <version>0.8.3</version>
+    <version>0.8.3-SNAPSHOT</version>
     <packaging>maven-plugin</packaging>
 
     <scm>

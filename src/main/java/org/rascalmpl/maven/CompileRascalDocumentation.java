@@ -111,7 +111,7 @@ public class CompileRascalDocumentation extends AbstractMojo
 				getLog().info("\tregistered library location: " + lib);
 			}
 
-			PathConfig pcfg = new PathConfig(srcLocs, libLocs, binLoc, Collections.emptyList(), Collections.emptyList(), classpath);
+			PathConfig pcfg = new PathConfig(srcLocs, libLocs, binLoc, Collections.emptyList(), classpath, classpath);
 			
 			getLog().info("Paths have been configured");
 

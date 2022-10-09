@@ -93,7 +93,8 @@ public class CompileRascalDocumentation extends AbstractMojo
 			List<ISourceLocation> libLocs = MojoUtils.locations(libs);
 			List<ISourceLocation> classpath = collectClasspath();
 
-			if (System.getProperty("rascal.documentation.skip") != null) {
+			if (System.getProperty("rascal.documentation.skip") != null
+			    || System.getProperty("rascal.tutor.skip") != null) {
 				getLog().info("Skipping Rascal Documentation compiler completely");
 				return;
 			}

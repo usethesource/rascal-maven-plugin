@@ -59,6 +59,7 @@ public class CompileRascalDocumentation extends AbstractMojo
 	private static final String MAIN_COMPILER_MODULE = "lang::rascal::tutor::Compiler";
 	private static final ISourceLocation[] MAIN_COMPILER_SEARCH_PATH = new ISourceLocation[] {
 		URIUtil.correctLocation("lib", "rascal", ""),
+		URIUtil.correctLocation("lib", "rascal-tutor", ""),
 	};
 
 	@Parameter(defaultValue="${project}", readonly=true, required=true)

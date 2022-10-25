@@ -80,6 +80,9 @@ public class CompileRascalDocumentation extends AbstractMojo
 	@Parameter(property = "warningsAsErrors", required = false, defaultValue = "false" )
 	private boolean warningsAsErrors;
 
+	@Parameter(property="enableStandardLibrary", required = false, defaultValue="true")
+	private boolean enableStandardLibrary;
+
 	private final MojoRascalMonitor monitor = new MojoRascalMonitor(getLog(), false);
 
 	private Evaluator makeEvaluator(OutputStream err, OutputStream out) throws URISyntaxException, FactTypeUseException, IOException {
@@ -115,7 +118,7 @@ public class CompileRascalDocumentation extends AbstractMojo
 
 			PathConfig pcfg = new PathConfig(srcLocs, libLocs, binLoc, Collections.emptyList(), classpath, classpath);
 			
-			getLog().info("Paths have been configured");
+			getLog().info("Paths have been configured: " + pcfg);
 
 			IList messages = runCompiler(monitor, makeEvaluator(System.err, System.out), pcfg);
 
@@ -139,18 +142,29 @@ public class CompileRascalDocumentation extends AbstractMojo
 	    List<ISourceLocation> builder = new LinkedList<>();
 		boolean dependsOnRascal = false;
 
+		builder.add(MojoUtils.location(bin));
+
         if ("org.rascalmpl".equals(project.getGroupId()) && "rascal".equals(project.getArtifactId())){
             File r = new File(project.getBuild().getOutputDirectory());
-            builder.add(URIUtil.createFileLocation(r.getAbsolutePath()));
+
+			if (!enableStandardLibrary) {
+            	builder.add(URIUtil.createFileLocation(r.getAbsolutePath()));
+			}
 			dependsOnRascal = true;
         }
 
         for (Object o : project.getArtifacts()) {
             Artifact a = (Artifact) o;
             File file = a.getFile().getAbsoluteFile();
-            builder.add(URIUtil.createFileLocation(file.getAbsolutePath()));
+
 			if ("org.rascalmpl".equals(a.getGroupId()) && "rascal".equals(a.getArtifactId())) {
 				dependsOnRascal = true;
+				if (enableStandardLibrary) {
+					builder.add(URIUtil.createFileLocation(file.getAbsolutePath()));
+				}
+			}
+			else {
+				builder.add(URIUtil.createFileLocation(file.getAbsolutePath()));
 			}
         }
 

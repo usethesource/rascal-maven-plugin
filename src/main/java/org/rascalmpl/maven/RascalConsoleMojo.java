@@ -39,6 +39,11 @@ public class RascalConsoleMojo extends AbstractMojo
 
         List<String> command = new LinkedList<String>();
         command.add(javaBin);
+        
+        System.getProperties().forEach((key, value) -> {
+            command.add("-D" + key + "=" + value);
+        });
+        
         command.add("-cp");
         command.add(collectClasspath());
         command.add("org.rascalmpl.shell.RascalShell");

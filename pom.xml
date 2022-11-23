@@ -35,13 +35,13 @@
         <dependency>
             <groupId>org.rascalmpl</groupId>
             <artifactId>rascal</artifactId>
-            <version>0.26.3</version>
+            <version>0.27.2-SNAPSHOT</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>org.rascalmpl</groupId>
             <artifactId>rascal-tutor</artifactId>
-            <version>0.3.3</version>
+            <version>0.3.4</version>
             <scope>compile</scope>
         </dependency>
         <dependency>

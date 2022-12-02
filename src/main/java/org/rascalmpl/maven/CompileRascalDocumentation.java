@@ -70,6 +70,9 @@ public class CompileRascalDocumentation extends AbstractMojo
 	@Parameter(property = "srcs", required = true )
 	private List<String> srcs;
 
+	@Parameter(property = "ignores", required = true )
+	private List<String> ignores;
+
 	@Parameter(property = "libs", required = false )
 	private List<String> libs;
 
@@ -93,6 +96,7 @@ public class CompileRascalDocumentation extends AbstractMojo
 			ISourceLocation binLoc = URIUtil.getChildLocation(MojoUtils.location(bin), "docs");
 			List<ISourceLocation> srcLocs = MojoUtils.locations(srcs);
 			List<ISourceLocation> libLocs = MojoUtils.locations(libs);
+			List<ISourceLocation> ignoredLocs = MojoUtils.locations(ignores);
 			List<ISourceLocation> classpath = collectClasspath();
 
 			if (System.getProperty("rascal.documentation.skip") != null
@@ -115,7 +119,7 @@ public class CompileRascalDocumentation extends AbstractMojo
 				getLog().info("\tregistered library location: " + lib);
 			}
 
-			PathConfig pcfg = new PathConfig(srcLocs, libLocs, binLoc, Collections.emptyList(), classpath, classpath);
+			PathConfig pcfg = new PathConfig(srcLocs, libLocs, binLoc, ignoredLocs, classpath, classpath);
 			
 			getLog().info("Paths have been configured: " + pcfg);
 

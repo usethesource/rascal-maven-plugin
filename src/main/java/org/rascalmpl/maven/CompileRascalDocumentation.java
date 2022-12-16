@@ -259,7 +259,7 @@ public class CompileRascalDocumentation extends AbstractMojo
 			String path = ((ISourceLocation) src).getURI().getPath();
 
 			if (loc.getPath().startsWith(path)) {
-				return loc.getPath().substring(path.length());
+				return URIUtil.getLocationName((ISourceLocation) src) + "/" + loc.getPath().substring(path.length());
 			}
 		}
 

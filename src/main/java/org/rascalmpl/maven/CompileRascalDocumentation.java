@@ -84,6 +84,15 @@ public class CompileRascalDocumentation extends AbstractMojo
 	@Parameter(property="enableStandardLibrary", required = false, defaultValue="true")
 	private boolean enableStandardLibrary;
 
+	@Parameter(property="isPackageCourse", required=false, defaultValue="true")
+	private boolean isPackageCourse;
+
+	@Parameter(property="packageName", required=true, defaultValue="${project.artifactId}")
+	private String packageName;
+
+	@Parameter(property="packageVersion", required=true, defaultValue="${project.version}")
+	private String packageVersion;
+
 	private final MojoRascalMonitor monitor = new MojoRascalMonitor(getLog(), false);
 
 	private Evaluator makeEvaluator(OutputStream err, OutputStream out) throws URISyntaxException, FactTypeUseException, IOException {
@@ -179,7 +188,12 @@ public class CompileRascalDocumentation extends AbstractMojo
 
 	private IList runCompiler(IRascalMonitor monitor, IEvaluator<Result<IValue>> eval, PathConfig pcfg) {
 		try {
-			return (IList) eval.call(monitor, "compile", pcfg.asConstructor());
+			IConstructor pc =  pcfg.asConstructor();
+			pc = pc.asWithKeywordParameters().setParameter("isPackageCourse", eval.getValueFactory().bool(isPackageCourse));
+			pc = pc.asWithKeywordParameters().setParameter("packageName", eval.getValueFactory().string(packageName));
+			pc = pc.asWithKeywordParameters().setParameter("packageVersion", eval.getValueFactory().string(packageVersion));
+			
+			return (IList) eval.call(monitor, "compile", pc);
 		}
 		finally {
 			try {

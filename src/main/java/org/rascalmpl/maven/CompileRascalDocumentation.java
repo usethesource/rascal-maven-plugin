@@ -93,6 +93,19 @@ public class CompileRascalDocumentation extends AbstractMojo
 	@Parameter(property="packageVersion", required=true, defaultValue="${project.version}")
 	private String packageVersion;
 
+	@Parameter(property="packageGroup", required=true, defaultValue="${project.groupId}")
+	private String packageGroup;
+
+	@Parameter(property="license", required=true, defaultValue="${project.basedir}/LICENSE")
+	private String licenseFile;
+
+	@Parameter(property="issues", required=true, defaultValue="http://github.com/usethesource/rascal/issues")
+	private String issuesLocation;
+
+	@Parameter(property="sources", required=true, defaultValue="http://github.com/usethesource/rascal")
+	private String sourcesLocation;
+
+
 	private final MojoRascalMonitor monitor = new MojoRascalMonitor(getLog(), false);
 
 	private Evaluator makeEvaluator(OutputStream err, OutputStream out) throws URISyntaxException, FactTypeUseException, IOException {
@@ -192,6 +205,10 @@ public class CompileRascalDocumentation extends AbstractMojo
 			pc = pc.asWithKeywordParameters().setParameter("isPackageCourse", eval.getValueFactory().bool(isPackageCourse));
 			pc = pc.asWithKeywordParameters().setParameter("packageName", eval.getValueFactory().string(packageName));
 			pc = pc.asWithKeywordParameters().setParameter("packageVersion", eval.getValueFactory().string(packageVersion));
+			pc = pc.asWithKeywordParameters().setParameter("packageGroup", eval.getValueFactory().string(packageGroup));
+			pc = pc.asWithKeywordParameters().setParameter("sources", MojoUtils.location(sourcesLocation));
+			pc = pc.asWithKeywordParameters().setParameter("issues", MojoUtils.location(issuesLocation));
+			pc = pc.asWithKeywordParameters().setParameter("license", MojoUtils.location(licenseFile));
 			
 			return (IList) eval.call(monitor, "compile", pc);
 		}

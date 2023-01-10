@@ -99,10 +99,10 @@ public class CompileRascalDocumentation extends AbstractMojo
 	@Parameter(property="license", required=true, defaultValue="${project.basedir}/LICENSE")
 	private String licenseFile;
 
-	@Parameter(property="issues", required=true, defaultValue="http://github.com/usethesource/rascal/issues")
+	@Parameter(property="issues", required=true, defaultValue="|http://github.com/usethesource/rascal/issues|")
 	private String issuesLocation;
 
-	@Parameter(property="sources", required=true, defaultValue="http://github.com/usethesource/rascal")
+	@Parameter(property="sources", required=true, defaultValue="|http://github.com/usethesource/rascal|")
 	private String sourcesLocation;
 
 

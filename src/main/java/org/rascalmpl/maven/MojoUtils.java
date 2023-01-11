@@ -91,7 +91,7 @@ public class MojoUtils {
 	}
 
     static ISourceLocation location(String file) {
-    	if (file.startsWith("|") && file.endsWith("|")) {
+    	if (file.trim().startsWith("|") && file.trim().endsWith("|")) {
     		try {
     			return (ISourceLocation) new StandardTextReader().read(ValueFactoryFactory.getValueFactory(), new StringReader(file));
     		} catch (IOException e) {

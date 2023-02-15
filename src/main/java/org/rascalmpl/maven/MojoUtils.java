@@ -23,6 +23,7 @@ import java.util.stream.Collectors;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.project.MavenProject;
+import org.rascalmpl.uri.ILogicalSourceLocationResolver;
 import org.rascalmpl.uri.URIResolverRegistry;
 import org.rascalmpl.debug.IRascalMonitor;
 import org.rascalmpl.interpreter.Evaluator;
@@ -132,6 +133,27 @@ public class MojoUtils {
 					libLocs.add(jarLoc);
 					projects.add(projectName);
 				}
+
+				// let lib://projectName take precedence over the classpath of the compiler itself
+				// which may also have lib://rascal for example registered accidentally.
+				URIResolverRegistry.getInstance().registerLogical(new ILogicalSourceLocationResolver() {
+
+					@Override
+					public ISourceLocation resolve(ISourceLocation input) throws IOException {
+						return URIUtil.getChildLocation(jarLoc, input.getPath());
+					}
+
+					@Override
+					public String scheme() {
+						return "lib";
+					}
+
+					@Override
+					public String authority() {
+						return projectName;
+					}
+					
+				});
 			}
 		}
 	}

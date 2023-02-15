@@ -16,8 +16,11 @@ import java.io.OutputStream;
 import java.net.URISyntaxException;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
 
 import org.apache.maven.artifact.Artifact;
+import org.apache.maven.artifact.repository.metadata.Plugin;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
@@ -115,10 +118,10 @@ public class CompileRascalDocumentation extends AbstractMojo
 	public void execute() throws MojoExecutionException {
 		try {
 			ISourceLocation binLoc = URIUtil.getChildLocation(MojoUtils.location(bin), "docs");
-			List<ISourceLocation> srcLocs = MojoUtils.locations(srcs);
-			List<ISourceLocation> libLocs = MojoUtils.locations(libs);
-			List<ISourceLocation> ignoredLocs = MojoUtils.locations(ignores);
-			List<ISourceLocation> classpath = collectClasspath();
+			List<ISourceLocation> srcLocs 		= MojoUtils.locations(srcs);
+			List<ISourceLocation> libLocs 		= MojoUtils.locations(libs);
+			List<ISourceLocation> ignoredLocs 	= MojoUtils.locations(ignores);
+			List<ISourceLocation> classpath 	= collectClasspath();
 
 			if (System.getProperty("rascal.documentation.skip") != null
 			    || System.getProperty("rascal.tutor.skip") != null) {
@@ -140,7 +143,11 @@ public class CompileRascalDocumentation extends AbstractMojo
 				getLog().info("\tregistered library location: " + lib);
 			}
 
-			PathConfig pcfg = new PathConfig(srcLocs, libLocs, binLoc, ignoredLocs, classpath, classpath);
+			// the compiler classpath (for generated parser compilation) is based on the classpath for the compiler itself,
+			// rather than what it is compiling currently.
+			List<ISourceLocation> compilerClassPath = collectPluginClasspath();
+
+			PathConfig pcfg = new PathConfig(srcLocs, libLocs, binLoc, ignoredLocs, compilerClassPath, classpath);
 			
 			getLog().info("Paths have been configured: " + pcfg);
 
@@ -196,6 +203,15 @@ public class CompileRascalDocumentation extends AbstractMojo
 			getLog().info("Current project does not have a dependency on org.rascalmpl:rascal");
 		}
 
+        return builder;
+    }
+
+	private List<ISourceLocation> collectPluginClasspath() throws URISyntaxException {
+	    List<ISourceLocation> builder = new LinkedList<>();
+		
+		builder.add(MojoUtils.location(IValue.class.getProtectionDomain().getCodeSource().getLocation().getPath()));
+		builder.add(MojoUtils.location(Evaluator.class.getProtectionDomain().getCodeSource().getLocation().getPath()));
+		
         return builder;
     }
 

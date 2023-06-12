@@ -16,11 +16,7 @@ import java.io.OutputStream;
 import java.net.URISyntaxException;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.stream.Collector;
-import java.util.stream.Collectors;
-
 import org.apache.maven.artifact.Artifact;
-import org.apache.maven.artifact.repository.metadata.Plugin;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;

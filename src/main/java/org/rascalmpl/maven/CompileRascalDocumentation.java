@@ -62,11 +62,8 @@ public class CompileRascalDocumentation extends AbstractMojo
 	@Parameter(defaultValue="${project}", readonly=true, required=true)
 	private MavenProject project;
 
-	@Parameter(defaultValue = "${project.build.outputDirectory}", property = "bin", required = true )
+	@Parameter(property = "bin", required = true, defaultValue = "${project.build.outputDirectory}")
 	private String bin;
-
-	@Parameter(defaultValue = "${project.basedir}", property = "packageSource", required = false )
-	private String packageSource;
 
 	@Parameter(property = "srcs", required = true )
 	private List<String> srcs;
@@ -98,14 +95,14 @@ public class CompileRascalDocumentation extends AbstractMojo
 	@Parameter(property="packageGroup", required=true, defaultValue="${project.groupId}")
 	private String packageGroup;
 
-	@Parameter(property="license", required=true, defaultValue="${project.basedir}/LICENSE")
+	@Parameter(property="license", required=false, defaultValue="${project.basedir}/LICENSE")
 	private String licenseFile;
 
-	@Parameter(property="issues", required=true, defaultValue="|http://github.com/usethesource/rascal/issues|")
-	private String issuesLocation;
+	@Parameter(property="issues", required=false, defaultValue="|http://github.com/usethesource/rascal/issues|")
+	private String issues;
 
-	@Parameter(property="sources", required=true, defaultValue="|http://github.com/usethesource/rascal/blob/main|")
-	private String sourcesLocation;
+	@Parameter(property="sources", required=false, defaultValue="|http://github.com/usethesource/rascal/blob/main|")
+	private String sources;
 
 
 	private final MojoRascalMonitor monitor = new MojoRascalMonitor(getLog(), false);
@@ -165,6 +162,8 @@ public class CompileRascalDocumentation extends AbstractMojo
 		    getLog().error(e.getLocation() + ": " + e.getMessage());
 		    getLog().error(e.getTrace().toString());
 		    throw new MojoExecutionException(UNEXPECTED_ERROR, e);
+		} catch (Throwable e) {
+			e.printStackTrace();
 		}
 	}
 
@@ -214,18 +213,19 @@ public class CompileRascalDocumentation extends AbstractMojo
         return builder;
     }
 
-	private IList runCompiler(IRascalMonitor monitor, IEvaluator<Result<IValue>> eval, PathConfig pcfg) {
+	private IList runCompiler(IRascalMonitor monitor, IEvaluator<Result<IValue>> eval, PathConfig pcfg) throws URISyntaxException, IOException {
 		try {
 			IConstructor pc =  pcfg.asConstructor();
 			pc = pc.asWithKeywordParameters().setParameter("isPackageCourse", eval.getValueFactory().bool(isPackageCourse));
 			pc = pc.asWithKeywordParameters().setParameter("packageName", eval.getValueFactory().string(packageName));
 			pc = pc.asWithKeywordParameters().setParameter("packageVersion", eval.getValueFactory().string(packageVersion));
 			pc = pc.asWithKeywordParameters().setParameter("packageGroup", eval.getValueFactory().string(packageGroup));
-			pc = pc.asWithKeywordParameters().setParameter("packageSource", eval.getValueFactory().string(packageSource));
-			pc = pc.asWithKeywordParameters().setParameter("sources", MojoUtils.location(sourcesLocation));
-			pc = pc.asWithKeywordParameters().setParameter("issues", MojoUtils.location(issuesLocation));
+			pc = pc.asWithKeywordParameters().setParameter("packageRoot", URIUtil.createFileLocation(project.getBasedir().getCanonicalPath()));
+			pc = pc.asWithKeywordParameters().setParameter("sources", MojoUtils.location(sources));
+			pc = pc.asWithKeywordParameters().setParameter("issues", MojoUtils.location(issues));
 			pc = pc.asWithKeywordParameters().setParameter("license", MojoUtils.location(licenseFile));
-			
+
+			eval.getErrorPrinter().println(pc);
 			return (IList) eval.call(monitor, "compile", pc);
 		}
 		finally {

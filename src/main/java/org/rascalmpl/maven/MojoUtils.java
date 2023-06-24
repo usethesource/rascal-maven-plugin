@@ -23,7 +23,6 @@ import java.util.stream.Collectors;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.project.MavenProject;
-import org.rascalmpl.uri.ILogicalSourceLocationResolver;
 import org.rascalmpl.uri.URIResolverRegistry;
 import org.rascalmpl.debug.IRascalMonitor;
 import org.rascalmpl.interpreter.Evaluator;
@@ -60,7 +59,7 @@ public class MojoUtils {
 		));
 
 		eval.setMonitor(monitor);
-
+		
 		for (ISourceLocation sp: searchPath) {
 			addSearchPath(log, eval, sp);
 		}
@@ -114,7 +113,6 @@ public class MojoUtils {
 			.collect(Collectors.toCollection(ArrayList::new));
     }
 
-
 	static void collectDependentArtifactLibraries(MavenProject project, List<ISourceLocation> libLocs) throws URISyntaxException, IOException {
 		RascalManifest mf = new RascalManifest();
 		Set<String> projects = libLocs.stream().map(mf::getProjectName).collect(Collectors.toSet());
@@ -126,34 +124,13 @@ public class MojoUtils {
 			ISourceLocation jarLoc = RascalManifest.jarify(MojoUtils.location(file.toString()));
 
 			if (reg.exists(URIUtil.getChildLocation(jarLoc, "META-INF/RASCAL.MF"))) {
-				String projectName = mf.getProjectName(jarLoc);
+				final String projectName = mf.getProjectName(jarLoc);
 
 				// only add a library if it is not already on the lib path
 				if (!projects.contains(projectName)) {
 					libLocs.add(jarLoc);
-					projects.add(projectName);
+					projects.add(projectName);					
 				}
-
-				// let lib://projectName take precedence over the classpath of the compiler itself
-				// which may also have lib://rascal for example registered accidentally.
-				URIResolverRegistry.getInstance().registerLogical(new ILogicalSourceLocationResolver() {
-
-					@Override
-					public ISourceLocation resolve(ISourceLocation input) throws IOException {
-						return URIUtil.getChildLocation(jarLoc, input.getPath());
-					}
-
-					@Override
-					public String scheme() {
-						return "lib";
-					}
-
-					@Override
-					public String authority() {
-						return projectName;
-					}
-					
-				});
 			}
 		}
 	}

@@ -55,8 +55,8 @@ public class CompileRascalDocumentation extends AbstractMojo
 	private static final String UNEXPECTED_ERROR = "unexpected error during Rascal compiler run";
 	private static final String MAIN_COMPILER_MODULE = "lang::rascal::tutor::Compiler";
 	private static final ISourceLocation[] MAIN_COMPILER_SEARCH_PATH = new ISourceLocation[] {
-		URIUtil.correctLocation("lib", "rascal", ""),
 		URIUtil.correctLocation("lib", "rascal-tutor", ""),
+		URIUtil.correctLocation("lib", "rascal", ""),
 	};
 
 	@Parameter(defaultValue="${project}", readonly=true, required=true)
@@ -64,6 +64,9 @@ public class CompileRascalDocumentation extends AbstractMojo
 
 	@Parameter(defaultValue = "${project.build.outputDirectory}", property = "bin", required = true )
 	private String bin;
+
+	@Parameter(defaultValue = "${project.basedir}", property = "packageSource", required = false )
+	private String packageSource;
 
 	@Parameter(property = "srcs", required = true )
 	private List<String> srcs;
@@ -101,7 +104,7 @@ public class CompileRascalDocumentation extends AbstractMojo
 	@Parameter(property="issues", required=true, defaultValue="|http://github.com/usethesource/rascal/issues|")
 	private String issuesLocation;
 
-	@Parameter(property="sources", required=true, defaultValue="|http://github.com/usethesource/rascal|")
+	@Parameter(property="sources", required=true, defaultValue="|http://github.com/usethesource/rascal/blob/main|")
 	private String sourcesLocation;
 
 
@@ -218,6 +221,7 @@ public class CompileRascalDocumentation extends AbstractMojo
 			pc = pc.asWithKeywordParameters().setParameter("packageName", eval.getValueFactory().string(packageName));
 			pc = pc.asWithKeywordParameters().setParameter("packageVersion", eval.getValueFactory().string(packageVersion));
 			pc = pc.asWithKeywordParameters().setParameter("packageGroup", eval.getValueFactory().string(packageGroup));
+			pc = pc.asWithKeywordParameters().setParameter("packageSource", eval.getValueFactory().string(packageSource));
 			pc = pc.asWithKeywordParameters().setParameter("sources", MojoUtils.location(sourcesLocation));
 			pc = pc.asWithKeywordParameters().setParameter("issues", MojoUtils.location(issuesLocation));
 			pc = pc.asWithKeywordParameters().setParameter("license", MojoUtils.location(licenseFile));

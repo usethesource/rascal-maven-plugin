@@ -98,6 +98,12 @@ public class CompileRascalDocumentation extends AbstractMojo
 	@Parameter(property="license", required=false, defaultValue="${project.basedir}/LICENSE")
 	private String licenseFile;
 
+	@Parameter(property="funding", required=false, defaultValue="${project.basedir}/FUNDING")
+	private String funding;
+
+	@Parameter(property="citation", required=false, defaultValue="${project.basedir}/CITATION")
+	private String citation;
+
 	@Parameter(property="issues", required=false, defaultValue="|http://github.com/usethesource/rascal/issues|")
 	private String issues;
 
@@ -162,9 +168,7 @@ public class CompileRascalDocumentation extends AbstractMojo
 		    getLog().error(e.getLocation() + ": " + e.getMessage());
 		    getLog().error(e.getTrace().toString());
 		    throw new MojoExecutionException(UNEXPECTED_ERROR, e);
-		} catch (Throwable e) {
-			e.printStackTrace();
-		}
+		} 
 	}
 
 	private List<ISourceLocation> collectClasspath() throws URISyntaxException {
@@ -224,6 +228,8 @@ public class CompileRascalDocumentation extends AbstractMojo
 			pc = pc.asWithKeywordParameters().setParameter("sources", MojoUtils.location(sources));
 			pc = pc.asWithKeywordParameters().setParameter("issues", MojoUtils.location(issues));
 			pc = pc.asWithKeywordParameters().setParameter("license", MojoUtils.location(licenseFile));
+			pc = pc.asWithKeywordParameters().setParameter("funding", MojoUtils.location(funding));
+			pc = pc.asWithKeywordParameters().setParameter("citation", MojoUtils.location(citation));
 
 			eval.getErrorPrinter().println(pc);
 			return (IList) eval.call(monitor, "compile", pc);

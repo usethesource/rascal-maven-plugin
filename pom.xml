@@ -3,12 +3,12 @@
 
     <groupId>org.rascalmpl</groupId>
     <artifactId>rascal-maven-plugin</artifactId>
-    <version>0.19.0-RC6-SNAPSHOT</version>
+    <version>0.19.0</version>
     <packaging>maven-plugin</packaging>
 
     <scm>
         <developerConnection>scm:git:ssh://git@github.com/usethesource/rascal-maven-plugin.git</developerConnection>
-        <tag>HEAD</tag>
+        <tag>v0.19.0</tag>
       </scm>
 
     <name>Rascal Maven Plugin</name>

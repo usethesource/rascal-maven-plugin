@@ -104,10 +104,10 @@ public class CompileRascalDocumentation extends AbstractMojo
 	@Parameter(property="citation", required=false, defaultValue="${project.basedir}/CITATION")
 	private String citation;
 
-	@Parameter(property="issues", required=false, defaultValue="|http://github.com/usethesource/rascal/issues|")
+	@Parameter(property="issues", required=false)
 	private String issues;
 
-	@Parameter(property="sources", required=false, defaultValue="|http://github.com/usethesource/rascal/blob/main|")
+	@Parameter(property="sources", required=false)
 	private String sources;
 
 
@@ -225,8 +225,15 @@ public class CompileRascalDocumentation extends AbstractMojo
 			pc = pc.asWithKeywordParameters().setParameter("packageVersion", eval.getValueFactory().string(packageVersion));
 			pc = pc.asWithKeywordParameters().setParameter("packageGroup", eval.getValueFactory().string(packageGroup));
 			pc = pc.asWithKeywordParameters().setParameter("packageRoot", URIUtil.createFileLocation(project.getBasedir().getCanonicalPath()));
-			pc = pc.asWithKeywordParameters().setParameter("sources", MojoUtils.location(sources));
-			pc = pc.asWithKeywordParameters().setParameter("issues", MojoUtils.location(issues));
+
+			if (sources != null) {
+				pc = pc.asWithKeywordParameters().setParameter("sources", MojoUtils.location(sources));
+			}
+
+			if (issues != null) {
+				pc = pc.asWithKeywordParameters().setParameter("issues", MojoUtils.location(issues));
+			}
+			
 			pc = pc.asWithKeywordParameters().setParameter("license", MojoUtils.location(licenseFile));
 			pc = pc.asWithKeywordParameters().setParameter("funding", MojoUtils.location(funding));
 			pc = pc.asWithKeywordParameters().setParameter("citation", MojoUtils.location(citation));

@@ -30,7 +30,9 @@ import org.rascalmpl.interpreter.Evaluator;
 import org.rascalmpl.interpreter.IEvaluator;
 import org.rascalmpl.interpreter.result.Result;
 import org.rascalmpl.library.util.PathConfig;
+import org.rascalmpl.uri.URIResolverRegistry;
 import org.rascalmpl.uri.URIUtil;
+import org.rascalmpl.uri.project.ProjectURIResolver;
 
 import io.usethesource.vallang.IConstructor;
 import io.usethesource.vallang.IList;
@@ -152,6 +154,14 @@ public class CompileRascalDocumentation extends AbstractMojo
 			PathConfig pcfg = new PathConfig(srcLocs, libLocs, binLoc, ignoredLocs, compilerClassPath, classpath);
 			
 			getLog().info("Paths have been configured: " + pcfg);
+
+			URIResolverRegistry.getInstance().registerLogical(
+				new ProjectURIResolver(
+					MojoUtils.location(
+						project.getBasedir().getCanonicalFile().toString()), 
+						project.getName()
+					)
+				);
 
 			IList messages = runCompiler(monitor, makeEvaluator(System.err, System.out), pcfg);
 

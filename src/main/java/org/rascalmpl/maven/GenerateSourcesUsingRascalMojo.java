@@ -46,6 +46,7 @@ public class GenerateSourcesUsingRascalMojo extends AbstractMojo
 
 	    String javaHome = System.getProperty("java.home");
         String javaBin = javaHome + File.separator + "bin" + File.separator + "java";
+		getLog().info("Using " + javaBin + " as java process for nested jvm call");
 
         List<String> command = new LinkedList<String>();
         command.add(javaBin);
@@ -69,10 +70,10 @@ public class GenerateSourcesUsingRascalMojo extends AbstractMojo
     private String collectClasspath() {
 	    StringBuilder builder = new StringBuilder();
 
-        for (Object o : project.getArtifacts()) {
-            Artifact a = (Artifact) o;
+        for (Artifact a : project.getArtifacts()) {
             File file = a.getFile().getAbsoluteFile();
-            builder.append(":" + file.getAbsolutePath());
+			getLog().debug("Adding " + file + " to classpath");
+            builder.append(File.pathSeparator + file.getAbsolutePath());
         }
 
         return builder.toString().substring(1);

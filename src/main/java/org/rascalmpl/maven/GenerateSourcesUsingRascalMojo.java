@@ -57,11 +57,14 @@ public class GenerateSourcesUsingRascalMojo extends AbstractMojo
 
         try {
             ProcessBuilder builder = new ProcessBuilder(command);
+            builder.directory(project.getBasedir());
             Process process = builder.inheritIO().start();
             process.waitFor();
-        } catch (IOException e) {
+        } 
+        catch (IOException e) {
             getLog().error(e);
-        } catch (InterruptedException e) {
+        } 
+        catch (InterruptedException e) {
             getLog().warn(e);
         }
         finally {}

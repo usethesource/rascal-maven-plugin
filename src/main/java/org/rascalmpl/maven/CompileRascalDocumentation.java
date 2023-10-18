@@ -106,6 +106,10 @@ public class CompileRascalDocumentation extends AbstractMojo
 	@Parameter(property="citation", required=false, defaultValue="${project.basedir}/CITATION")
 	private String citation;
 
+	@Parameter(property="releaseNotes", required=false, defaultValue="${project.basedir}/RELEASE-NOTES.md")
+	private String releaseNotes;
+
+
 	@Parameter(property="issues", required=false)
 	private String issues;
 
@@ -247,6 +251,7 @@ public class CompileRascalDocumentation extends AbstractMojo
 			pc = pc.asWithKeywordParameters().setParameter("license", MojoUtils.location(licenseFile));
 			pc = pc.asWithKeywordParameters().setParameter("funding", MojoUtils.location(funding));
 			pc = pc.asWithKeywordParameters().setParameter("citation", MojoUtils.location(citation));
+			pc = pc.asWithKeywordParameters().setParameter("releaseNotes", MojoUtils.location(releaseNotes));
 
 			eval.getErrorPrinter().println(pc);
 			return (IList) eval.call(monitor, "compile", pc);

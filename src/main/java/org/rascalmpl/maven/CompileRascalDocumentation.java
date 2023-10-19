@@ -106,9 +106,8 @@ public class CompileRascalDocumentation extends AbstractMojo
 	@Parameter(property="citation", required=false, defaultValue="${project.basedir}/CITATION")
 	private String citation;
 
-	@Parameter(property="releaseNotes", required=false, defaultValue="${project.basedir}/RELEASE-NOTES.md")
+	@Parameter(property="releaseNotes", required=false, defaultValue="${project.basedir}/RELEASE-NOTES")
 	private String releaseNotes;
-
 
 	@Parameter(property="issues", required=false)
 	private String issues;

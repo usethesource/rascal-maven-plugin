@@ -81,12 +81,15 @@ public class CompileRascalMojo extends AbstractMojo
 {
 	private static final String UNEXPECTED_ERROR = "unexpected error during Rascal compiler run";
 	private static final String MAIN_COMPILER_MODULE = "lang::rascalcore::check::Checker";
+	private static final String COMPILER_CONFIG_MODULE = "lang::rascalcore::check::RascalConfig";
+
 	private static final ISourceLocation[] MAIN_COMPILER_SEARCH_PATH = new ISourceLocation[] {
 		URIUtil.correctLocation("lib", "typepal", ""),
 		URIUtil.correctLocation("lib", "rascal-core", "")
 	};
 	private static final URIResolverRegistry reg = URIResolverRegistry.getInstance();
 	private static final IValueFactory VF = ValueFactoryFactory.getValueFactory();
+	
 
 	@Parameter(defaultValue="${project}", readonly=true, required=true)
 	private MavenProject project;
@@ -124,7 +127,7 @@ public class CompileRascalMojo extends AbstractMojo
 	private final MojoRascalMonitor monitor = new MojoRascalMonitor(getLog(), false);
 
 	private Evaluator makeEvaluator(OutputStream err, OutputStream out) throws URISyntaxException, FactTypeUseException, IOException {
-		return MojoUtils.makeEvaluator(getLog(), monitor,err, out, MAIN_COMPILER_SEARCH_PATH, MAIN_COMPILER_MODULE);
+		return MojoUtils.makeEvaluator(getLog(), monitor,err, out, MAIN_COMPILER_SEARCH_PATH, MAIN_COMPILER_MODULE, COMPILER_CONFIG_MODULE);
 	}
 
 	public void execute() throws MojoExecutionException {
@@ -270,9 +273,15 @@ public class CompileRascalMojo extends AbstractMojo
 			throws IOException, URISyntaxException {
 	    if (!parallel || todoList.size() <= 10 || parallelAmount() <= 1) {
 	    	getLog().info("Running checker in single threaded mode");
-	        return runCheckerSingle(monitor, todoList, makeEvaluator(System.err, System.out), pcfg);
+			Evaluator eval =  makeEvaluator(System.err, System.out);
+			IConstructor  singleConfig = (IConstructor) eval.call("rascalCompilerConfig", pcfg.asConstructor());
+	        return runCheckerSingle(monitor, todoList, eval, singleConfig);
 		}
 		ConcurrentSoftReferenceObjectPool<Evaluator> evaluators = createEvaluatorPool();
+
+		final IConstructor config = evaluators.useAndReturn(eval -> {
+			return (IConstructor) eval.call("rascalCompilerConfig", pcfg.asConstructor());
+		});
 
 		Queue<IList> errorMessages = new ConcurrentLinkedQueue<>();
 		IListWriter start = VF.listWriter();
@@ -288,7 +297,7 @@ public class CompileRascalMojo extends AbstractMojo
 					try {
 						safeLog(l -> l.info("Running pre-phase: " + initialTodo));
 						errorMessages.add(evaluators.useAndReturn(eval ->
-							runCheckerSingle(monitor, initialTodo, eval, pcfg)
+							runCheckerSingle(monitor, initialTodo, eval, config)
 						));
 						safeLog(l -> l.info("Finished running the pre-phase checker"));
 					} catch (Exception e) {
@@ -312,15 +321,17 @@ public class CompileRascalMojo extends AbstractMojo
 						ISourceLocation myBin = VF.sourceLocation("tmp", "","tmp-" + System.identityHashCode(todo) + "-" + Instant.now().getEpochSecond());
 						binFolders.add(myBin);
 						PathConfig myConfig = new PathConfig(pcfg.getSrcs(), pcfg.getLibs().append(pcfg.getBin()), myBin);
+						
 						executor.execute(() -> {
 							try {
 								Thread.sleep(1000);  // give the other evaluator a head start
 								safeLog(l -> l.debug("Starting fresh evaluator"));
 								errorMessages.add(evaluators.useAndReturn(e -> {
-									try {
+									try { 
 										prePhaseDone.acquire();
 										safeLog(l -> l.debug("Starting checking chunk with " + todo.size() +  " entries"));
-										return runCheckerSingle(monitor, todo, e, myConfig);
+										IConstructor myCompilerConfig = (IConstructor) e.call("rascalCompilerConfig", myConfig.asConstructor());
+										return runCheckerSingle(monitor, todo, e, myCompilerConfig);
 									} catch (InterruptedException interruptedException) {
 									    return VF.list();
 									}
@@ -403,9 +414,10 @@ public class CompileRascalMojo extends AbstractMojo
 
 
 
-	private IList runCheckerSingle(IRascalMonitor monitor, IList todoList, IEvaluator<Result<IValue>> eval, PathConfig pcfg) {
+	private IList runCheckerSingle(IRascalMonitor monitor, IList todoList, IEvaluator<Result<IValue>> eval, IConstructor compilerConfig) {
 		try {
-			return (IList) eval.call(monitor, "check", todoList, pcfg.asConstructor());
+
+			return (IList) eval.call(monitor, "check", todoList, compilerConfig);
 		}
 		finally {
 			try {

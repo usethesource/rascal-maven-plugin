@@ -35,22 +35,22 @@
         <dependency>
             <groupId>org.rascalmpl</groupId>
             <artifactId>rascal</artifactId>
-            <version>0.35.0-RC5</version>
+            <version>0.36.1-RC1</version>
         </dependency>
         <dependency>
             <groupId>org.rascalmpl</groupId>
             <artifactId>rascal-tutor</artifactId>
-            <version>0.18.0-RC1</version>
+            <version>0.18.0-RC2</version>
         </dependency>
         <dependency>
             <groupId>org.rascalmpl</groupId>
             <artifactId>typepal</artifactId>
-            <version>0.7.6</version>
+            <version>0.10.0</version>
         </dependency>
         <dependency>
             <groupId>org.rascalmpl</groupId>
             <artifactId>rascal-core</artifactId>
-            <version>0.7.6</version>
+            <version>0.8.1-BOOT1</version>
         </dependency>
         <dependency>
             <groupId>org.apache.maven</groupId>

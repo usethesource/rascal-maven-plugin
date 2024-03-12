@@ -97,6 +97,13 @@ public class CompileRascalMojo extends AbstractMojo
 	@Parameter(defaultValue = "${project.build.outputDirectory}", property = "bin", required = true )
 	private String bin;
 
+	@Parameter(defaultValue = "${project.build.outputDirectory}", property = "resources", required = true)
+	private String resources;
+
+	// generatedSources
+	@Parameter(defaultValue = "${project.basedir}/generated-sources", property = "generatedSources", required = true)
+	private String generatedSources;
+
 	@Parameter(property = "srcs", required = true )
 	private List<String> srcs;
 
@@ -105,6 +112,9 @@ public class CompileRascalMojo extends AbstractMojo
 
 	@Parameter(property = "libs", required = false )
 	private List<String> libs;
+
+	@Parameter(defaultValue="false", property= "verbose", required=true)
+	private boolean verbose;
 
 	@Parameter(property = "errorsAsWarnings", required = false, defaultValue = "false" )
 	private boolean errorsAsWarnings;
@@ -133,6 +143,16 @@ public class CompileRascalMojo extends AbstractMojo
 	public void execute() throws MojoExecutionException {
 		try {
 			ISourceLocation binLoc = MojoUtils.location(bin);
+			ISourceLocation resourcesLoc = MojoUtils.location(resources);
+
+			if (!binLoc.equals(resourcesLoc)) {
+				getLog().info("bin      : " + binLoc);
+				getLog().info("resources: " + resourcesLoc);
+				getLog().error(new IllegalArgumentException("resources target must be equal to bin"));
+				throw new MojoExecutionException("Rascal compiler detected configuration errors");
+			}
+
+			ISourceLocation generatedSourcesLoc = MojoUtils.location(generatedSources);
 			List<ISourceLocation> srcLocs = MojoUtils.locations(srcs);
 			List<ISourceLocation> ignoredLocs = MojoUtils.locations(srcIgnores);
 			List<ISourceLocation> libLocs = MojoUtils.locations(libs);
@@ -182,7 +202,7 @@ public class CompileRascalMojo extends AbstractMojo
 
 			PathConfig pcfg = new PathConfig(srcLocs, libLocs, binLoc);
 
-			IList messages = runChecker(monitor, todoList, pcfg);
+			IList messages = runChecker(monitor, verbose, todoList, pcfg, resourcesLoc, generatedSourcesLoc);
 
 
 			getLog().info("checker is done, reporting errors now.");
@@ -269,12 +289,21 @@ public class CompileRascalMojo extends AbstractMojo
 	}
 
 
-	private IList runChecker(IRascalMonitor monitor, IList todoList, PathConfig pcfg)
+	private IList runChecker(IRascalMonitor monitor, boolean verbose, IList todoList, PathConfig pcfg, ISourceLocation resourcesLoc, ISourceLocation generatedSourcesLoc)
 			throws IOException, URISyntaxException {
 	    if (!parallel || todoList.size() <= 10 || parallelAmount() <= 1) {
 	    	getLog().info("Running checker in single threaded mode");
 			Evaluator eval =  makeEvaluator(System.err, System.out);
-			IConstructor  singleConfig = (IConstructor) eval.call("rascalCompilerConfig", pcfg.asConstructor());
+			
+			IConstructor pcfgCons = pcfg.asConstructor()
+				.asWithKeywordParameters().setParameter("resources", resourcesLoc)
+				.asWithKeywordParameters().setParameter("generatedSources", generatedSourcesLoc);
+
+			IConstructor  singleConfig = (IConstructor) eval.call("rascalCompilerConfig", pcfgCons);
+			
+			singleConfig = singleConfig	
+				.asWithKeywordParameters().setParameter("verbose", VF.bool(verbose));
+
 	        return runCheckerSingle(monitor, todoList, eval, singleConfig);
 		}
 		ConcurrentSoftReferenceObjectPool<Evaluator> evaluators = createEvaluatorPool();

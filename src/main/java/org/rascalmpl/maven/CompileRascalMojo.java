@@ -339,7 +339,7 @@ public class CompileRascalMojo extends AbstractMojo
 				// First run the initial modules (they will be reused a lot by the other runners)
 				executor.execute(() -> {
 					try {
-						safeLog(l -> l.info("Running pre-phase: " + initialTodo));
+						safeLog(l -> l.info("Running pre-phase on: " + initialTodo.stream().map(f -> "\n\t" + f)));
 						parallelReports.add(evaluators.useAndReturn(eval ->
 							runCheckerSingle(monitor, initialTodo, eval, config)
 						));
@@ -369,6 +369,7 @@ public class CompileRascalMojo extends AbstractMojo
 						ISourceLocation myBin = VF.sourceLocation("tmp", "","tmp-" + System.identityHashCode(todo) + "-" + Instant.now().getEpochSecond());
 						binFolders.add(myBin);
 						PathConfig myConfig = new PathConfig(pcfg.getSrcs(), pcfg.getLibs().append(pcfg.getBin()), myBin);
+						final IConstructor myCompilerConfig = makeCompilerConfig(e, verbose, expandPathConfig(myConfig, resourcesLoc, generatedSourcesLoc));
 						
 						executor.execute(() -> {
 							try {
@@ -378,7 +379,6 @@ public class CompileRascalMojo extends AbstractMojo
 									try { 
 										prePhaseDone.acquire();
 										safeLog(l -> l.debug("Starting checking chunk with " + todo.size() +  " entries"));
-										IConstructor myCompilerConfig = (IConstructor) e.call("rascalCompilerConfig", myConfig.asConstructor());
 										return runCheckerSingle(monitor, todo, e, myCompilerConfig);
 									} catch (InterruptedException interruptedException) {
 									    return VF.list();

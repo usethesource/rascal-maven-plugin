@@ -173,18 +173,18 @@ public class CompileRascalMojo extends AbstractMojo
 				getLog().warn("\tignoring sources in: " + ignore);
 			}
 
-			getLog().info("checking if any files need compilation");
+			getLog().info("Checking if any files need compilation...");
 
 			IList todoList = getTodoList(binLoc, srcLocs, ignoredLocs);
 
 			if (!todoList.isEmpty()) {
-				getLog().info("stale source files have been found:");
+				getLog().info("Stale source files have been found:");
 				for (IValue todo : todoList) {
 					getLog().info("\t" + todo);
 				}
 			}
 			else {
-				getLog().info("no stale source files have been found, skipping compilation.");
+				getLog().info("No stale source files have been found, skipping compilation.");
 				return;
 			}
 
@@ -199,13 +199,13 @@ public class CompileRascalMojo extends AbstractMojo
 				getLog().info("\tregistered library location: " + lib);
 			}
 
-			getLog().info("paths have been configured");
+			getLog().info("Paths have been configured.");
 
 			PathConfig pcfg = new PathConfig(srcLocs, libLocs, binLoc);
 
 			IList messages = runChecker(monitor, verbose, todoList, pcfg, resourcesLoc, generatedSourcesLoc);
 
-			getLog().info("checker is done, reporting errors now." 
+			getLog().info("Checker is done, reporting errors now." 
 				+ (errorsAsWarnings ? " Errors are being deescalated to warnings." : "") 
 				+ (warningsAsErrors ? " Warnings are beging escalated to errors. " : ""));
 
@@ -215,7 +215,7 @@ public class CompileRascalMojo extends AbstractMojo
 				}
 			}
 			finally {
-				getLog().info("error reporting done.");
+				getLog().info("Error reporting is done.");
 			}
 
 			return;
@@ -339,7 +339,7 @@ public class CompileRascalMojo extends AbstractMojo
 				// First run the initial modules (they will be reused a lot by the other runners)
 				executor.execute(() -> {
 					try {
-						safeLog(l -> l.info("Running pre-phase on: " + initialTodo.stream().map(f -> "\n\t" + f)));
+						safeLog(l -> l.info("Running pre-phase on: " + initialTodo.stream().map(f -> "\n\t" + f).reduce("", String::concat)));
 						parallelReports.add(evaluators.useAndReturn(eval ->
 							runCheckerSingle(monitor, initialTodo, eval, config)
 						));
@@ -369,7 +369,6 @@ public class CompileRascalMojo extends AbstractMojo
 						ISourceLocation myBin = VF.sourceLocation("tmp", "","tmp-" + System.identityHashCode(todo) + "-" + Instant.now().getEpochSecond());
 						binFolders.add(myBin);
 						PathConfig myConfig = new PathConfig(pcfg.getSrcs(), pcfg.getLibs().append(pcfg.getBin()), myBin);
-						final IConstructor myCompilerConfig = makeCompilerConfig(e, verbose, expandPathConfig(myConfig, resourcesLoc, generatedSourcesLoc));
 						
 						executor.execute(() -> {
 							try {
@@ -379,15 +378,22 @@ public class CompileRascalMojo extends AbstractMojo
 									try { 
 										prePhaseDone.acquire();
 										safeLog(l -> l.debug("Starting checking chunk with " + todo.size() +  " entries"));
+					
+										var epcfg = expandPathConfig(myConfig, resourcesLoc, generatedSourcesLoc);
+										var myCompilerConfig = makeCompilerConfig(e, verbose, epcfg);
+						
 										return runCheckerSingle(monitor, todo, e, myCompilerConfig);
-									} catch (InterruptedException interruptedException) {
+									} 
+									catch (InterruptedException interruptedException) {
 									    return VF.list();
 									}
 								}));
-							} catch (Exception e) {
+							} 
+							catch (Exception e) {
 								safeLog(l -> l.error("Failure executing:", e));
 								failure.compareAndSet(null, e);
-							} finally {
+							} 
+							finally {
 								done.release();
 							}
 						});
@@ -590,7 +596,7 @@ public class CompileRascalMojo extends AbstractMojo
 			ISet messages =  (ISet) ((IConstructor) val).get("messages");
 
 			if (!messages.isEmpty()) {
-				getLog().info("Warnings and errors for " + module);
+				getLog().info("Warnings and errors for " + abbreviate(module.top(), pcfg));
 			}
 
 			Stream<IConstructor> sortedStream = messages.stream()

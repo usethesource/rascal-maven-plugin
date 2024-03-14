@@ -50,7 +50,7 @@ public class MojoUtils {
 	}
 
 	static Evaluator makeEvaluator(Log log, IRascalMonitor monitor, OutputStream err, OutputStream out, ISourceLocation[] searchPath,  String... importedModules) throws URISyntaxException, FactTypeUseException, IOException {
-		safeLog(log, l -> l.info("start loading the compiler"));
+		safeLog(log, l -> l.info("Start loading the compiler..."));
 		GlobalEnvironment heap = new GlobalEnvironment();
 		Evaluator eval = new Evaluator(ValueFactoryFactory.getValueFactory(), new ByteArrayInputStream(new byte[0]), err, out, new ModuleEnvironment("***MVN Rascal Compiler***", heap), heap);
 		eval.getConfiguration().setRascalJavaClassPathProperty(toClassPath(
@@ -70,7 +70,7 @@ public class MojoUtils {
 			eval.doImport(monitor, importModule);
 		}
 
-		safeLog(log, l -> l.info("done loading the compiler"));
+		safeLog(log, l -> l.info("Done loading the compiler."));
 
 		return eval;
 	}

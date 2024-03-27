@@ -43,6 +43,7 @@ import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.project.MavenProject;
 import org.codehaus.plexus.compiler.util.scan.InclusionScanException;
 import org.codehaus.plexus.compiler.util.scan.StaleSourceScanner;
+import org.codehaus.plexus.compiler.util.scan.mapping.SourceMapping;
 import org.codehaus.plexus.compiler.util.scan.mapping.SuffixMapping;
 import org.rascalmpl.debug.IRascalMonitor;
 import org.rascalmpl.exceptions.Throw;
@@ -534,7 +535,23 @@ public class CompileRascalMojo extends AbstractMojo
 	private IList getTodoList(ISourceLocation binLoc, List<ISourceLocation> srcLocs, List<ISourceLocation> ignoredLocs)
 			throws InclusionScanException, URISyntaxException {
 		StaleSourceScanner scanner = new StaleSourceScanner(100);
-		scanner.addSourceMapping(new SuffixMapping(".rsc", ".tpl"));
+		scanner.addSourceMapping(new SourceMapping() {
+
+			@Override
+			public Set<File> getTargetFiles(File targetDir, String source) throws InclusionScanException {
+				File file = new File(source);
+				String name = file.getName();
+
+				if (name.endsWith(".rsc")) {
+					return Set.of(
+						new File(targetDir, new File(file.getParentFile(), "$" + name.substring(0, name.length() - ".rsc".length()) + ".tpl").getPath())
+					);
+				}
+				else {
+					return Set.of();
+				}
+			}	
+		});
 
 		// TODO: currently the compiler nests all files in a /rascal root
 		// It will stop doing that once the root library files have been moved into rascal::

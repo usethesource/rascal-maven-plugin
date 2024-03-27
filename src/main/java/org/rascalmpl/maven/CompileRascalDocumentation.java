@@ -124,7 +124,7 @@ public class CompileRascalDocumentation extends AbstractMojo
 
 	public void execute() throws MojoExecutionException {
 		try {
-			ISourceLocation binLoc = URIUtil.getChildLocation(MojoUtils.location(bin), "docs");
+			ISourceLocation binLoc = URIUtil.getChildLocation(MojoUtils.location(bin), isPackageCourse ? "docs" : "");
 			List<ISourceLocation> srcLocs 		= MojoUtils.locations(srcs);
 			List<ISourceLocation> libLocs 		= MojoUtils.locations(libs);
 			List<ISourceLocation> ignoredLocs 	= MojoUtils.locations(ignores);

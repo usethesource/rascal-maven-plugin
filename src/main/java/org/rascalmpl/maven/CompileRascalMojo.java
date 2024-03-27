@@ -578,7 +578,7 @@ public class CompileRascalMojo extends AbstractMojo
 
 			for (IValue error : messages) {
 				ISourceLocation loc = (ISourceLocation) ((IConstructor) error).get("at");
-				if(loc.hasLineColumn()) {
+				if (loc.hasLineColumn()) {
 					maxLine = Math.max(loc.getBeginLine(), maxLine);
 					maxColumn = Math.max(loc.getBeginColumn(), maxColumn);
 				} else {

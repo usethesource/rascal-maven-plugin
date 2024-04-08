@@ -14,6 +14,8 @@ package org.rascalmpl.maven;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.List;
+
+import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
@@ -58,10 +60,13 @@ public class PackageRascalMojo extends AbstractMojo
 	@Parameter(defaultValue = "|lib://${project.name}/|", property = "sourceLookup", required = true )
     private String sourceLookup;
 
+	@Parameter(defaultValue = "${session}", required = true, readonly = true)
+  	private MavenSession session;
+
 	private Evaluator makeEvaluator() throws URISyntaxException, FactTypeUseException, IOException {
 		return MojoUtils.makeEvaluator(
 			getLog(),
-			new MojoRascalMonitor(getLog(), false),
+			session,
 			System.err, System.out,
 			MAIN_PACKAGER_SEARCH_PATH,
 			MAIN_PACKAGER_MODULE

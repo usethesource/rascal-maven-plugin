@@ -5,6 +5,9 @@ import org.rascalmpl.debug.IRascalMonitor;
 
 import io.usethesource.vallang.ISourceLocation;
 
+/**
+ * This monitor is for batch mode. We can use the TerminalProgressBarMonitor for interactive mode.
+ */
 public class MojoRascalMonitor implements IRascalMonitor {
 	private final Log log;
     private final boolean chatty;
@@ -48,5 +51,10 @@ public class MojoRascalMonitor implements IRascalMonitor {
 		synchronized (log) {
 			log.warn(src.toString() + ": " + message);
 		}
+	}
+
+	@Override
+	public void endAllJobs() {
+		// Do nothing
 	}
 }

@@ -17,6 +17,7 @@ import java.net.URISyntaxException;
 import java.util.LinkedList;
 import java.util.List;
 import org.apache.maven.artifact.Artifact;
+import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
@@ -115,11 +116,11 @@ public class CompileRascalDocumentation extends AbstractMojo
 	@Parameter(property="sources", required=false)
 	private String sources;
 
-
-	private final MojoRascalMonitor monitor = new MojoRascalMonitor(getLog(), false);
+	@Parameter(defaultValue = "${session}", required = true, readonly = true)
+	private MavenSession session;
 
 	private Evaluator makeEvaluator(OutputStream err, OutputStream out) throws URISyntaxException, FactTypeUseException, IOException {
-		return MojoUtils.makeEvaluator(getLog(), monitor,err, out, MAIN_COMPILER_SEARCH_PATH, MAIN_COMPILER_MODULE);
+		return MojoUtils.makeEvaluator(getLog(), session, err, out, MAIN_COMPILER_SEARCH_PATH, MAIN_COMPILER_MODULE);
 	}
 
 	public void execute() throws MojoExecutionException {
@@ -166,7 +167,8 @@ public class CompileRascalDocumentation extends AbstractMojo
 					)
 				);
 
-			IList messages = runCompiler(monitor, makeEvaluator(System.err, System.out), pcfg);
+			Evaluator eval = makeEvaluator(System.err, System.out);
+			IList messages = runCompiler(eval.getMonitor(), eval, pcfg);
 
 			getLog().info("Tutor is done, reporting errors now.");
 			handleMessages(pcfg, messages);

@@ -57,7 +57,7 @@ public class MojoUtils {
 		GlobalEnvironment heap = new GlobalEnvironment();
 
 		IRascalMonitor monitor = session.getRequest().isInteractiveMode() 
-			? new TerminalProgressBarMonitor(out, TerminalFactory.get().wrapInIfNeeded(System.in), TerminalFactory.get()) 
+			? getTerminalProgressBarInstance() 
 			: new MojoRascalMonitor(log, false);
 
 		Evaluator eval = new Evaluator(ValueFactoryFactory.getValueFactory(), new ByteArrayInputStream(new byte[0]), err, out, monitor, new ModuleEnvironment("***MVN Rascal Compiler***", heap), heap);
@@ -81,6 +81,14 @@ public class MojoUtils {
 		safeLog(log, l -> l.info("Done loading the compiler."));
 
 		return eval;
+	}
+
+	private static class MonitorInstanceHolder {
+		static IRascalMonitor monitor = new TerminalProgressBarMonitor(System.out, System.in, TerminalFactory.get());
+	}
+
+	private static IRascalMonitor getTerminalProgressBarInstance() {
+		return MonitorInstanceHolder.monitor;
 	}
 
 	private static String toClassPath(Class<?>... clazz) {

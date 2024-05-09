@@ -58,7 +58,7 @@ public class MojoUtils {
 
 		IRascalMonitor monitor = session.getRequest().isInteractiveMode() 
 			? getTerminalProgressBarInstance() 
-			: new MojoRascalMonitor(log, false);
+			: new MojoRascalMonitor(log, session.getRequest().isShowErrors());
 
 		Evaluator eval = new Evaluator(ValueFactoryFactory.getValueFactory(), new ByteArrayInputStream(new byte[0]), err, out, monitor, new ModuleEnvironment("***MVN Rascal Compiler***", heap), heap);
 		eval.getConfiguration().setRascalJavaClassPathProperty(toClassPath(
@@ -87,7 +87,7 @@ public class MojoUtils {
 		static IRascalMonitor monitor = new TerminalProgressBarMonitor(System.out, System.in, TerminalFactory.get());
 	}
 
-	private static IRascalMonitor getTerminalProgressBarInstance() {
+	public static IRascalMonitor getTerminalProgressBarInstance() {
 		return MonitorInstanceHolder.monitor;
 	}
 

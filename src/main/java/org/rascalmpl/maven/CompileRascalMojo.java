@@ -205,7 +205,6 @@ public class CompileRascalMojo extends AbstractMojo
 
 			PathConfig pcfg = new PathConfig(srcLocs, libLocs, binLoc);
 
-
 			IList messages = runChecker(verbose, todoList, pcfg, resourcesLoc, generatedSourcesLoc);
 
 			getLog().info("Checker is done, reporting errors now." 

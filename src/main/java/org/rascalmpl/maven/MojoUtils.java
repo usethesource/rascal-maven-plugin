@@ -21,6 +21,7 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import org.apache.maven.artifact.Artifact;
+import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.project.MavenProject;
 import org.rascalmpl.uri.URIResolverRegistry;
@@ -29,12 +30,14 @@ import org.rascalmpl.interpreter.Evaluator;
 import org.rascalmpl.interpreter.env.GlobalEnvironment;
 import org.rascalmpl.interpreter.env.ModuleEnvironment;
 import org.rascalmpl.interpreter.utils.RascalManifest;
+import org.rascalmpl.repl.TerminalProgressBarMonitor;
 import org.rascalmpl.uri.URIUtil;
 import org.rascalmpl.values.ValueFactoryFactory;
 import io.usethesource.vallang.ISourceLocation;
 import io.usethesource.vallang.IValueFactory;
 import io.usethesource.vallang.exceptions.FactTypeUseException;
 import io.usethesource.vallang.io.StandardTextReader;
+import jline.TerminalFactory;
 
 public class MojoUtils {
 
@@ -49,10 +52,15 @@ public class MojoUtils {
 		eval.addRascalSearchPath(loc);
 	}
 
-	static Evaluator makeEvaluator(Log log, IRascalMonitor monitor, OutputStream err, OutputStream out, ISourceLocation[] searchPath,  String... importedModules) throws URISyntaxException, FactTypeUseException, IOException {
+	static Evaluator makeEvaluator(Log log, MavenSession session, OutputStream err, OutputStream out, ISourceLocation[] searchPath,  String... importedModules) throws URISyntaxException, FactTypeUseException, IOException {
 		safeLog(log, l -> l.info("Start loading the compiler..."));
 		GlobalEnvironment heap = new GlobalEnvironment();
-		Evaluator eval = new Evaluator(ValueFactoryFactory.getValueFactory(), new ByteArrayInputStream(new byte[0]), err, out, new ModuleEnvironment("***MVN Rascal Compiler***", heap), heap);
+
+		IRascalMonitor monitor = session.getRequest().isInteractiveMode() 
+			? getTerminalProgressBarInstance() 
+			: new MojoRascalMonitor(log, false);
+
+		Evaluator eval = new Evaluator(ValueFactoryFactory.getValueFactory(), new ByteArrayInputStream(new byte[0]), err, out, monitor, new ModuleEnvironment("***MVN Rascal Compiler***", heap), heap);
 		eval.getConfiguration().setRascalJavaClassPathProperty(toClassPath(
 			ValueFactoryFactory.class, // rascal jar
 			IValueFactory.class // vallang jar
@@ -73,6 +81,14 @@ public class MojoUtils {
 		safeLog(log, l -> l.info("Done loading the compiler."));
 
 		return eval;
+	}
+
+	private static class MonitorInstanceHolder {
+		static IRascalMonitor monitor = new TerminalProgressBarMonitor(System.out, System.in, TerminalFactory.get());
+	}
+
+	private static IRascalMonitor getTerminalProgressBarInstance() {
+		return MonitorInstanceHolder.monitor;
 	}
 
 	private static String toClassPath(Class<?>... clazz) {

@@ -35,7 +35,7 @@
         <dependency>
             <groupId>org.rascalmpl</groupId>
             <artifactId>rascal</artifactId>
-            <version>0.36.1-RC2</version>
+            <version>0.38.1-BOOT1</version>
         </dependency>
         <dependency>
             <groupId>org.rascalmpl</groupId>

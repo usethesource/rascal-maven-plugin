@@ -98,16 +98,16 @@ public class CompileRascalDocumentation extends AbstractMojo
 	@Parameter(property="packageGroup", required=true, defaultValue="${project.groupId}")
 	private String packageGroup;
 
-	@Parameter(property="license", required=false, defaultValue="${project.basedir}/LICENSE")
+	@Parameter(property="license", required=false, defaultValue="${project.basedir}/LICENSE.md")
 	private String licenseFile;
 
-	@Parameter(property="funding", required=false, defaultValue="${project.basedir}/FUNDING")
+	@Parameter(property="funding", required=false, defaultValue="${project.basedir}/FUNDING.md")
 	private String funding;
 
-	@Parameter(property="citation", required=false, defaultValue="${project.basedir}/CITATION")
+	@Parameter(property="citation", required=false, defaultValue="${project.basedir}/CITATION.md")
 	private String citation;
 
-	@Parameter(property="releaseNotes", required=false, defaultValue="${project.basedir}/RELEASE-NOTES")
+	@Parameter(property="releaseNotes", required=false, defaultValue="${project.basedir}/RELEASE-NOTES.md")
 	private String releaseNotes;
 
 	@Parameter(property="issues", required=false)

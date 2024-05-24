@@ -60,7 +60,7 @@ public class MojoUtils {
 			? getTerminalProgressBarInstance() 
 			: new MojoRascalMonitor(log, false);
 
-		Evaluator eval = new Evaluator(ValueFactoryFactory.getValueFactory(), new ByteArrayInputStream(new byte[0]), err, out, monitor, new ModuleEnvironment("***MVN Rascal Compiler***", heap), heap);
+		Evaluator eval = new Evaluator(ValueFactoryFactory.getValueFactory(), System.in, err, out, monitor, new ModuleEnvironment("***MVN Rascal Compiler***", heap), heap);
 		eval.getConfiguration().setRascalJavaClassPathProperty(toClassPath(
 			ValueFactoryFactory.class, // rascal jar
 			IValueFactory.class // vallang jar
@@ -84,7 +84,7 @@ public class MojoUtils {
 	}
 
 	private static class MonitorInstanceHolder {
-		static IRascalMonitor monitor = new TerminalProgressBarMonitor(System.out, System.in, TerminalFactory.get());
+		static IRascalMonitor monitor = IRascalMonitor.buildConsoleMonitor(System.in, System.out);
 	}
 
 	private static IRascalMonitor getTerminalProgressBarInstance() {

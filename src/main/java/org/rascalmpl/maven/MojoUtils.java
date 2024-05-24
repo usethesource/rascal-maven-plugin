@@ -24,20 +24,18 @@ import org.apache.maven.artifact.Artifact;
 import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.project.MavenProject;
-import org.rascalmpl.uri.URIResolverRegistry;
 import org.rascalmpl.debug.IRascalMonitor;
 import org.rascalmpl.interpreter.Evaluator;
 import org.rascalmpl.interpreter.env.GlobalEnvironment;
 import org.rascalmpl.interpreter.env.ModuleEnvironment;
 import org.rascalmpl.interpreter.utils.RascalManifest;
-import org.rascalmpl.repl.TerminalProgressBarMonitor;
+import org.rascalmpl.uri.URIResolverRegistry;
 import org.rascalmpl.uri.URIUtil;
 import org.rascalmpl.values.ValueFactoryFactory;
 import io.usethesource.vallang.ISourceLocation;
 import io.usethesource.vallang.IValueFactory;
 import io.usethesource.vallang.exceptions.FactTypeUseException;
 import io.usethesource.vallang.io.StandardTextReader;
-import jline.TerminalFactory;
 
 public class MojoUtils {
 
@@ -56,8 +54,8 @@ public class MojoUtils {
 		safeLog(log, l -> l.info("Start loading the compiler..."));
 		GlobalEnvironment heap = new GlobalEnvironment();
 
-		IRascalMonitor monitor = session.getRequest().isInteractiveMode() 
-			? getTerminalProgressBarInstance() 
+		IRascalMonitor monitor = session.getRequest().isInteractiveMode()
+			? getTerminalProgressBarInstance()
 			: new MojoRascalMonitor(log, false);
 
 		Evaluator eval = new Evaluator(ValueFactoryFactory.getValueFactory(), System.in, err, out, monitor, new ModuleEnvironment("***MVN Rascal Compiler***", heap), heap);
@@ -67,7 +65,7 @@ public class MojoUtils {
 		));
 
 		eval.setMonitor(monitor);
-		
+
 		for (ISourceLocation sp: searchPath) {
 			addSearchPath(log, eval, sp);
 		}
@@ -145,7 +143,7 @@ public class MojoUtils {
 				// only add a library if it is not already on the lib path
 				if (!projects.contains(projectName)) {
 					libLocs.add(jarLoc);
-					projects.add(projectName);					
+					projects.add(projectName);
 				}
 			}
 		}

@@ -8,7 +8,6 @@
  */
 package org.rascalmpl.maven;
 
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -31,6 +30,7 @@ import org.rascalmpl.interpreter.env.ModuleEnvironment;
 import org.rascalmpl.interpreter.utils.RascalManifest;
 import org.rascalmpl.uri.URIResolverRegistry;
 import org.rascalmpl.uri.URIUtil;
+import org.rascalmpl.uri.jar.JarURIResolver;
 import org.rascalmpl.values.ValueFactoryFactory;
 import io.usethesource.vallang.ISourceLocation;
 import io.usethesource.vallang.IValueFactory;
@@ -135,7 +135,7 @@ public class MojoUtils {
 		for (Object o : project.getArtifacts()) {
 			Artifact a = (Artifact) o;
 			File file = a.getFile().getAbsoluteFile();
-			ISourceLocation jarLoc = RascalManifest.jarify(MojoUtils.location(file.toString()));
+			ISourceLocation jarLoc = JarURIResolver.jarify(MojoUtils.location(file.toString()));
 
 			if (reg.exists(URIUtil.getChildLocation(jarLoc, "META-INF/RASCAL.MF"))) {
 				final String projectName = mf.getProjectName(jarLoc);

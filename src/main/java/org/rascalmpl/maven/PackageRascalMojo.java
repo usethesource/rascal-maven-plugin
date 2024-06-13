@@ -81,7 +81,7 @@ public class PackageRascalMojo extends AbstractMojo
 			ISourceLocation sourceLookupLoc = MojoUtils.location(sourceLookup);
 			IList srcLocs = locations(srcs);
 
-			eval.call(new MojoRascalMonitor(getLog(), true), "package", srcLocs, binLoc, sourceLookupLoc);
+			eval.call("package", srcLocs, binLoc, sourceLookupLoc);
 
 			getLog().info("packager is done.");
 		} catch (URISyntaxException | IOException e) {

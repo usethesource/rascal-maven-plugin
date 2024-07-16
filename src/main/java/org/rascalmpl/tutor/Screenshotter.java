@@ -9,7 +9,6 @@ import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.OutputType;
 import org.openqa.selenium.WebElement;
-import org.openqa.selenium.chrome.ChromeDriverLogLevel;
 import org.openqa.selenium.chrome.ChromeDriverService;
 import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.remote.RemoteWebDriver;
@@ -97,11 +96,9 @@ public class Screenshotter implements ITutorScreenshotFeature {
 
     private static RemoteWebDriver getBrowser(ChromeDriverService service, String BROWSER_BINARY) {
         ChromeOptions options = new ChromeOptions()
-            .setHeadless(true)
             .setBinary(BROWSER_BINARY)
             .addArguments("--headless", "--disable-gpu", "--window-size=1900,1200","--ignore-certificate-errors","--disable-extensions","--no-sandbox","--disable-dev-shm-usage")
             .addArguments("--user-data-dir=/tmp/rascal-config/google-chrome")
-            .setLogLevel(ChromeDriverLogLevel.OFF)
             ;
         
         RemoteWebDriver driver = new RemoteWebDriver(service.getUrl(), options);

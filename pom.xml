@@ -3,7 +3,7 @@
 
     <groupId>org.rascalmpl</groupId>
     <artifactId>rascal-maven-plugin</artifactId>
-    <version>0.28.0-RC2-SNAPSHOT</version>
+    <version>0.29.0-SNAPSHOT</version>
     <packaging>maven-plugin</packaging>
 
     <scm>
@@ -29,18 +29,15 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.release>11</maven.compiler.release>
     </properties>
 
     <dependencies>
+        <!-- https://mvnrepository.com/artifact/com.google.code.google-collections/google-collect -->
         <dependency>
             <groupId>org.rascalmpl</groupId>
             <artifactId>rascal</artifactId>
-            <version>0.40.6</version>
-        </dependency>
-        <dependency>
-            <groupId>org.rascalmpl</groupId>
-            <artifactId>rascal-tutor</artifactId>
-            <version>0.19.4</version>
+            <version>0.40.7-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.rascalmpl</groupId>
@@ -92,6 +89,17 @@
             <artifactId>junit</artifactId>
             <version>4.13.1</version>
             <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.seleniumhq.selenium</groupId>
+            <artifactId>selenium-java</artifactId>
+            <version>4.22.0</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.seleniumhq.selenium</groupId>
+            <artifactId>selenium-chromium-driver</artifactId>
+            <version>4.22.0</version>
         </dependency>
     </dependencies>
 

@@ -29,9 +29,11 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.release>11</maven.compiler.release>
     </properties>
 
     <dependencies>
+        <!-- https://mvnrepository.com/artifact/com.google.code.google-collections/google-collect -->
         <dependency>
             <groupId>org.rascalmpl</groupId>
             <artifactId>rascal</artifactId>
@@ -91,13 +93,13 @@
         <dependency>
             <groupId>org.seleniumhq.selenium</groupId>
             <artifactId>selenium-java</artifactId>
-            <version>4.5.3</version>
+            <version>4.22.0</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>org.seleniumhq.selenium</groupId>
             <artifactId>selenium-chromium-driver</artifactId>
-            <version>4.5.3</version>
+            <version>4.22.0</version>
         </dependency>
     </dependencies>
 

@@ -20,6 +20,11 @@ import org.rascalmpl.uri.URIUtil;
 
 import io.usethesource.vallang.ISourceLocation;
 
+/**
+ * This class provides ITutorScreenshotFeature to the tutor code in the Rascal project.
+ * It depends on Selenium at compile-time which takes chrome-driver at run-time which
+ * uses Chrome again.
+ */
 public class Screenshotter implements ITutorScreenshotFeature {
     private static final String BROWSER_BINARY = System.getProperty("webdriver.chrome.browser");
     private static final String DRIVER_BINARY = System.getProperty("webdriver.chrome.driver");

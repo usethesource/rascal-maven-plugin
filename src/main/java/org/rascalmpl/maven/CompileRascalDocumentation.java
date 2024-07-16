@@ -58,7 +58,7 @@ public class CompileRascalDocumentation extends AbstractMojo
 	private static final String UNEXPECTED_ERROR = "unexpected error during Rascal compiler run";
 	private static final String MAIN_COMPILER_MODULE = "lang::rascal::tutor::Compiler";
 	private static final ISourceLocation[] MAIN_COMPILER_SEARCH_PATH = new ISourceLocation[] {
-		URIUtil.correctLocation("lib", "rascal-tutor", ""),
+		URIUtil.correctLocation("lib", "rascal", "/org/rascalmpl/tutor"),
 		URIUtil.correctLocation("lib", "rascal", ""),
 	};
 

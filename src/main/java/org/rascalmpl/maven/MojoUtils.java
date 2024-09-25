@@ -47,7 +47,7 @@ public class MojoUtils {
 
 	private static void addSearchPath(Log log, Evaluator eval, ISourceLocation loc) {
 		safeLog(log, l -> l.info("\trascal module path addition: " + loc));
-		eval.addRascalSearchPath(loc);
+		eval.addRascalSearchPath(JarURIResolver.jarify(loc));
 	}
 
 	static Evaluator makeEvaluator(Log log, MavenSession session, OutputStream err, OutputStream out, ISourceLocation[] searchPath,  String... importedModules) throws URISyntaxException, FactTypeUseException, IOException {

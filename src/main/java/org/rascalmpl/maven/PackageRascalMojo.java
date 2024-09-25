@@ -24,6 +24,7 @@ import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.project.MavenProject;
 import org.rascalmpl.interpreter.Evaluator;
+import org.rascalmpl.library.util.PathConfig;
 import org.rascalmpl.uri.URIUtil;
 import org.rascalmpl.values.ValueFactoryFactory;
 import io.usethesource.vallang.IList;
@@ -43,10 +44,19 @@ import io.usethesource.vallang.exceptions.FactTypeUseException;
 public class PackageRascalMojo extends AbstractMojo
 {
     private static final String MAIN_PACKAGER_MODULE = "lang::rascalcore::package::Packager";
-	private static final ISourceLocation[] MAIN_PACKAGER_SEARCH_PATH = new ISourceLocation[] {
-		URIUtil.correctLocation("lib", "typepal", ""),
-		URIUtil.correctLocation("lib", "rascal-core", "")
-	};
+	private static final ISourceLocation[] MAIN_PACKAGER_SEARCH_PATH;
+	
+	static {
+		try {
+			MAIN_PACKAGER_SEARCH_PATH = new ISourceLocation[] {
+				PathConfig.resolveProjectOnClasspath("typepal"),
+				PathConfig.resolveProjectOnClasspath("rascal-core")
+			};
+		}
+		catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+	}
 
 	@Parameter(defaultValue="${project}", readonly=true, required=true)
 	private MavenProject project;

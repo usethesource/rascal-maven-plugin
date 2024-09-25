@@ -23,6 +23,7 @@ import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.project.MavenProject;
+import org.rascalmpl.library.util.PathConfig;
 
 /**
  * Maven Goal for starting a rascal console for the current mvn project.
@@ -37,18 +38,18 @@ public class RascalConsoleMojo extends AbstractMojo
 	    String javaHome = System.getProperty("java.home");
         String javaBin = javaHome + File.separator + "bin" + File.separator + "java";
 
-        List<String> command = new LinkedList<String>();
-        command.add(javaBin);
-        
-        System.getProperties().forEach((key, value) -> {
-            command.add("-D" + key + "=" + value);
-        });
-        
-        command.add("-cp");
-        command.add(collectClasspath());
-        command.add("org.rascalmpl.shell.RascalShell");
-
         try {
+            List<String> command = new LinkedList<String>();
+            command.add(javaBin);
+            
+            System.getProperties().forEach((key, value) -> {
+                command.add("-D" + key + "=" + value);
+            });
+            
+            command.add("-cp");
+            command.add(PathConfig.resolveCurrentRascalRuntimeJar().getPath());
+            command.add("org.rascalmpl.shell.RascalShell");
+
             ProcessBuilder builder = new ProcessBuilder(command);
             Process process = builder.inheritIO().start();
             process.waitFor();
@@ -57,35 +58,5 @@ public class RascalConsoleMojo extends AbstractMojo
         } catch (InterruptedException e) {
             getLog().warn(e);
         }
-        finally {}
 	}
-
-	private String collectClasspath() {
-	    StringBuilder builder = new StringBuilder();
-		boolean dependsOnRascal = false;
-
-        if ("org.rascalmpl".equals(project.getGroupId()) && "rascal".equals(project.getArtifactId())){
-            File r = new File(project.getBuild().getOutputDirectory());
-            builder.append(File.pathSeparator + r.getAbsolutePath());
-			dependsOnRascal = true;
-        }
-
-        for (Object o : project.getArtifacts()) {
-            Artifact a = (Artifact) o;
-            File file = a.getFile().getAbsoluteFile();
-            builder.append(File.pathSeparator + file.getAbsolutePath());
-			if ("org.rascalmpl".equals(a.getGroupId()) && "rascal".equals(a.getArtifactId())) {
-				dependsOnRascal = true;
-			}
-        }
-
-		if (!dependsOnRascal) {
-			String msg = "Current project does not have a dependency on org.rascalmpl:rascal";
-			getLog().error(msg);
-			throw new RuntimeException(msg);
-		}
-
-        return builder.toString().substring(1);
-    }
-
 }

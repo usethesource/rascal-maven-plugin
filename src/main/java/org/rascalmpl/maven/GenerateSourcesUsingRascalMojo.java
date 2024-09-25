@@ -23,6 +23,7 @@ import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.project.MavenProject;
+import org.rascalmpl.library.util.PathConfig;
 
 /**
  * Maven Goal for running local Rascal programs during the maven generate-source phase.
@@ -48,19 +49,19 @@ public class GenerateSourcesUsingRascalMojo extends AbstractMojo
         String javaBin = javaHome + File.separator + "bin" + File.separator + "java";
 		getLog().info("Using " + javaBin + " as java process for nested jvm call");
 
-        List<String> command = new LinkedList<String>();
-        command.add(javaBin);
-
-        System.getProperties().forEach((key, value) -> {
-            command.add("-D" + key + "=" + value);
-        });
-        
-        command.add("-cp");
-        command.add(collectClasspath());
-        command.add("org.rascalmpl.shell.RascalShell");
-        command.add(mainModule);
-
         try {
+            List<String> command = new LinkedList<String>();
+            command.add(javaBin);
+
+            System.getProperties().forEach((key, value) -> {
+                command.add("-D" + key + "=" + value);
+            });
+            
+            command.add("-cp");
+            command.add(PathConfig.resolveCurrentRascalRuntimeJar().getPath());
+            command.add("org.rascalmpl.shell.RascalShell");
+            command.add(mainModule);
+
             ProcessBuilder builder = new ProcessBuilder(command);
             builder.directory(project.getBasedir());
             Process process = builder.inheritIO().start();
@@ -76,17 +77,5 @@ public class GenerateSourcesUsingRascalMojo extends AbstractMojo
             getLog().warn(e);
         }
         finally {}
-    }
-
-    private String collectClasspath() {
-	    StringBuilder builder = new StringBuilder();
-
-        for (Artifact a : project.getArtifacts()) {
-            File file = a.getFile().getAbsoluteFile();
-			getLog().debug("Adding " + file + " to classpath");
-            builder.append(File.pathSeparator + file.getAbsolutePath());
-        }
-
-        return builder.toString().substring(1);
     }
 }

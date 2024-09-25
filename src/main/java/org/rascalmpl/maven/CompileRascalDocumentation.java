@@ -14,6 +14,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URISyntaxException;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import org.apache.maven.artifact.Artifact;
@@ -67,6 +68,9 @@ public class CompileRascalDocumentation extends AbstractMojo
 
 	@Parameter(property = "bin", required = true, defaultValue = "${project.build.outputDirectory}")
 	private String bin;
+
+	@Parameter(property = "generatedSources", required = true, defaultValue = "${project.build}/generatedSources")
+	private String generatedSources;
 
 	@Parameter(property = "srcs", required = true )
 	private List<String> srcs;
@@ -126,10 +130,10 @@ public class CompileRascalDocumentation extends AbstractMojo
 	public void execute() throws MojoExecutionException {
 		try {
 			ISourceLocation binLoc = URIUtil.getChildLocation(MojoUtils.location(bin), "docs");
+			ISourceLocation generatedSourcesLoc = URIUtil.getChildLocation(MojoUtils.location(generatedSources), "docs");
 			List<ISourceLocation> srcLocs 		= MojoUtils.locations(srcs);
 			List<ISourceLocation> libLocs 		= MojoUtils.locations(libs);
 			List<ISourceLocation> ignoredLocs 	= MojoUtils.locations(ignores);
-			List<ISourceLocation> classpath 	= collectClasspath();
 
 			if (System.getProperty("rascal.documentation.skip") != null
 			    || System.getProperty("rascal.tutor.skip") != null) {
@@ -151,11 +155,7 @@ public class CompileRascalDocumentation extends AbstractMojo
 				getLog().info("\tregistered library location: " + lib);
 			}
 
-			// the compiler classpath (for generated parser compilation) is based on the classpath for the compiler itself,
-			// rather than what it is compiling currently.
-			List<ISourceLocation> compilerClassPath = collectPluginClasspath();
-
-			PathConfig pcfg = new PathConfig(srcLocs, libLocs, binLoc, ignoredLocs, compilerClassPath, classpath);
+			PathConfig pcfg = new PathConfig(srcLocs, libLocs, binLoc, ignoredLocs, generatedSourcesLoc, Collections.emptyList());
 			
 			getLog().info("Paths have been configured: " + pcfg);
 
@@ -223,15 +223,6 @@ public class CompileRascalDocumentation extends AbstractMojo
         return builder;
     }
 
-	private List<ISourceLocation> collectPluginClasspath() throws URISyntaxException {
-	    List<ISourceLocation> builder = new LinkedList<>();
-		
-		builder.add(MojoUtils.location(IValue.class.getProtectionDomain().getCodeSource().getLocation().getPath()));
-		builder.add(MojoUtils.location(Evaluator.class.getProtectionDomain().getCodeSource().getLocation().getPath()));
-		
-        return builder;
-    }
-
 	private IList runCompiler(IRascalMonitor monitor, IEvaluator<Result<IValue>> eval, PathConfig pcfg) throws URISyntaxException, IOException {
 		try {
 			IConstructor pc =  pcfg.asConstructor();
@@ -261,7 +252,9 @@ public class CompileRascalDocumentation extends AbstractMojo
 			try {
 				eval.getStdErr().flush();
 				eval.getStdOut().flush();
-			} catch (IOException ignored) {
+			} 
+			catch (IOException ignored) {
+				// this is ok
 			}
 		}
 	}

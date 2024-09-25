@@ -30,6 +30,7 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -79,21 +80,30 @@ import io.usethesource.vallang.exceptions.FactTypeUseException;
  * compiler instead of the source code of the compiler inside the Rascal interpreter.
  *
  */
-@Mojo(name="compile", inheritByDefault=false, defaultPhase = LifecyclePhase.COMPILE, requiresDependencyCollection = ResolutionScope.COMPILE_PLUS_RUNTIME, requiresDependencyResolution = ResolutionScope.COMPILE_PLUS_RUNTIME)
+@Mojo(name="compile", defaultPhase = LifecyclePhase.COMPILE, requiresDependencyCollection = ResolutionScope.COMPILE_PLUS_RUNTIME, requiresDependencyResolution = ResolutionScope.COMPILE_PLUS_RUNTIME)
 public class CompileRascalMojo extends AbstractMojo
 {
 	private static final String UNEXPECTED_ERROR = "unexpected error during Rascal compiler run";
 	private static final String MAIN_COMPILER_MODULE = "lang::rascalcore::check::Checker";
 	private static final String COMPILER_CONFIG_MODULE = "lang::rascalcore::check::RascalConfig";
 
-	private static final ISourceLocation[] MAIN_COMPILER_SEARCH_PATH = new ISourceLocation[] {
-		URIUtil.correctLocation("lib", "typepal", ""),
-		URIUtil.correctLocation("lib", "rascal-core", "")
-	};
+	private static final ISourceLocation[] MAIN_COMPILER_SEARCH_PATH;
+
 	private static final URIResolverRegistry reg = URIResolverRegistry.getInstance();
 	private static final IValueFactory VF = ValueFactoryFactory.getValueFactory();
 	
-
+	static {
+		try {
+			MAIN_COMPILER_SEARCH_PATH= new ISourceLocation[] {
+				PathConfig.resolveProjectOnClasspath("typepal"),
+				PathConfig.resolveProjectOnClasspath("rascal-core")
+			};
+		}
+		catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+	}
+ 
 	@Parameter(defaultValue="${project}", readonly=true, required=true)
 	private MavenProject project;
 
@@ -104,7 +114,7 @@ public class CompileRascalMojo extends AbstractMojo
 	private String resources;
 
 	// generatedSources
-	@Parameter(defaultValue = "${project.basedir}/generated-sources", property = "generatedSources", required = true)
+	@Parameter(defaultValue = "${project.build}/generatedSources", property = "generatedSources", required = true)
 	private String generatedSources;
 
 	@Parameter(property = "srcs", required = true )
@@ -203,8 +213,7 @@ public class CompileRascalMojo extends AbstractMojo
 
 			getLog().info("Paths have been configured.");
 
-			PathConfig pcfg = new PathConfig(srcLocs, libLocs, binLoc);
-
+			PathConfig pcfg = new PathConfig(srcLocs, libLocs, binLoc, ignoredLocs, generatedSourcesLoc);
 
 			IList messages = runChecker(verbose, todoList, pcfg, resourcesLoc, generatedSourcesLoc);
 

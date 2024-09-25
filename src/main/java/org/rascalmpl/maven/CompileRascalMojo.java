@@ -114,7 +114,7 @@ public class CompileRascalMojo extends AbstractMojo
 	private String resources;
 
 	// generatedSources
-	@Parameter(defaultValue = "${project.build}/generatedSources", property = "generatedSources", required = true)
+	@Parameter(defaultValue = "${project.build.directory}/generatedSources", property = "generatedSources", required = true)
 	private String generatedSources;
 
 	@Parameter(property = "srcs", required = true )

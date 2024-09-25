@@ -58,10 +58,18 @@ public class CompileRascalDocumentation extends AbstractMojo
 {
 	private static final String UNEXPECTED_ERROR = "unexpected error during Rascal compiler run";
 	private static final String MAIN_COMPILER_MODULE = "lang::rascal::tutor::Compiler";
-	private static final ISourceLocation[] MAIN_COMPILER_SEARCH_PATH = new ISourceLocation[] {
-		URIUtil.correctLocation("lib", "rascal-tutor", ""),
-		URIUtil.correctLocation("lib", "rascal", ""),
-	};
+	private static final ISourceLocation[] MAIN_COMPILER_SEARCH_PATH;
+
+	static {
+		try {
+			MAIN_COMPILER_SEARCH_PATH= new ISourceLocation[] {
+				PathConfig.resolveProjectOnClasspath("rascal-tutor")
+			};
+		}
+		catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+	}
 
 	@Parameter(defaultValue="${project}", readonly=true, required=true)
 	private MavenProject project;
@@ -69,7 +77,7 @@ public class CompileRascalDocumentation extends AbstractMojo
 	@Parameter(property = "bin", required = true, defaultValue = "${project.build.outputDirectory}")
 	private String bin;
 
-	@Parameter(property = "generatedSources", required = true, defaultValue = "${project.build}/generatedSources")
+	@Parameter(property = "generatedSources", required = true, defaultValue = "${project.build.directory}/generatedSources")
 	private String generatedSources;
 
 	@Parameter(property = "srcs", required = true )

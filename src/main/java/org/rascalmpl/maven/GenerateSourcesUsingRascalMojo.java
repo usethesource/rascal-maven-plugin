@@ -52,7 +52,10 @@ public class GenerateSourcesUsingRascalMojo extends AbstractMojo
         command.add(javaBin);
 
         System.getProperties().forEach((key, value) -> {
-            command.add("-D" + key + "=" + value);
+            // Do not propagate `user.dir`, since that breaks multi-module maven projects
+            if (!key.equals("user.dir")) {
+                command.add("-D" + key + "=" + value);
+            }
         });
         
         command.add("-cp");

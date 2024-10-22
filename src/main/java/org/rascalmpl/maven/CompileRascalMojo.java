@@ -410,6 +410,7 @@ public class CompileRascalMojo extends AbstractMojo
 
 				} catch (URISyntaxException | IOException | InterruptedException e) {
 					getLog().error("Failed to start the nested evaluator", e);
+					failure.compareAndSet(null, e);
 				}
 			}
 			prePhaseDone.acquire();

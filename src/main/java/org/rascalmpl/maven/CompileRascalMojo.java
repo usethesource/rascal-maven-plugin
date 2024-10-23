@@ -206,7 +206,7 @@ public class CompileRascalMojo extends AbstractMojo
 			PathConfig pcfg = new PathConfig(srcLocs, libLocs, binLoc);
 
 
-			IList messages = runChecker(verbose, todoList, pcfg, resourcesLoc, generatedSourcesLoc);
+			IList messages = runChecker(verbose, todoList, pcfg, generatedSourcesLoc);
 
 			getLog().info("Checker is done, reporting errors now." 
 				+ (errorsAsWarnings ? " Errors are being deescalated to warnings." : "") 
@@ -308,21 +308,21 @@ public class CompileRascalMojo extends AbstractMojo
 	}
 
 
-	private IList runChecker(boolean verbose, IList todoList, PathConfig pcfg, ISourceLocation resourcesLoc, ISourceLocation generatedSourcesLoc)
+	private IList runChecker(boolean verbose, IList todoList, PathConfig pcfg, ISourceLocation generatedSourcesLoc)
 			throws IOException, URISyntaxException, Exception {
 	    if (!parallel || todoList.size() <= 10 || parallelAmount() <= 1) {
-	    	return runCheckerSingleThreaded(verbose, todoList, pcfg, resourcesLoc, generatedSourcesLoc);
+	    	return runCheckerSingleThreaded(verbose, todoList, pcfg, generatedSourcesLoc);
 		}
 		else {
-			return runCheckerMultithreaded(verbose, todoList, pcfg, resourcesLoc, generatedSourcesLoc);
+			return runCheckerMultithreaded(verbose, todoList, pcfg, generatedSourcesLoc);
 		}
 	}
 
 	private IList runCheckerMultithreaded(boolean verbose, IList todoList, PathConfig pcfg,
-			ISourceLocation resourcesLoc, ISourceLocation generatedSourcesLoc) throws Exception {
+			ISourceLocation generatedSourcesLoc) throws Exception {
 		ConcurrentSoftReferenceObjectPool<Evaluator> evaluators = createEvaluatorPool();	
 
-		final IConstructor pathConfig = expandPathConfig(pcfg, resourcesLoc, generatedSourcesLoc);
+		final IConstructor pathConfig = expandPathConfig(pcfg, generatedSourcesLoc);
 		final IConstructor config = evaluators.useAndReturn(e -> makeCompilerConfig(e, verbose, pathConfig));
 
 		// split up the work into chunks and initial pre-work
@@ -367,10 +367,13 @@ public class CompileRascalMojo extends AbstractMojo
 				safeLog(l -> l.debug("Preparing checker for in " + chunks.size() + " parallel threads"));
 				try {
 					List<ISourceLocation> binFolders = new ArrayList<>();
+					List<ISourceLocation> generateSourcesFolders = new ArrayList<>();
 					Semaphore done = new Semaphore(0);
 					for (IList todo: chunks) {
 						ISourceLocation myBin = VF.sourceLocation("tmp", "","tmp-" + System.identityHashCode(todo) + "-" + Instant.now().getEpochSecond());
+						ISourceLocation mySources = VF.sourceLocation("tmp", "","tmp-srcs-" + System.identityHashCode(todo) + "-" + Instant.now().getEpochSecond());
 						binFolders.add(myBin);
+						generateSourcesFolders.add(mySources);
 						PathConfig myConfig = new PathConfig(pcfg.getSrcs(), pcfg.getLibs().append(pcfg.getBin()), myBin);
 						
 						executor.execute(() -> {
@@ -382,7 +385,7 @@ public class CompileRascalMojo extends AbstractMojo
 										prePhaseDone.acquire();
 										safeLog(l -> l.debug("Starting checking chunk with " + todo.size() +  " entries"));
 					
-										var epcfg = expandPathConfig(myConfig, resourcesLoc, generatedSourcesLoc);
+										var epcfg = expandPathConfig(myConfig, mySources);
 										var myCompilerConfig = makeCompilerConfig(e, verbose, epcfg);
 						
 										return runCheckerSingle(e.getMonitor(), todo, e, myCompilerConfig);
@@ -406,10 +409,12 @@ public class CompileRascalMojo extends AbstractMojo
 					// now have to merge the result bins (output files of each build)
 					// it's possible single modules are produced by different chunks
 					// but they are guaranteed to be the same
-					mergeBinFolders(pcfg.getBin(), binFolders);
+					mergeOutputFolders(pcfg.getBin(), binFolders, false);
+					// we also copy of the generated sources, but it's fine right now if they are ignored
+					mergeOutputFolders(generatedSourcesLoc, generateSourcesFolders, true);
 
 				} catch (URISyntaxException | IOException | InterruptedException e) {
-					getLog().error("Failed to start the nested evaluator", e);
+					getLog().error("Failed post-processing evaluator", e);
 					failure.compareAndSet(null, e);
 				}
 			}
@@ -430,11 +435,11 @@ public class CompileRascalMojo extends AbstractMojo
 	}
 
 	private IList runCheckerSingleThreaded(boolean verbose, IList todoList, PathConfig pcfg,
-			ISourceLocation resourcesLoc, ISourceLocation generatedSourcesLoc) throws URISyntaxException, IOException {
+			ISourceLocation generatedSourcesLoc) throws URISyntaxException, IOException {
 		getLog().info("Running checker in single threaded mode");
 		Evaluator eval =  makeEvaluator(System.err, System.out, session);
 		
-		IConstructor pcfgCons = expandPathConfig(pcfg, resourcesLoc, generatedSourcesLoc);
+		IConstructor pcfgCons = expandPathConfig(pcfg, generatedSourcesLoc);
 		IConstructor singleConfig = makeCompilerConfig(eval, verbose, pcfgCons);
 
 		return runCheckerSingle(eval.getMonitor(), todoList, eval, singleConfig);
@@ -442,12 +447,15 @@ public class CompileRascalMojo extends AbstractMojo
 
 	private IConstructor makeCompilerConfig(Evaluator eval, boolean verbose, IConstructor pcfgCons) {
 		return (IConstructor) eval.call("rascalCompilerConfig", pcfgCons)
-			.asWithKeywordParameters().setParameter("verbose", VF.bool(verbose));
+			.asWithKeywordParameters().setParameter("verbose", VF.bool(verbose))
+			.asWithKeywordParameters().setParameter("logPathConfig", VF.bool(verbose))
+			.asWithKeywordParameters().setParameter("logWrittenFiles", VF.bool(verbose))
+			;
 	}
 
-	private IConstructor expandPathConfig(PathConfig pcfg, ISourceLocation resourcesLoc, ISourceLocation generatedSourcesLoc) {
+	private IConstructor expandPathConfig(PathConfig pcfg, ISourceLocation generatedSourcesLoc) {
 		return pcfg.asConstructor()
-			.asWithKeywordParameters().setParameter("resources", resourcesLoc)
+			.asWithKeywordParameters().setParameter("resources", pcfg.getBin())
 			.asWithKeywordParameters().setParameter("generatedSources", generatedSourcesLoc);
 	}
 
@@ -468,12 +476,19 @@ public class CompileRascalMojo extends AbstractMojo
 		});
 	}
 
-	private static void mergeBinFolders(ISourceLocation bin, List<ISourceLocation> binFolders) throws IOException {
+	private void mergeOutputFolders(ISourceLocation bin, List<ISourceLocation> binFolders, boolean ignoreMissing) throws IOException {
 		for (ISourceLocation b : binFolders) {
-			mergeBinFolders(bin, b);
+			getLog().info("Copying tpls from " + b + " to " + bin);
+			if (reg.isDirectory(b)) {
+				mergeOutputFolders(bin, b);
+			}
+			else if (!ignoreMissing) {
+				throw new IOException("The " + b + " folder did not exist");
+
+			}
 		}
 	}
-	private static void mergeBinFolders(ISourceLocation dst, ISourceLocation src) throws IOException {
+	private static void mergeOutputFolders(ISourceLocation dst, ISourceLocation src) throws IOException {
 		for (String entry : reg.listEntries(src)) {
 			ISourceLocation srcEntry = URIUtil.getChildLocation(src, entry);
 			ISourceLocation dstEntry = URIUtil.getChildLocation(dst, entry);
@@ -481,7 +496,7 @@ public class CompileRascalMojo extends AbstractMojo
 				if (!reg.exists(dstEntry)) {
 					reg.mkDirectory(dstEntry);
 				}
-				mergeBinFolders(dstEntry, srcEntry);
+				mergeOutputFolders(dstEntry, srcEntry);
 			}
 			else if (!reg.exists(dstEntry)) {
 				reg.copy(srcEntry, dstEntry, true, true);

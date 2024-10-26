@@ -35,7 +35,7 @@
         <dependency>
             <groupId>org.rascalmpl</groupId>
             <artifactId>rascal</artifactId>
-            <version>0.40.11</version>
+            <version>0.40.13-BOOT2</version>
         </dependency>
         <dependency>
             <groupId>org.rascalmpl</groupId>
@@ -45,12 +45,12 @@
         <dependency>
             <groupId>org.rascalmpl</groupId>
             <artifactId>typepal</artifactId>
-            <version>0.14.7-BOOT1</version>
+            <version>0.14.7</version>
         </dependency>
         <dependency>
             <groupId>org.rascalmpl</groupId>
             <artifactId>rascal-core</artifactId>
-            <version>0.12.11-BOOT1</version>
+            <version>0.12.11</version>
         </dependency>
         <dependency>
             <groupId>org.apache.maven</groupId>

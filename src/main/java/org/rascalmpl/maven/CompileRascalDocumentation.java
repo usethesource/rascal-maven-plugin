@@ -44,7 +44,7 @@ import io.usethesource.vallang.exceptions.FactTypeUseException;
 
 /**
  * Maven Goal for Rascal Tutor Documentation compilation. The input is a list of
- * Rascal source folders, and course folders, and the output is for each module 
+ * Rascal source folders, and course folders, and the output is for each module
  * a markdown file and for each markdown file in a source course an output markdown
  * file. The compiler also copies images from source to a target assets folder.
  * Also a list of errors and warnings is printed on stderr.
@@ -156,13 +156,13 @@ public class CompileRascalDocumentation extends AbstractMojo
 			List<ISourceLocation> compilerClassPath = collectPluginClasspath();
 
 			PathConfig pcfg = new PathConfig(srcLocs, libLocs, binLoc, ignoredLocs, compilerClassPath, classpath);
-			
+
 			getLog().info("Paths have been configured: " + pcfg);
 
 			URIResolverRegistry.getInstance().registerLogical(
 				new ProjectURIResolver(
 					MojoUtils.location(
-						project.getBasedir().getCanonicalFile().toString()), 
+						project.getBasedir().getCanonicalFile().toString()),
 						project.getName()
 					)
 				);
@@ -183,7 +183,7 @@ public class CompileRascalDocumentation extends AbstractMojo
 		    getLog().error(e.getLocation() + ": " + e.getMessage());
 		    getLog().error(e.getTrace().toString());
 		    throw new MojoExecutionException(UNEXPECTED_ERROR, e);
-		} 
+		}
 	}
 
 	private List<ISourceLocation> collectClasspath() throws URISyntaxException {
@@ -225,10 +225,10 @@ public class CompileRascalDocumentation extends AbstractMojo
 
 	private List<ISourceLocation> collectPluginClasspath() throws URISyntaxException {
 	    List<ISourceLocation> builder = new LinkedList<>();
-		
+
 		builder.add(MojoUtils.location(IValue.class.getProtectionDomain().getCodeSource().getLocation().getPath()));
 		builder.add(MojoUtils.location(Evaluator.class.getProtectionDomain().getCodeSource().getLocation().getPath()));
-		
+
         return builder;
     }
 
@@ -248,7 +248,7 @@ public class CompileRascalDocumentation extends AbstractMojo
 			if (issues != null) {
 				pc = pc.asWithKeywordParameters().setParameter("issues", MojoUtils.location(issues));
 			}
-			
+
 			pc = pc.asWithKeywordParameters().setParameter("license", MojoUtils.location(licenseFile));
 			pc = pc.asWithKeywordParameters().setParameter("funding", MojoUtils.location(funding));
 			pc = pc.asWithKeywordParameters().setParameter("citation", MojoUtils.location(citation));

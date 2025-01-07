@@ -34,8 +34,8 @@
     <dependencies>
         <dependency>
             <groupId>org.rascalmpl</groupId>
-            <artifactId>rascal</artifactId>
-            <version>0.40.17</version>
+            <artifactId>rascal-unshaded</artifactId>
+            <version>0.41.0-RC7</version>
         </dependency>
         <dependency>
             <groupId>org.rascalmpl</groupId>
@@ -50,7 +50,7 @@
         <dependency>
             <groupId>org.rascalmpl</groupId>
             <artifactId>rascal-core</artifactId>
-            <version>0.12.12</version>
+            <version>0.12.12-fixrascal0.41.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.maven</groupId>

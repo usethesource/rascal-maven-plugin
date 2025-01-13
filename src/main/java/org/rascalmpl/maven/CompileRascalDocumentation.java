@@ -119,10 +119,6 @@ public class CompileRascalDocumentation extends AbstractMojo
 	@Parameter(defaultValue = "${session}", required = true, readonly = true)
 	private MavenSession session;
 
-	private Evaluator makeEvaluator(OutputStream err, OutputStream out) throws URISyntaxException, FactTypeUseException, IOException {
-		return MojoUtils.makeEvaluator(getLog(), session, err, out, MAIN_COMPILER_SEARCH_PATH, MAIN_COMPILER_MODULE);
-	}
-
 	public void execute() throws MojoExecutionException {
 		try {
 			ISourceLocation binLoc = URIUtil.getChildLocation(MojoUtils.location(bin), "docs");
@@ -167,7 +163,7 @@ public class CompileRascalDocumentation extends AbstractMojo
 					)
 				);
 
-			Evaluator eval = makeEvaluator(System.err, System.out);
+			Evaluator eval = MojoUtils.makeEvaluator(getLog(), session, MAIN_COMPILER_SEARCH_PATH, MAIN_COMPILER_MODULE);
 			IList messages = runCompiler(eval.getMonitor(), eval, pcfg);
 
 			getLog().info("Tutor is done, reporting errors now.");
@@ -254,15 +250,12 @@ public class CompileRascalDocumentation extends AbstractMojo
 			pc = pc.asWithKeywordParameters().setParameter("citation", MojoUtils.location(citation));
 			pc = pc.asWithKeywordParameters().setParameter("releaseNotes", MojoUtils.location(releaseNotes));
 
-			eval.getErrorPrinter().println(pc);
+			eval.getStdErr().println(pc);
 			return (IList) eval.call(monitor, "compile", pc);
 		}
 		finally {
-			try {
-				eval.getStdErr().flush();
-				eval.getStdOut().flush();
-			} catch (IOException ignored) {
-			}
+			eval.getStdErr().flush();
+			eval.getStdOut().flush();
 		}
 	}
 

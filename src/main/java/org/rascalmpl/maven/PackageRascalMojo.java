@@ -12,6 +12,7 @@
 package org.rascalmpl.maven;
 
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.net.URISyntaxException;
 import java.util.List;
 
@@ -24,8 +25,10 @@ import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.project.MavenProject;
 import org.rascalmpl.interpreter.Evaluator;
+import org.rascalmpl.repl.streams.RedErrorWriter;
 import org.rascalmpl.uri.URIUtil;
 import org.rascalmpl.values.ValueFactoryFactory;
+
 import io.usethesource.vallang.IList;
 import io.usethesource.vallang.IListWriter;
 import io.usethesource.vallang.ISourceLocation;
@@ -67,7 +70,6 @@ public class PackageRascalMojo extends AbstractMojo
 		return MojoUtils.makeEvaluator(
 			getLog(),
 			session,
-			System.err, System.out,
 			MAIN_PACKAGER_SEARCH_PATH,
 			MAIN_PACKAGER_MODULE
 		);

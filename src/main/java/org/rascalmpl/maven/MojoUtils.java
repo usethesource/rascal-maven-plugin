@@ -10,7 +10,9 @@ package org.rascalmpl.maven;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.OutputStream;
+import java.io.InputStream;
+import java.io.PrintWriter;
+import java.io.Reader;
 import java.io.StringReader;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -19,19 +21,26 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+
+import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.apache.commons.lang3.tuple.ImmutableTriple;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.project.MavenProject;
+import org.jline.terminal.TerminalBuilder;
+import org.jline.utils.InfoCmp.Capability;
 import org.rascalmpl.debug.IRascalMonitor;
 import org.rascalmpl.interpreter.Evaluator;
 import org.rascalmpl.interpreter.env.GlobalEnvironment;
 import org.rascalmpl.interpreter.env.ModuleEnvironment;
 import org.rascalmpl.interpreter.utils.RascalManifest;
+import org.rascalmpl.repl.streams.RedErrorWriter;
 import org.rascalmpl.uri.URIResolverRegistry;
 import org.rascalmpl.uri.URIUtil;
 import org.rascalmpl.uri.jar.JarURIResolver;
 import org.rascalmpl.values.ValueFactoryFactory;
+
 import io.usethesource.vallang.ISourceLocation;
 import io.usethesource.vallang.IValueFactory;
 import io.usethesource.vallang.exceptions.FactTypeUseException;
@@ -50,15 +59,29 @@ public class MojoUtils {
 		eval.addRascalSearchPath(loc);
 	}
 
-	static Evaluator makeEvaluator(Log log, MavenSession session, OutputStream err, OutputStream out, ISourceLocation[] searchPath,  String... importedModules) throws URISyntaxException, FactTypeUseException, IOException {
+	static IRascalMonitor buildMonitor(MavenSession session, Log log) {
+		return session.getRequest().isInteractiveMode() // batch mode enabled or not
+			? getTerminalProgressBarInstance()
+			: new MojoRascalMonitor(log, false);
+	}
+
+	static ImmutableTriple<IRascalMonitor, PrintWriter, PrintWriter> calculateMonitor(Log log, MavenSession session) {
+		var monitor = buildMonitor(session, log);
+		var out = (monitor instanceof PrintWriter) ? (PrintWriter)monitor : new PrintWriter(System.out);
+		var err = (monitor instanceof PrintWriter) ? new PrintWriter(new RedErrorWriter(out), true) : new PrintWriter(System.err, true);
+		return ImmutableTriple.of(monitor, err, out);
+	}
+
+	static Evaluator makeEvaluator(Log log, MavenSession session, ISourceLocation[] searchPath,  String... importedModules) throws URISyntaxException, FactTypeUseException, IOException {
+		var streams = calculateMonitor(log, session);
+		return makeEvaluator(log, session, streams.left, streams.middle, streams.right, searchPath, importedModules);
+	}
+
+	static Evaluator makeEvaluator(Log log, MavenSession session, IRascalMonitor monitor, PrintWriter out, PrintWriter err, ISourceLocation[] searchPath,  String... importedModules) throws URISyntaxException, FactTypeUseException, IOException {
 		safeLog(log, l -> l.info("Start loading the compiler..."));
 		GlobalEnvironment heap = new GlobalEnvironment();
 
-		IRascalMonitor monitor = session.getRequest().isInteractiveMode()
-			? getTerminalProgressBarInstance()
-			: new MojoRascalMonitor(log, false);
-
-		Evaluator eval = new Evaluator(ValueFactoryFactory.getValueFactory(), System.in, err, out, monitor, new ModuleEnvironment("***MVN Rascal Compiler***", heap), heap);
+		Evaluator eval = new Evaluator(ValueFactoryFactory.getValueFactory(), Reader.nullReader(), err, out, monitor, new ModuleEnvironment("***MVN Rascal Compiler***", heap), heap);
 		eval.getConfiguration().setRascalJavaClassPathProperty(toClassPath(
 			ValueFactoryFactory.class, // rascal jar
 			IValueFactory.class // vallang jar
@@ -82,7 +105,16 @@ public class MojoUtils {
 	}
 
 	private static class MonitorInstanceHolder {
-		static IRascalMonitor monitor = IRascalMonitor.buildConsoleMonitor(System.in, System.out);
+		static IRascalMonitor monitor;
+		static {
+			try {
+				var terminal = TerminalBuilder.builder()
+					.build();
+				monitor = IRascalMonitor.buildConsoleMonitor(terminal, false);
+			} catch (IOException e) {
+				throw new IllegalStateException("Could not build terminal", e);
+			}
+		} 
 	}
 
 	private static IRascalMonitor getTerminalProgressBarInstance() {

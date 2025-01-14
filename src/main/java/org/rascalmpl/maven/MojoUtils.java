@@ -15,6 +15,7 @@ import java.io.PrintWriter;
 import java.io.Reader;
 import java.io.StringReader;
 import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -29,6 +30,7 @@ import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.project.MavenProject;
 import org.jline.terminal.TerminalBuilder;
+import org.jline.utils.OSUtils;
 import org.jline.utils.InfoCmp.Capability;
 import org.rascalmpl.debug.IRascalMonitor;
 import org.rascalmpl.interpreter.Evaluator;
@@ -108,9 +110,11 @@ public class MojoUtils {
 		static IRascalMonitor monitor;
 		static {
 			try {
-				var terminal = TerminalBuilder.builder()
-					.build();
-				monitor = IRascalMonitor.buildConsoleMonitor(terminal, false);
+				var terminal = TerminalBuilder.builder();
+				if (OSUtils.IS_WINDOWS) {
+					terminal.encoding(StandardCharsets.UTF_8);
+				}
+				monitor = IRascalMonitor.buildConsoleMonitor(terminal.build(), false);
 			} catch (IOException e) {
 				throw new IllegalStateException("Could not build terminal", e);
 			}

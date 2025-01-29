@@ -250,12 +250,12 @@ public class CompileRascalDocumentation extends AbstractMojo
 			pc = pc.asWithKeywordParameters().setParameter("citation", MojoUtils.location(citation));
 			pc = pc.asWithKeywordParameters().setParameter("releaseNotes", MojoUtils.location(releaseNotes));
 
-			eval.getStdErr().println(pc);
+			eval.getErrorPrinter().println(pc);
 			return (IList) eval.call(monitor, "compile", pc);
 		}
 		finally {
-			eval.getStdErr().flush();
-			eval.getStdOut().flush();
+			eval.getErrorPrinter().flush();
+			eval.getOutPrinter().flush();
 		}
 	}
 

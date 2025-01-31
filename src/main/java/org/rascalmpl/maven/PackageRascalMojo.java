@@ -14,7 +14,6 @@ package org.rascalmpl.maven;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.List;
-
 import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -67,7 +66,6 @@ public class PackageRascalMojo extends AbstractMojo
 		return MojoUtils.makeEvaluator(
 			getLog(),
 			session,
-			System.err, System.out,
 			MAIN_PACKAGER_SEARCH_PATH,
 			MAIN_PACKAGER_MODULE
 		);

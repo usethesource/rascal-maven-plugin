@@ -11,10 +11,9 @@
  */
 package org.rascalmpl.maven;
 
-import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.IOException;
-import java.io.OutputStream;
+import java.io.PrintWriter;
 import java.net.URISyntaxException;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -55,6 +54,7 @@ import org.rascalmpl.uri.URIResolverRegistry;
 import org.rascalmpl.uri.URIUtil;
 import org.rascalmpl.util.ConcurrentSoftReferenceObjectPool;
 import org.rascalmpl.values.ValueFactoryFactory;
+
 import io.usethesource.vallang.IConstructor;
 import io.usethesource.vallang.IList;
 import io.usethesource.vallang.IListWriter;
@@ -92,7 +92,7 @@ public class CompileRascalMojo extends AbstractMojo
 	};
 	private static final URIResolverRegistry reg = URIResolverRegistry.getInstance();
 	private static final IValueFactory VF = ValueFactoryFactory.getValueFactory();
-	
+
 
 	@Parameter(defaultValue="${project}", readonly=true, required=true)
 	private MavenProject project;
@@ -140,8 +140,8 @@ public class CompileRascalMojo extends AbstractMojo
 	@Parameter(defaultValue = "${session}", required = true, readonly = true)
   	private MavenSession session;
 
-	private Evaluator makeEvaluator(OutputStream err, OutputStream out, MavenSession session) throws URISyntaxException, FactTypeUseException, IOException {
-		return MojoUtils.makeEvaluator(getLog(), session, err, out, MAIN_COMPILER_SEARCH_PATH, MAIN_COMPILER_MODULE, COMPILER_CONFIG_MODULE);
+	private Evaluator makeEvaluator(IRascalMonitor monitor, PrintWriter err, PrintWriter out, MavenSession session) throws URISyntaxException, FactTypeUseException, IOException {
+		return MojoUtils.makeEvaluator(getLog(), session, monitor, err, out, MAIN_COMPILER_SEARCH_PATH, MAIN_COMPILER_MODULE, COMPILER_CONFIG_MODULE);
 	}
 
 	public void execute() throws MojoExecutionException {
@@ -208,11 +208,11 @@ public class CompileRascalMojo extends AbstractMojo
 
 			IList messages = runChecker(verbose, todoList, pcfg, generatedSourcesLoc);
 
-			getLog().info("Checker is done, reporting errors now." 
-				+ (errorsAsWarnings ? " Errors are being deescalated to warnings." : "") 
+			getLog().info("Checker is done, reporting errors now."
+				+ (errorsAsWarnings ? " Errors are being deescalated to warnings." : "")
 				+ (warningsAsErrors ? " Warnings are beging escalated to errors. " : ""));
 
-			try {		
+			try {
 				if (!handleMessages(pcfg, messages)) {
 					throw new MojoExecutionException("Rascal compiler found compile-time errors");
 				}
@@ -222,16 +222,16 @@ public class CompileRascalMojo extends AbstractMojo
 			}
 
 			return;
-		} 
+		}
 		catch (URISyntaxException e) {
 			throw new MojoExecutionException(UNEXPECTED_ERROR, e);
-		} 
+		}
 		catch (IOException e) {
 			throw new MojoExecutionException(UNEXPECTED_ERROR, e);
-		} 
+		}
 		catch (InclusionScanException e) {
 			throw new MojoExecutionException(UNEXPECTED_ERROR, e);
-		} 
+		}
 		catch (Throw e) {
 		    getLog().error(e.getLocation() + ": " + e.getMessage());
 		    getLog().error(e.getTrace().toString());
@@ -264,50 +264,6 @@ public class CompileRascalMojo extends AbstractMojo
 		}
 	}
 
-
-	private final static class SynchronizedOutputStream extends OutputStream {
-		private final OutputStream target;
-
-		private SynchronizedOutputStream(OutputStream target) {
-		    this.target = target;
-
-		}
-
-		@Override
-		public void close() throws IOException {
-			target.close();
-		}
-
-		@Override
-		public void flush() throws IOException {
-		    synchronized (target) {
-		    	target.flush();
-			}
-		}
-
-		@Override
-		public void write(byte[] b, int off, int len) throws IOException {
-			synchronized (target) {
-				target.write(b, off, len);
-			}
-		}
-
-		@Override
-		public void write(byte[] b) throws IOException {
-			synchronized (target) {
-				target.write(b);
-			}
-		}
-
-		@Override
-		public void write(int b) throws IOException {
-			synchronized (target) {
-				target.write(b);
-			}
-		}
-	}
-
-
 	private IList runChecker(boolean verbose, IList todoList, PathConfig pcfg, ISourceLocation generatedSourcesLoc)
 			throws IOException, URISyntaxException, Exception {
 	    if (!parallel || todoList.size() <= 10 || parallelAmount() <= 1) {
@@ -320,7 +276,8 @@ public class CompileRascalMojo extends AbstractMojo
 
 	private IList runCheckerMultithreaded(boolean verbose, IList todoList, PathConfig pcfg,
 			ISourceLocation generatedSourcesLoc) throws Exception {
-		ConcurrentSoftReferenceObjectPool<Evaluator> evaluators = createEvaluatorPool();	
+		var streams = MojoUtils.calculateMonitor(getLog(), session);
+		ConcurrentSoftReferenceObjectPool<Evaluator> evaluators = createEvaluatorPool(streams.left, streams.middle, streams.right);
 
 		final IConstructor pathConfig = expandPathConfig(pcfg, generatedSourcesLoc);
 		final IConstructor config = evaluators.useAndReturn(e -> makeCompilerConfig(e, verbose, pathConfig));
@@ -334,7 +291,7 @@ public class CompileRascalMojo extends AbstractMojo
 		AtomicReference<Exception> failure = new AtomicReference<>(null);
 		ExecutorService executor = Executors.newFixedThreadPool(parallelAmount());
 
-		
+
 		try {
 			Semaphore prePhaseDone = new Semaphore(0);
 
@@ -347,11 +304,11 @@ public class CompileRascalMojo extends AbstractMojo
 							runCheckerSingle(eval.getMonitor(), initialTodo, eval, config)
 						));
 						safeLog(l -> l.info("Finished running the pre-phase checker"));
-					} 
+					}
 					catch (Exception e) {
 						safeLog(l -> l.info("Failure executing pre-phase:", e));
 						failure.compareAndSet(null, e);
-					} 
+					}
 					finally {
 						prePhaseDone.release(chunks.size() + 1);
 					}
@@ -375,30 +332,30 @@ public class CompileRascalMojo extends AbstractMojo
 						binFolders.add(myBin);
 						generateSourcesFolders.add(mySources);
 						PathConfig myConfig = new PathConfig(pcfg.getSrcs(), pcfg.getLibs().append(pcfg.getBin()), myBin);
-						
+
 						executor.execute(() -> {
 							try {
 								Thread.sleep(1000);  // give the other evaluator a head start
 								safeLog(l -> l.debug("Starting fresh evaluator"));
 								parallelReports.add(evaluators.useAndReturn(e -> {
-									try { 
+									try {
 										prePhaseDone.acquire();
 										safeLog(l -> l.debug("Starting checking chunk with " + todo.size() +  " entries"));
-					
+
 										var epcfg = expandPathConfig(myConfig, mySources);
 										var myCompilerConfig = makeCompilerConfig(e, verbose, epcfg);
-						
+
 										return runCheckerSingle(e.getMonitor(), todo, e, myCompilerConfig);
-									} 
+									}
 									catch (InterruptedException interruptedException) {
 									    return VF.list();
 									}
 								}));
-							} 
+							}
 							catch (Exception e) {
 								safeLog(l -> l.error("Failure executing:", e));
 								failure.compareAndSet(null, e);
-							} 
+							}
 							finally {
 								done.release();
 							}
@@ -419,10 +376,10 @@ public class CompileRascalMojo extends AbstractMojo
 				}
 			}
 			prePhaseDone.acquire();
-		} 
+		}
 		catch (InterruptedException e) {
 		    // ignore
-		} 
+		}
 		finally {
 			executor.shutdown();
 		}
@@ -437,12 +394,18 @@ public class CompileRascalMojo extends AbstractMojo
 	private IList runCheckerSingleThreaded(boolean verbose, IList todoList, PathConfig pcfg,
 			ISourceLocation generatedSourcesLoc) throws URISyntaxException, IOException {
 		getLog().info("Running checker in single threaded mode");
-		Evaluator eval =  makeEvaluator(System.err, System.out, session);
-		
-		IConstructor pcfgCons = expandPathConfig(pcfg, generatedSourcesLoc);
-		IConstructor singleConfig = makeCompilerConfig(eval, verbose, pcfgCons);
+		var streams = MojoUtils.calculateMonitor(getLog(), session);
+		try {
+			Evaluator eval =  makeEvaluator(streams.left, streams.middle, streams.right, session);
 
-		return runCheckerSingle(eval.getMonitor(), todoList, eval, singleConfig);
+			IConstructor pcfgCons = expandPathConfig(pcfg, generatedSourcesLoc);
+			IConstructor singleConfig = makeCompilerConfig(eval, verbose, pcfgCons);
+
+			return runCheckerSingle(eval.getMonitor(), todoList, eval, singleConfig);
+		}
+		finally {
+			streams.left.endAllJobs();
+		}
 	}
 
 	private IConstructor makeCompilerConfig(Evaluator eval, boolean verbose, IConstructor pcfgCons) {
@@ -459,17 +422,13 @@ public class CompileRascalMojo extends AbstractMojo
 			.asWithKeywordParameters().setParameter("generatedSources", generatedSourcesLoc);
 	}
 
-	private ConcurrentSoftReferenceObjectPool<Evaluator> createEvaluatorPool() {
+	private ConcurrentSoftReferenceObjectPool<Evaluator> createEvaluatorPool(IRascalMonitor monitor, PrintWriter err, PrintWriter out) {
 		return new ConcurrentSoftReferenceObjectPool<Evaluator>(
 				1, TimeUnit.MINUTES,
 				1, parallelAmount(),
 				() -> {
 					try {
-						return makeEvaluator(
-							new BufferedOutputStream(new SynchronizedOutputStream(System.err)),
-							new SynchronizedOutputStream(System.out),
-							session
-						);
+						return makeEvaluator(monitor, err, out, session);
 					} catch (URISyntaxException | IOException e) {
 						throw new RuntimeException(e);
 					}
@@ -515,12 +474,8 @@ public class CompileRascalMojo extends AbstractMojo
 			return (IList) eval.call(monitor, "check", todoList, compilerConfig);
 		}
 		finally {
-			try {
-				eval.getStdErr().flush();
-				eval.getStdOut().flush();
-			} catch (IOException ignored) {
-				// this may happen if a stream is already closed by the commandline user.
-			}
+			eval.getErrorPrinter().flush();
+			eval.getOutPrinter().flush();
 		}
 	}
 
@@ -569,7 +524,7 @@ public class CompileRascalMojo extends AbstractMojo
 				else {
 					return Set.of();
 				}
-			}	
+			}
 		});
 
 		// TODO: currently the compiler nests all files in a /rascal root
@@ -640,7 +595,7 @@ public class CompileRascalMojo extends AbstractMojo
 				.sorted((m1, m2) -> {
 					ISourceLocation l1 = (ISourceLocation) m1.get("at");
 					ISourceLocation l2 = (ISourceLocation) m2.get("at");
-					
+
 					if (l1.getBeginLine() == l2.getBeginLine()) {
 						return Integer.compare(l1.getBeginColumn(), l2.getBeginColumn());
 					}

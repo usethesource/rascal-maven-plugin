@@ -35,7 +35,12 @@
         <dependency>
             <groupId>org.rascalmpl</groupId>
             <artifactId>rascal-unshaded</artifactId>
-            <version>0.41.0-RC7</version>
+            <version>0.41.0-RC10</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jline</groupId>
+            <artifactId>jline-terminal</artifactId>
+            <version>3.27.0</version>
         </dependency>
         <dependency>
             <groupId>org.rascalmpl</groupId>

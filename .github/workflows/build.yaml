@@ -15,7 +15,7 @@ env:
 jobs:
   builds:
     if: ${{ !(github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[maven-release-plugin]')) }}
-    runs-on: buildjet-4vcpu-ubuntu-2204
+    runs-on: buildjet-2vcpu-ubuntu-2204
     needs: [tests]
     steps:
       - uses: actions/checkout@v4
@@ -61,7 +61,7 @@ jobs:
     runs-on: ${{matrix.os}}
     strategy:
       matrix:
-        os: [buildjet-4vcpu-ubuntu-2204, windows-latest, macos-latest]
+        os: [buildjet-2vcpu-ubuntu-2204, windows-latest, macos-latest]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4

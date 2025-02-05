@@ -28,7 +28,7 @@ public class Screenshotter implements ITutorScreenshotFeature {
     private static final String BROWSER_BINARY = System.getProperty("webdriver.chrome.browser");
     private static final String DRIVER_BINARY = System.getProperty("webdriver.chrome.driver");
     private final ChromeDriverService service;
-    private final RemoteWebDriver driver; 
+    private final RemoteWebDriver driver;
 
     public Screenshotter() throws IOException {
         String driver = DRIVER_BINARY;
@@ -43,10 +43,10 @@ public class Screenshotter implements ITutorScreenshotFeature {
         }
 
         if (driver != null && browser != null) {
-            this.service = new ChromeDriverService.Builder()         
-                .usingDriverExecutable(new File(driver))         
-                .usingAnyFreePort()         
-                .build();    
+            this.service = new ChromeDriverService.Builder()
+                .usingDriverExecutable(new File(driver))
+                .usingAnyFreePort()
+                .build();
 
             this.service.start();
             this.driver = getBrowser(service, browser);
@@ -100,13 +100,13 @@ public class Screenshotter implements ITutorScreenshotFeature {
             .addArguments("--headless", "--disable-gpu", "--window-size=1900,1200","--ignore-certificate-errors","--disable-extensions","--no-sandbox","--disable-dev-shm-usage")
             .addArguments("--user-data-dir=/tmp/rascal-config/google-chrome")
             ;
-        
+
         RemoteWebDriver driver = new RemoteWebDriver(service.getUrl(), options);
         driver.manage().timeouts().pageLoadTimeout(Duration.ofSeconds(30));
         driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(30));
         driver.manage().timeouts().scriptTimeout(Duration.ofSeconds(60));
         driver.manage().window().maximize();
-        
+
         return driver;
     }
 
@@ -127,7 +127,7 @@ public class Screenshotter implements ITutorScreenshotFeature {
             // load the page
             driver.get(url);
             driver.manage().window().maximize();
-            
+
             // wait for page to render completely
             WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(15));
             wait.until(webDriver -> "complete".equals(
@@ -141,11 +141,11 @@ public class Screenshotter implements ITutorScreenshotFeature {
             String currentscreenshot = "";
             int max = 20;
 
-            // keep taking shots until all visual elements have stopped moving 
+            // keep taking shots until all visual elements have stopped moving
             do {
                 TimeUnit.SECONDS.sleep(1);
                 previousScreenshot = currentscreenshot;
-                currentscreenshot = body.getScreenshotAs(OutputType.BASE64);    
+                currentscreenshot = body.getScreenshotAs(OutputType.BASE64);
             } while (previousScreenshot.equals(currentscreenshot) && max-- > 0);
 
             if (currentscreenshot.isEmpty()) {

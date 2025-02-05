@@ -10,7 +10,6 @@ package org.rascalmpl.maven;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.PrintWriter;
 import java.io.Reader;
 import java.io.StringReader;
@@ -23,7 +22,6 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.ImmutableTriple;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.execution.MavenSession;
@@ -31,7 +29,6 @@ import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.project.MavenProject;
 import org.jline.terminal.TerminalBuilder;
 import org.jline.utils.OSUtils;
-import org.jline.utils.InfoCmp.Capability;
 import org.rascalmpl.debug.IRascalMonitor;
 import org.rascalmpl.interpreter.Evaluator;
 import org.rascalmpl.interpreter.env.GlobalEnvironment;
@@ -118,7 +115,7 @@ public class MojoUtils {
 			} catch (IOException e) {
 				throw new IllegalStateException("Could not build terminal", e);
 			}
-		} 
+		}
 	}
 
 	private static IRascalMonitor getTerminalProgressBarInstance() {

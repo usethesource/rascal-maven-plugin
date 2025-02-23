@@ -3,12 +3,12 @@
 
     <groupId>org.rascalmpl</groupId>
     <artifactId>rascal-maven-plugin</artifactId>
-    <version>0.28.2-SNAPSHOT</version>
+    <version>0.29.0-RC2-SNAPSHOT</version>
     <packaging>maven-plugin</packaging>
 
     <scm>
         <developerConnection>scm:git:ssh://git@github.com/usethesource/rascal-maven-plugin.git</developerConnection>
-        <tag>HEAD</tag>
+        <tag>SNAPSHOT</tag>
       </scm>
 
     <name>Rascal Maven Plugin</name>
@@ -34,63 +34,68 @@
     <dependencies>
         <dependency>
             <groupId>org.rascalmpl</groupId>
-            <artifactId>rascal</artifactId>
+            <artifactId>rascal-unshaded</artifactId>
             <version>0.41.0-RC13-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jline</groupId>
+            <artifactId>jline-terminal</artifactId>
+            <version>3.27.0</version>
         </dependency>
         <dependency>
             <groupId>org.rascalmpl</groupId>
             <artifactId>rascal-tutor</artifactId>
-            <version>0.19.5</version>
+            <version>0.19.9</version>
         </dependency>
         <dependency>
             <groupId>org.rascalmpl</groupId>
             <artifactId>typepal</artifactId>
-            <version>0.13.4</version>
+            <version>0.14.8</version>
         </dependency>
         <dependency>
             <groupId>org.rascalmpl</groupId>
             <artifactId>rascal-core</artifactId>
-            <version>0.12.3</version>
+            <version>0.12.12-fixrascal0.41.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.maven</groupId>
             <artifactId>maven-plugin-api</artifactId>
-            <version>3.6.0</version>
+            <version>3.9.9</version>
         </dependency>
         <dependency>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-compiler-plugin</artifactId>
-            <version>3.8.1</version>
+            <version>3.13.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.maven.plugin-tools</groupId>
             <artifactId>maven-plugin-annotations</artifactId>
-            <version>3.6.0</version>
+            <version>3.15.1</version>
         </dependency>
         <dependency>
             <groupId>org.apache.maven</groupId>
             <artifactId>maven-model</artifactId>
-            <version>3.6.0</version>
+            <version>3.9.9</version>
         </dependency>
         <dependency>
             <groupId>org.apache.maven</groupId>
             <artifactId>maven-artifact</artifactId>
-            <version>3.6.0</version>
+            <version>3.9.9</version>
         </dependency>
         <dependency>
             <groupId>org.apache.maven</groupId>
-            <artifactId>maven-project</artifactId>
-            <version>3.0-alpha-2</version>
+            <artifactId>maven-core</artifactId>
+            <version>3.9.9</version>
         </dependency>
         <dependency>
             <groupId>org.codehaus.plexus</groupId>
             <artifactId>plexus-utils</artifactId>
-            <version>3.1.1</version>
+            <version>3.6.0</version>
         </dependency>
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
-            <version>4.13.1</version>
+            <version>4.13.2</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

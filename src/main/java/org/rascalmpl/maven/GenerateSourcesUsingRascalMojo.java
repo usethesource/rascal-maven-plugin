@@ -44,25 +44,25 @@ public class GenerateSourcesUsingRascalMojo extends AbstractMojo
 			return;
 		}
 
-	    String javaHome = System.getProperty("java.home");
-        String javaBin = javaHome + File.separator + "bin" + File.separator + "java";
-		getLog().info("Using " + javaBin + " as java process for nested jvm call");
+		try {
+			String javaHome = System.getProperty("java.home");
+			String javaBin = javaHome + File.separator + "bin" + File.separator + "java";
+			getLog().info("Using " + javaBin + " as java process for nested jvm call");
 
-        try {
-            List<String> command = new LinkedList<String>();
-            command.add(javaBin);
+			List<String> command = new LinkedList<String>();
+			command.add(javaBin);
 
-        System.getProperties().forEach((key, value) -> {
-            // Do not propagate `user.dir`, since that breaks multi-module maven projects
-            if (!key.equals("user.dir")) {
-                command.add("-D" + key + "=" + value);
-            }
-        });
+			System.getProperties().forEach((key, value) -> {
+				// Do not propagate `user.dir`, since that breaks multi-module maven projects
+				if (!key.equals("user.dir")) {
+					command.add("-D" + key + "=" + value);
+				}
+			});
 
-        command.add("-cp");
-        command.add(collectClasspath());
-        command.add("org.rascalmpl.shell.RascalShell");
-        command.add(mainModule);
+			command.add("-cp");
+			command.add(PathConfig.resolveCurrentRascalRuntimeJar().getPath());
+			command.add("org.rascalmpl.shell.RascalShell");
+			command.add(mainModule);
 
             ProcessBuilder builder = new ProcessBuilder(command);
             builder.directory(project.getBasedir());

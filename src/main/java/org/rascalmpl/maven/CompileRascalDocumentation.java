@@ -12,7 +12,6 @@ package org.rascalmpl.maven;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.net.URISyntaxException;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -41,7 +40,6 @@ import io.usethesource.vallang.IList;
 import io.usethesource.vallang.ISourceLocation;
 import io.usethesource.vallang.IString;
 import io.usethesource.vallang.IValue;
-import io.usethesource.vallang.exceptions.FactTypeUseException;
 
 /**
  * Maven Goal for Rascal Tutor Documentation compilation. The input is a list of

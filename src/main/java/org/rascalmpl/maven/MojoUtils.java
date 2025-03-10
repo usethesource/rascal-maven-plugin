@@ -37,6 +37,7 @@ import org.rascalmpl.interpreter.Evaluator;
 import org.rascalmpl.interpreter.env.GlobalEnvironment;
 import org.rascalmpl.interpreter.env.ModuleEnvironment;
 import org.rascalmpl.interpreter.utils.RascalManifest;
+import org.rascalmpl.library.util.PathConfig;
 import org.rascalmpl.repl.streams.RedErrorWriter;
 import org.rascalmpl.uri.URIResolverRegistry;
 import org.rascalmpl.uri.URIUtil;
@@ -118,7 +119,7 @@ public class MojoUtils {
 			} catch (IOException e) {
 				throw new IllegalStateException("Could not build terminal", e);
 			}
-		} 
+		}
 	}
 
 	private static IRascalMonitor getTerminalProgressBarInstance() {
@@ -163,6 +164,13 @@ public class MojoUtils {
 			.collect(Collectors.toCollection(ArrayList::new));
     }
 
+	/**
+	 * Finds all the jar files for the dependencies in this pom.xml
+	 * @param project
+	 * @param libLocs
+	 * @throws URISyntaxException
+	 * @throws IOException
+	 */
 	static void collectDependentArtifactLibraries(MavenProject project, List<ISourceLocation> libLocs) throws URISyntaxException, IOException {
 		RascalManifest mf = new RascalManifest();
 		Set<String> projects = libLocs.stream().map(mf::getProjectName).collect(Collectors.toSet());
@@ -183,5 +191,28 @@ public class MojoUtils {
 				}
 			}
 		}
+	}
+
+	/**
+	 * Finds the rascal.jar file that the pom.xml depends on, or if it does not exist
+	 * @param project
+	 * @return
+	 * @throws URISyntaxException
+	 * @throws IOException
+	 */
+	static ISourceLocation detectedDependentRascalArtifact(MavenProject project) throws IOException {
+		for (Object o : project.getArtifacts()) {
+			Artifact a = (Artifact) o;
+
+			if (a.getArtifactId().equals("org.rascalmpl:rascal")) {
+				File file = a.getFile().getAbsoluteFile();
+				ISourceLocation jarLoc = JarURIResolver.jarify(MojoUtils.location(file.toString()));
+
+				return jarLoc;
+			}
+		}
+
+		// if we don't have a dependency we go with _our_ dependency on rascal:
+		return PathConfig.resolveCurrentRascalRuntimeJar();
 	}
 }

@@ -34,7 +34,7 @@
     <dependencies>
         <dependency>
             <groupId>org.rascalmpl</groupId>
-            <artifactId>rascal-unshaded</artifactId>
+            <artifactId>rascal</artifactId>
             <version>0.41.0-RC13-SNAPSHOT</version>
         </dependency>
         <dependency>

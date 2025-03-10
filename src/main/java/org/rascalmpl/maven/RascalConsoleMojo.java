@@ -15,7 +15,6 @@ import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.apache.maven.artifact.Artifact;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
@@ -41,11 +40,11 @@ public class RascalConsoleMojo extends AbstractMojo
         try {
             List<String> command = new LinkedList<String>();
             command.add(javaBin);
-            
+
             System.getProperties().forEach((key, value) -> {
                 command.add("-D" + key + "=" + value);
             });
-            
+
             command.add("-cp");
             command.add(PathConfig.resolveCurrentRascalRuntimeJar().getPath());
             command.add("org.rascalmpl.shell.RascalShell");

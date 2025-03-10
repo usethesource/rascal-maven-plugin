@@ -187,9 +187,9 @@ public abstract class AbstractRascalMojo extends AbstractMojo
             command.add(rascalLoc.getPath());
             command.add(mainClass);
 			command.add("-srcs");
-			command.add(srcs.stream().map(Object::toString).collect(Collectors.joining(File.pathSeparator))));
+			command.add(srcs.stream().map(Object::toString).collect(Collectors.joining(File.pathSeparator)));
 			command.add("-libs");
-			command.add(libs.stream().map(Object::toString).collect(Collectors.joining(File.pathSeparator))));
+			command.add(libs.stream().map(Object::toString).collect(Collectors.joining(File.pathSeparator)));
 			command.add("-bin");
 			command.add(bin.toString());
 			command.add("-generatedSources");

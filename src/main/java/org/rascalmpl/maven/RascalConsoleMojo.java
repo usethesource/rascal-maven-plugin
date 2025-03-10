@@ -15,21 +15,23 @@ import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.project.MavenProject;
-import org.rascalmpl.library.util.PathConfig;
 
 /**
  * Maven Goal for starting a rascal console for the current mvn project.
  */
 @Mojo(name="console", defaultPhase = LifecyclePhase.COMPILE, requiresDependencyCollection = ResolutionScope.COMPILE_PLUS_RUNTIME, requiresDependencyResolution = ResolutionScope.COMPILE_PLUS_RUNTIME)
-public class RascalConsoleMojo extends AbstractMojo
+public class RascalConsoleMojo extends AbstractRascalMojo
 {
+	public RascalConsoleMojo() {
+		super("org.rascalmpl.shell.RascalShell");
+	}
+
 	@Parameter(defaultValue="${project}", readonly=true, required=true)
 	private MavenProject project;
 
@@ -46,7 +48,7 @@ public class RascalConsoleMojo extends AbstractMojo
             });
 
             command.add("-cp");
-            command.add(PathConfig.resolveCurrentRascalRuntimeJar().getPath());
+            command.add(MojoUtils.detectedDependentRascalArtifact(project).getPath());
             command.add("org.rascalmpl.shell.RascalShell");
 
             ProcessBuilder builder = new ProcessBuilder(command);

@@ -194,11 +194,8 @@ public class MojoUtils {
 	}
 
 	/**
-	 * Finds the rascal.jar file that the pom.xml depends on, or if it does not exist
-	 * @param project
-	 * @return
-	 * @throws URISyntaxException
-	 * @throws IOException
+	 * Finds the rascal.jar file that the pom.xml depends on, or if it does not exist the rascal.jar
+	 * this maven plugin depends on.
 	 */
 	static ISourceLocation detectedDependentRascalArtifact(MavenProject project) throws IOException {
 		for (Object o : project.getArtifacts()) {

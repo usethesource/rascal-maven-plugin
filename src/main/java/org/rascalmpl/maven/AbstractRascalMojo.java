@@ -158,7 +158,7 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 
 			getLog().info("Paths have been configured.");
 
-			runMain(verbose, todoList, srcLocs, libLocs, generatedSourcesLoc, bin);
+			runMain(verbose, todoList, srcLocs, libLocs, generatedSourcesLoc, binLoc);
 
 			return;
 		}
@@ -167,7 +167,7 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 		}
 	}
 
-	private void runMain(boolean verbose, IList todoList, IList srcs, IList libs, ISourceLocation generated, ISourceLocation bin) throws IOException {
+	private void runMain(boolean verbose, IList todoList, List<ISourceLocation> srcs, List<ISourceLocation> libs, ISourceLocation generated, ISourceLocation bin) throws IOException {
 		var rascalLoc = MojoUtils.detectedDependentRascalArtifact(project);
 		assert rascalLoc.getScheme().equals("file");
 
@@ -182,17 +182,20 @@ public abstract class AbstractRascalMojo extends AbstractMojo
                 command.add("-D" + key + "=" + value);
             });
 
+			// we put the entire pathConfig on the commandline, and finally the todoList for compilation.
             command.add("-cp");
             command.add(rascalLoc.getPath());
             command.add(mainClass);
 			command.add("-srcs");
-			command.add(srcs.stream().map(l -> l.toString()).collect(Collectors.joining(File.pathSeparator))));
+			command.add(srcs.stream().map(Object::toString).collect(Collectors.joining(File.pathSeparator))));
 			command.add("-libs");
-			command.add(libs.stream().map(l -> l.toString()).collect(Collectors.joining(File.pathSeparator))));
+			command.add(libs.stream().map(Object::toString).collect(Collectors.joining(File.pathSeparator))));
 			command.add("-bin");
 			command.add(bin.toString());
 			command.add("-generatedSources");
 			command.add(generated.toString());
+			command.add("-modules");
+			command.add(todoList.stream().map(Object::toString).collect(Collectors.joining(File.pathSeparator)));
 
 			if (verbose) {
 				command.add("-verbose");
@@ -206,7 +209,6 @@ public abstract class AbstractRascalMojo extends AbstractMojo
         } catch (InterruptedException e) {
             getLog().warn(e);
         }
-
 	}
 
 

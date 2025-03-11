@@ -77,6 +77,8 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 
 	private final String mainClass;
 
+	protected final File rascalRuntime = MojoUtils.detectedDependentRascalArtifact(getLog(), project);
+
 	public AbstractRascalMojo(String mainClass) {
 		this.mainClass = mainClass;
 	}
@@ -138,9 +140,6 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 	}
 
 	private void runMain(boolean verbose, IList todoList, List<ISourceLocation> srcs, List<ISourceLocation> libs, ISourceLocation generated, ISourceLocation bin) throws IOException {
-		var rascalLoc = MojoUtils.detectedDependentRascalArtifact(project);
-		assert rascalLoc.getScheme().equals("file");
-
 		String javaHome = System.getProperty("java.home");
         String javaBin = javaHome + File.separator + "bin" + File.separator + "java";
 
@@ -154,7 +153,7 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 
 			// we put the entire pathConfig on the commandline, and finally the todoList for compilation.
             command.add("-cp");
-            command.add(rascalLoc.getPath());
+            command.add(rascalRuntime.getPath());
             command.add(mainClass);
 			command.add("-srcs");
 			command.add(srcs.stream().map(Object::toString).collect(Collectors.joining(File.pathSeparator)));

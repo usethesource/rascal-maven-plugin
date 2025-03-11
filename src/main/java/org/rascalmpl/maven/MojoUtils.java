@@ -196,18 +196,19 @@ public class MojoUtils {
 
 	/**
 	 * Finds the rascal.jar file that the pom.xml depends on, or if it does not exist the rascal.jar
-	 * this maven plugin depends on.
+	 * this maven plugin depends on. Also when the version of the dependency is younger than 0.41.0-RC16
+	 * the resolution defaults to what the maven-plugin depends on itself. Before that version there
+	 * were no CLI classes to run.
 	 */
-	static ISourceLocation detectedDependentRascalArtifact(Log log, MavenProject project) throws IOException {
+	static File detectedDependentRascalArtifact(Log log, MavenProject project) {
 		for (Object o : project.getArtifacts()) {
 			Artifact a = (Artifact) o;
 
 			if (a.getArtifactId().equals("org.rascalmpl:rascal")) {
 				File file = a.getFile().getAbsoluteFile();
-				ISourceLocation jarLoc = JarURIResolver.jarify(MojoUtils.location(file.toString()));
 
 				if (new SemVer(a.getVersion()).greaterEqualVersion(new SemVer("0.41.0-RC16"))) {
-					return jarLoc;
+					return file;
 				}
 				else {
 					log.warn("Rascal version in pom.xml dependency is too old for this Rascal maven plugin. >= 0.41.0 expected.");
@@ -215,7 +216,15 @@ public class MojoUtils {
 			}
 		}
 
-		// if we don't have a dependency we go with _our_ dependency on rascal:
-		return PathConfig.resolveCurrentRascalRuntimeJar();
+		try {
+			// if we don't have a proper dependency on org.rascalmpl:rascal, we go with _our_ dependency on rascal:
+			return new File(PathConfig.resolveCurrentRascalRuntimeJar().getPath());
+		}
+		catch (IOException e) {
+			log.error(e.getMessage());
+			// having no rascal runtime is a fatal error
+			System.exit(1);
+			return null;
+		}
 	}
 }

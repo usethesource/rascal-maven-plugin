@@ -48,7 +48,7 @@ public class RascalConsoleMojo extends AbstractRascalMojo
             });
 
             command.add("-cp");
-            command.add(MojoUtils.detectedDependentRascalArtifact(project).getPath());
+            command.add(rascalRuntime.getPath());
             command.add("org.rascalmpl.shell.RascalShell");
 
             ProcessBuilder builder = new ProcessBuilder(command);

@@ -60,7 +60,7 @@ public class GenerateSourcesUsingRascalMojo extends AbstractMojo
 			});
 
 			command.add("-cp");
-			command.add(PathConfig.resolveCurrentRascalRuntimeJar().getPath());
+			command.add(MojoUtils.detectedDependentRascalArtifact(project).getPath());
 			command.add("org.rascalmpl.shell.RascalShell");
 			command.add(mainModule);
 

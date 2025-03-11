@@ -38,6 +38,7 @@ import org.rascalmpl.interpreter.env.GlobalEnvironment;
 import org.rascalmpl.interpreter.env.ModuleEnvironment;
 import org.rascalmpl.interpreter.utils.RascalManifest;
 import org.rascalmpl.library.util.PathConfig;
+import org.rascalmpl.library.util.SemVer;
 import org.rascalmpl.repl.streams.RedErrorWriter;
 import org.rascalmpl.uri.URIResolverRegistry;
 import org.rascalmpl.uri.URIUtil;
@@ -197,7 +198,7 @@ public class MojoUtils {
 	 * Finds the rascal.jar file that the pom.xml depends on, or if it does not exist the rascal.jar
 	 * this maven plugin depends on.
 	 */
-	static ISourceLocation detectedDependentRascalArtifact(MavenProject project) throws IOException {
+	static ISourceLocation detectedDependentRascalArtifact(Log log, MavenProject project) throws IOException {
 		for (Object o : project.getArtifacts()) {
 			Artifact a = (Artifact) o;
 
@@ -205,7 +206,12 @@ public class MojoUtils {
 				File file = a.getFile().getAbsoluteFile();
 				ISourceLocation jarLoc = JarURIResolver.jarify(MojoUtils.location(file.toString()));
 
-				return jarLoc;
+				if (new SemVer(a.getVersion()).greaterEqualVersion(new SemVer("0.41.0-RC16"))) {
+					return jarLoc;
+				}
+				else {
+					log.warn("Rascal version in pom.xml dependency is too old for this Rascal maven plugin. >= 0.41.0 expected.");
+				}
 			}
 		}
 

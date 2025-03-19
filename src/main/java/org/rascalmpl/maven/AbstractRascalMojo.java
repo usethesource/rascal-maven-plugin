@@ -48,9 +48,6 @@ import io.usethesource.vallang.IValueFactory;
  */
 public abstract class AbstractRascalMojo extends AbstractMojo
 {
-	private static final URIResolverRegistry reg = URIResolverRegistry.getInstance();
-	private static final IValueFactory VF = ValueFactoryFactory.getValueFactory();
-
 	@Parameter(defaultValue="${project}", readonly=true, required=true)
 	private MavenProject project;
 
@@ -75,18 +72,20 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 	@Parameter(defaultValue = "${session}", required = true, readonly = true)
   	private MavenSession session;
 
+	private final String skipTag;
 	private final String mainClass;
 
 	protected final File rascalRuntime = MojoUtils.detectedDependentRascalArtifact(getLog(), project);
 
-	public AbstractRascalMojo(String mainClass) {
+	public AbstractRascalMojo(String mainClass, String skipTag) {
 		this.mainClass = mainClass;
+		this.skipTag = skipTag;
 	}
 
 	@Override
 	public void execute() throws MojoExecutionException {
 		try {
-			if (System.getProperty("rascal.compile.skip") != null) {
+			if (System.getProperty("rascal." + skipTag + ".skip") != null) {
 				getLog().info("Skipping " + getClass().getName() + " completely");
 				return;
 			}

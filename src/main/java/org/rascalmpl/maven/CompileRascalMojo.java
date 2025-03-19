@@ -22,6 +22,6 @@ import org.apache.maven.plugins.annotations.ResolutionScope;
 public class CompileRascalMojo extends AbstractRascalMojo
 {
 	public CompileRascalMojo() {
-		super("org.rascalmpl.shell.RascalCheck");
+		super("org.rascalmpl.shell.RascalCheck", "compile");
 	}
 }

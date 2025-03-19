@@ -28,6 +28,6 @@ import org.apache.maven.plugins.annotations.ResolutionScope;
 public class CompileRascalDocumentation extends AbstractRascalMojo
 {
 	public CompileRascalDocumentation() {
-		super("org.rascalmpl.shell.RascalTutorCompile");
+		super("org.rascalmpl.shell.RascalTutorCompile", "tutor");
 	}
 }

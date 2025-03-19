@@ -29,7 +29,7 @@ import org.apache.maven.project.MavenProject;
 public class RascalConsoleMojo extends AbstractRascalMojo
 {
 	public RascalConsoleMojo() {
-		super("org.rascalmpl.shell.RascalShell");
+		super("org.rascalmpl.shell.RascalShell","console");
 	}
 
 	@Parameter(defaultValue="${project}", readonly=true, required=true)

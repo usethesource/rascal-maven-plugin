@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2019 CWI
+ * Copyright (c) 2019-2025 CWI
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -14,72 +14,116 @@ package org.rascalmpl.maven;
 import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
+
+import org.apache.maven.artifact.Artifact;
+import org.apache.maven.artifact.repository.metadata.Plugin;
+import org.apache.maven.artifact.versioning.ArtifactVersion;
+import org.apache.maven.artifact.versioning.DefaultArtifactVersion;
+import org.apache.maven.artifact.versioning.OverConstrainedVersionException;
 import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.AbstractMojo;
+import org.apache.maven.plugin.BuildPluginManager;
 import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugin.logging.Log;
+import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
 import org.codehaus.plexus.compiler.util.scan.InclusionScanException;
 import org.codehaus.plexus.compiler.util.scan.StaleSourceScanner;
 import org.codehaus.plexus.compiler.util.scan.mapping.SourceMapping;
-import org.rascalmpl.uri.URIResolverRegistry;
-import org.rascalmpl.uri.URIUtil;
-import org.rascalmpl.values.ValueFactoryFactory;
 
-import io.usethesource.vallang.IList;
-import io.usethesource.vallang.IListWriter;
-import io.usethesource.vallang.ISourceLocation;
-import io.usethesource.vallang.IValue;
-import io.usethesource.vallang.IValueFactory;
+import static org.twdata.maven.mojoexecutor.MojoExecutor.executeMojo;
+import static org.twdata.maven.mojoexecutor.MojoExecutor.plugin;
+import static org.twdata.maven.mojoexecutor.MojoExecutor.goal;
+import static org.twdata.maven.mojoexecutor.MojoExecutor.configuration;
+import static org.twdata.maven.mojoexecutor.MojoExecutor.executionEnvironment;
+import static org.twdata.maven.mojoexecutor.MojoExecutor.element;
+
 
 /**
  * Abstract Maven Goal for Rascal tools. All tools (checker, tutor, compiler)
  * are configured via PathConfig and their main function.
  *
- * All tools run in the JVM with the rascal
- * dependency loaded (if present in the pom). Otherwise we use the Rascal dependency
- * of the maven-plugin on Rascal.
- *
+ * All tools run in the JVM with the rascal dependency loaded.
  */
 public abstract class AbstractRascalMojo extends AbstractMojo
 {
 	@Parameter(defaultValue="${project}", readonly=true, required=true)
-	private MavenProject project;
+	protected MavenProject project;
 
 	@Parameter(defaultValue = "${project.build.outputDirectory}", property = "bin", required = true )
-	private String bin;
+	protected String bin;
 
 	@Parameter(defaultValue = "${project.build.directory}/generatedSources", property = "generatedSources", required = true)
-	private String generatedSources;
+	protected String generatedSources;
 
 	@Parameter(property = "srcs", required = true )
-	private List<String> srcs;
+	protected List<String> srcs;
 
 	@Parameter(property = "srcIgnores", required = false )
-	private List<String> srcIgnores;
+	protected List<String> srcIgnores;
 
 	@Parameter(property = "libs", required = false )
-	private List<String> libs;
+	protected List<String> libs;
 
 	@Parameter(defaultValue="false", property= "verbose", required=true)
-	private boolean verbose;
+	protected boolean verbose;
 
 	@Parameter(defaultValue = "${session}", required = true, readonly = true)
-  	private MavenSession session;
+  	protected MavenSession session;
 
-	private final String skipTag;
-	private final String mainClass;
+	@Parameter(defaultValue = "0.41.0-RC18", required = false, readonly = true)
+	protected String bootstrapRascalVersion;
 
-	protected final File rascalRuntime = MojoUtils.detectedDependentRascalArtifact(getLog(), project);
+	@Parameter
+	private BuildPluginManager pluginManager;
+
+	@Parameter(defaultValue="")
+	protected String mainModule;
+
+	/**
+	 * Which `-Drascal.skipTag.skip` to use
+	 */
+	protected final String skipTag;
+
+	/**
+	 * Class with `static int main(String[] arg)` method to call
+	 */
+	protected final String mainClass;
+
+	/**
+	 * If there are more than the normal PathConfig parameters
+	 * they can be added here.
+	 */
+	protected Map<String, String> extraParameters = new HashMap<>();
+
+	/**
+	 * The Rascal runtime jar that will be used to load classes (including the main class) from.
+	 * This is where bootstrap issues are resolved.
+	 */
+	protected final Path rascalRuntime = detectedDependentRascalArtifact(getLog(), project);
 
 	public AbstractRascalMojo(String mainClass, String skipTag) {
 		this.mainClass = mainClass;
 		this.skipTag = skipTag;
+	}
+
+	private List<Path> locations(List<String> paths) {
+		return paths.stream()
+			.map(Path::of)
+			.collect(Collectors.toCollection(ArrayList::new));
 	}
 
 	@Override
@@ -90,28 +134,28 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 				return;
 			}
 
-			ISourceLocation binLoc = MojoUtils.location(bin);
-			ISourceLocation generatedSourcesLoc = MojoUtils.location(generatedSources);
-			List<ISourceLocation> srcLocs = MojoUtils.locations(srcs);
-			List<ISourceLocation> ignoredLocs = MojoUtils.locations(srcIgnores);
-			List<ISourceLocation> libLocs = MojoUtils.locations(libs);
+			Path binLoc = Path.of(bin);
+			Path generatedSourcesLoc = Path.of(generatedSources);
+			List<Path> srcLocs = locations(srcs);
+			List<Path> ignoredLocs = locations(srcIgnores);
+			List<Path> libLocs = locations(libs);
 
 			getLog().info("configuring paths");
-			for (ISourceLocation src : srcLocs) {
+			for (Path src : srcLocs) {
 				getLog().info("\tregistered source location: " + src);
 			}
 
-			for (ISourceLocation ignore : ignoredLocs) {
+			for (Path ignore : ignoredLocs) {
 				getLog().warn("\tignoring sources in: " + ignore);
 			}
 
 			getLog().info("Checking if any files need compilation...");
 
-			IList todoList = getTodoList(binLoc, srcLocs, ignoredLocs);
+			List<Path> todoList = getTodoList(binLoc, srcLocs, ignoredLocs);
 
 			if (!todoList.isEmpty()) {
 				getLog().info("Stale source files have been found:");
-				for (IValue todo : todoList) {
+				for (Path todo : todoList) {
 					getLog().info("\t" + todo);
 				}
 			}
@@ -120,68 +164,152 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 				return;
 			}
 
-			// complete libraries with maven artifacts which include a META-INF/RASCAL.MF file
-			MojoUtils.collectDependentArtifactLibraries(project, libLocs);
+			libLocs.addAll(collectDependentArtifactLibraries(project));
 
-			for (ISourceLocation lib : libLocs) {
+			for (Path lib : libLocs) {
 				getLog().info("\tregistered library location: " + lib);
 			}
 
 			getLog().info("Paths have been configured.");
 
-			runMain(verbose, todoList, srcLocs, libLocs, generatedSourcesLoc, binLoc);
+			runMain(verbose, todoList, srcLocs, libLocs, generatedSourcesLoc, binLoc).waitFor();
 
 			return;
+		}
+		catch (InterruptedException e) {
+			throw new MojoExecutionException("nested " + mainClass + " was killed", e);
 		}
 		catch (Throwable e) {
 			throw new MojoExecutionException("error launching " + mainClass, e);
 		}
 	}
 
-	private void runMain(boolean verbose, IList todoList, List<ISourceLocation> srcs, List<ISourceLocation> libs, ISourceLocation generated, ISourceLocation bin) throws IOException {
+	/**
+	 * Finds the rascal.jar file that the pom.xml depends on.
+	 * When the current project is rascal itself we resolve to a declared bootstrap
+	 * dependency.
+	 * @throws MojoExecutionException
+	 */
+	protected Path detectedDependentRascalArtifact(Log log, MavenProject project) {
+		try {
+			if (project.getArtifactId().equals("org.rascalmpl:rascal")) {
+				// we are in bootstrap mode and must find a previously released
+				// version to kick-off from
+				return installBootstrapRascalVersion();
+			}
+
+			for (Object o : project.getArtifacts()) {
+				Artifact a = (Artifact) o;
+
+				if (a.getArtifactId().equals("org.rascalmpl:rascal")) {
+					File file = a.getFile().getAbsoluteFile();
+
+					if (a.getSelectedVersion().compareTo(getReferenceRascalVersion()) >= 0) {
+						return file.toPath();
+					}
+					else {
+						log.warn("Rascal version in pom.xml dependency is too old for this Rascal maven plugin. " + getReferenceRascalVersion() + " or later expected.");
+						log.warn("Using a newer version org.rascalmpl:rascal:" + bootstrapRascalVersion + "; please add it to the pom.xml");
+						return installBootstrapRascalVersion();
+					}
+				}
+			}
+
+			log.warn("Pom.xml is missig a dependency on org.rascalmpl:rascal:" + getReferenceRascalVersion() + " (or later).");
+			return null;
+		}
+		catch (OverConstrainedVersionException e) {
+			log.error("Rascal version is over-constrained (impossible to resolve). Expected " + getReferenceRascalVersion() + " or later. Have to abort.");
+			throw new RuntimeException(e);
+		}
+		catch (MojoExecutionException e) {
+			log.error("Unable to just-in-time-install the required (bootstrap) version of Rascal. Have to abort.");
+			throw new RuntimeException(e);
+		}
+	}
+
+	protected List<Path> collectDependentArtifactLibraries(MavenProject project) throws URISyntaxException, IOException {
+		List<Path> libs = new LinkedList<>();
+
+		for (Object o : project.getArtifacts()) {
+			Artifact a = (Artifact) o;
+			File file = a.getFile().getAbsoluteFile();
+
+			libs.add(file.toPath());
+		}
+
+		return libs;
+	}
+
+	protected final ArtifactVersion getReferenceRascalVersion() {
+		return new DefaultArtifactVersion("0.41.0-RC16");
+	}
+
+	protected Path installBootstrapRascalVersion() throws MojoExecutionException {
+		// download the boostrap version from our maven site
+		executeMojo(
+			plugin(
+				"org.apache.maven.plugins",
+				"maven-dependency-plugin",
+				"3.1.1"
+			),
+			goal("get"),
+			configuration(
+      			  element("artifact", "org.rascalmpl:rascal:" + bootstrapRascalVersion)
+    		),
+			executionEnvironment(
+				project,
+				session,
+				pluginManager
+			)
+		);
+
+		// resolve the jar file in the .m2 repository
+		return Path.of(session.getSettings().getLocalRepository(),
+			"org", "rascalmpl", "rascal", bootstrapRascalVersion, "rascal-" + bootstrapRascalVersion + ".jar");
+	}
+
+	protected Process runMain(boolean verbose, List<Path> todoList, List<Path> srcs, List<Path> libs, Path generated, Path bin) throws IOException {
 		String javaHome = System.getProperty("java.home");
         String javaBin = javaHome + File.separator + "bin" + File.separator + "java";
 
-        try {
-            List<String> command = new LinkedList<String>();
-            command.add(javaBin);
+		List<String> command = new LinkedList<String>();
+		command.add(javaBin);
 
-            System.getProperties().forEach((key, value) -> {
-                command.add("-D" + key + "=" + value);
-            });
+		System.getProperties().forEach((key, value) -> {
+			command.add("-D" + key + "=" + value);
+		});
 
-			// we put the entire pathConfig on the commandline, and finally the todoList for compilation.
-            command.add("-cp");
-            command.add(rascalRuntime.getPath());
-            command.add(mainClass);
-			command.add("-srcs");
-			command.add(srcs.stream().map(Object::toString).collect(Collectors.joining(File.pathSeparator)));
-			command.add("-libs");
-			command.add(libs.stream().map(Object::toString).collect(Collectors.joining(File.pathSeparator)));
-			command.add("-bin");
-			command.add(bin.toString());
-			command.add("-generatedSources");
-			command.add(generated.toString());
-			command.add("-modules");
-			command.add(todoList.stream().map(Object::toString).collect(Collectors.joining(File.pathSeparator)));
+		// we put the entire pathConfig on the commandline, and finally the todoList for compilation.
+		command.add("-cp");
+		command.add(rascalRuntime.toString());
+		command.add(mainClass);
+		if (mainModule != null && !mainModule.isEmpty()) {
+			command.add(mainModule);
+		}
+		command.add("-srcs");
+		command.add(srcs.stream().map(Object::toString).collect(Collectors.joining(File.pathSeparator)));
+		command.add("-libs");
+		command.add(libs.stream().map(Object::toString).collect(Collectors.joining(File.pathSeparator)));
+		command.add("-bin");
+		command.add(bin.toString());
+		command.add("-generatedSources");
+		command.add(generated.toString());
+		command.add("-modules");
+		command.add(todoList.stream().map(Object::toString).collect(Collectors.joining(File.pathSeparator)));
+		for (Entry<String, String> e : extraParameters.entrySet()) {
+			command.add("-" + e.getKey());
+			command.add(e.getValue());
+		}
 
-			if (verbose) {
-				command.add("-verbose");
-			}
+		if (verbose) {
+			command.add("-verbose");
+		}
 
-            ProcessBuilder builder = new ProcessBuilder(command);
-            Process process = builder.inheritIO().start();
-            process.waitFor();
-        } catch (IOException e) {
-            getLog().error(e);
-        } catch (InterruptedException e) {
-            getLog().warn(e);
-        }
+		return new ProcessBuilder(command).inheritIO().start();
 	}
 
-
-	protected IList getTodoList(ISourceLocation binLoc, List<ISourceLocation> srcLocs, List<ISourceLocation> ignoredLocs)
-			throws InclusionScanException, URISyntaxException {
+	protected List<Path> getTodoList(Path binLoc, List<Path> srcLocs, List<Path> ignoredLocs) throws InclusionScanException, URISyntaxException {
 		StaleSourceScanner scanner = new StaleSourceScanner(100);
 		scanner.addSourceMapping(new SourceMapping() {
 
@@ -201,34 +329,46 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 			}
 		});
 
-		binLoc = URIUtil.getChildLocation(binLoc, "rascal");
+		binLoc = Paths.get(binLoc.toString(), "rascal");
 
 		Set<File> staleSources = new HashSet<>();
-		for (ISourceLocation src : srcLocs) {
-			staleSources.addAll(scanner.getIncludedSources(new File(src.getURI()), new File(binLoc.getURI())));
+		for (Path src : srcLocs) {
+			staleSources.addAll(scanner.getIncludedSources(src.toFile(), binLoc.toFile()));
 		}
 
-		IListWriter filteredStaleSources = ValueFactoryFactory.getValueFactory().listWriter();
+		List<Path> filteredStaleSources = new LinkedList<>();
 
 		for (File file : staleSources) {
-			ISourceLocation loc = URIUtil.createFileLocation(file.getAbsolutePath());
+			Path loc = file.toPath();
 
 			if (ignoredLocs.stream().noneMatch(l -> isIgnoredBy(l, loc))) {
-				filteredStaleSources.append(loc);
+				filteredStaleSources.add(loc);
 			}
 		}
 
-		return filteredStaleSources.done();
+		return filteredStaleSources;
 	}
 
-	private boolean isIgnoredBy(ISourceLocation prefix, ISourceLocation loc) {
-		assert prefix.getScheme().equals("file");
-		assert loc.getScheme().equals("file");
-
-		String prefixPath = prefix.getPath();
-		String locPath = loc.getPath();
+	protected boolean isIgnoredBy(Path prefix, Path loc) {
+		String prefixPath = prefix.toString();
+		String locPath = loc.toString();
 
 		return locPath.startsWith(prefixPath);
+	}
+
+	@FunctionalInterface
+	protected interface FunctionWithException<T, R, E extends Exception> {
+    	R apply(T t) throws E;
+	}
+
+	protected <T, R, E extends Exception> Function<T, R> handleExceptions(FunctionWithException<T, R, E> fe) {
+        return arg -> {
+            try {
+                return fe.apply(arg);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+		};
 	}
 
 }

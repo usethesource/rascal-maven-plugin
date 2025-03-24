@@ -22,7 +22,6 @@ import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.project.MavenProject;
-import org.rascalmpl.library.util.PathConfig;
 
 /**
  * Maven Goal for running local Rascal programs during the maven generate-source phase.
@@ -31,53 +30,15 @@ import org.rascalmpl.library.util.PathConfig;
  * The running Rascal program is assumed to have code generation as a (side) effect.
  */
 @Mojo(name="generate-sources", defaultPhase = LifecyclePhase.GENERATE_SOURCES, requiresDependencyCollection = ResolutionScope.COMPILE_PLUS_RUNTIME, requiresDependencyResolution = ResolutionScope.COMPILE_PLUS_RUNTIME)
-public class GenerateSourcesUsingRascalMojo extends AbstractMojo
+public class GenerateSourcesUsingRascalMojo extends AbstractRascalMojo
 {
-    @Parameter(defaultValue="${project}", readonly=true, required=true)
+	@Parameter(defaultValue="${project}", readonly=true, required=true)
     private MavenProject project;
 
     @Parameter(property = "mainModule", required=true)
-    private String mainModule;
+    private String mainModule = "GenerateSources";
 
-    public void execute() throws MojoExecutionException {
-		if (System.getProperty("rascal.generate.skip") != null) {
-			return;
-		}
-
-		try {
-			String javaHome = System.getProperty("java.home");
-			String javaBin = javaHome + File.separator + "bin" + File.separator + "java";
-			getLog().info("Using " + javaBin + " as java process for nested jvm call");
-
-			List<String> command = new LinkedList<String>();
-			command.add(javaBin);
-
-			System.getProperties().forEach((key, value) -> {
-				// Do not propagate `user.dir`, since that breaks multi-module maven projects
-				if (!key.equals("user.dir")) {
-					command.add("-D" + key + "=" + value);
-				}
-			});
-
-			command.add("-cp");
-			command.add(MojoUtils.detectedDependentRascalArtifact(getLog(), project).getPath());
-			command.add("org.rascalmpl.shell.RascalShell");
-			command.add(mainModule);
-
-            ProcessBuilder builder = new ProcessBuilder(command);
-            builder.directory(project.getBasedir());
-            Process process = builder.inheritIO().start();
-            int result = process.waitFor();
-            if (result != 0) {
-                throw new MojoExecutionException("Generate sources failed to complete");
-            }
-        }
-        catch (IOException e) {
-            getLog().error(e);
-        }
-        catch (InterruptedException e) {
-            getLog().warn(e);
-        }
-        finally {}
-    }
+	public GenerateSourcesUsingRascalMojo(String mainClass, String skipTag) {
+		super("org.rascalmpl.shell.RascalShell", "generate");
+	}
 }

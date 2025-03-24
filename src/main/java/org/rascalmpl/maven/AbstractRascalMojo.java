@@ -119,7 +119,7 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 	}
 
 	protected Path getRascalRuntime() {
-		if (cachedRascalRuntime != null) {
+		if (cachedRascalRuntime == null) {
 			cachedRascalRuntime = detectedDependentRascalArtifact(getLog(), project);
 		}
 
@@ -194,11 +194,10 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 	 * Finds the rascal.jar file that the pom.xml depends on.
 	 * When the current project is rascal itself we resolve to a declared bootstrap
 	 * dependency.
-	 * @throws MojoExecutionException
 	 */
 	protected Path detectedDependentRascalArtifact(Log log, MavenProject project) {
 		try {
-			if (project.getArtifactId().equals("org.rascalmpl:rascal")) {
+			if (project.getGroupId().equals("org.rascalmpl") && project.getArtifactId().equals("rascal")) {
 				// we are in bootstrap mode and must find a previously released
 				// version to kick-off from
 				return installBootstrapRascalVersion();
@@ -207,7 +206,7 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 			for (Object o : project.getArtifacts()) {
 				Artifact a = (Artifact) o;
 
-				if (a.getArtifactId().equals("org.rascalmpl:rascal")) {
+				if (a.getGroupId().equals("org.rascalmpl") && a.getArtifactId().equals("rascal")) {
 					File file = a.getFile().getAbsoluteFile();
 
 					if (a.getSelectedVersion().compareTo(getReferenceRascalVersion()) >= 0) {
@@ -221,8 +220,7 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 				}
 			}
 
-			log.warn("Pom.xml is missig a dependency on org.rascalmpl:rascal:" + getReferenceRascalVersion() + " (or later).");
-			return null;
+			throw new MojoExecutionException("Pom.xml is missig a dependency on org.rascalmpl:rascal:" + getReferenceRascalVersion() + " (or later).");
 		}
 		catch (OverConstrainedVersionException e) {
 			log.error("Rascal version is over-constrained (impossible to resolve). Expected " + getReferenceRascalVersion() + " or later. Have to abort.");

@@ -28,7 +28,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.apache.maven.artifact.Artifact;
-import org.apache.maven.artifact.repository.metadata.Plugin;
 import org.apache.maven.artifact.versioning.ArtifactVersion;
 import org.apache.maven.artifact.versioning.DefaultArtifactVersion;
 import org.apache.maven.artifact.versioning.OverConstrainedVersionException;
@@ -37,7 +36,6 @@ import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.BuildPluginManager;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.logging.Log;
-import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
 import org.codehaus.plexus.compiler.util.scan.InclusionScanException;
@@ -113,11 +111,19 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 	 * The Rascal runtime jar that will be used to load classes (including the main class) from.
 	 * This is where bootstrap issues are resolved.
 	 */
-	protected final Path rascalRuntime = detectedDependentRascalArtifact(getLog(), project);
+	protected Path cachedRascalRuntime = null;
 
 	public AbstractRascalMojo(String mainClass, String skipTag) {
 		this.mainClass = mainClass;
 		this.skipTag = skipTag;
+	}
+
+	protected Path getRascalRuntime() {
+		if (cachedRascalRuntime != null) {
+			cachedRascalRuntime = detectedDependentRascalArtifact(getLog(), project);
+		}
+
+		return cachedRascalRuntime;
 	}
 
 	protected List<Path> locations(List<String> paths) {
@@ -282,7 +288,7 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 
 		// we put the entire pathConfig on the commandline, and finally the todoList for compilation.
 		command.add("-cp");
-		command.add(rascalRuntime.toString());
+		command.add(getRascalRuntime().toString());
 		command.add(mainClass);
 		if (mainModule != null && !mainModule.isEmpty()) {
 			command.add(mainModule);

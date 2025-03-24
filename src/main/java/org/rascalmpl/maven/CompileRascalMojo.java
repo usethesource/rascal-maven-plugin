@@ -71,18 +71,10 @@ public class CompileRascalMojo extends AbstractRascalMojo
 			Path binLoc = Path.of(bin);
 
 			var generatedSourcesLoc = Path.of(generatedSources);
-			List<Path> srcLocs = srcs.stream().
-            map(Path::of)
-            .collect(Collectors.toCollection(ArrayList::new));
-			List<Path> ignoredLocs = srcIgnores.stream().
-            map(Path::of)
-            .collect(Collectors.toCollection(ArrayList::new));
-			List<Path> libLocs = libs.stream().
-            map(Path::of)
-            .collect(Collectors.toCollection(ArrayList::new));
-			List<Path> prechecks = parallelPreChecks.stream().
-            map(Path::of)
-            .collect(Collectors.toCollection(ArrayList::new));
+			List<Path> srcLocs = locations(srcs);
+			List<Path> ignoredLocs = locations(srcIgnores);
+			List<Path> libLocs = locations(libs);
+			List<Path> prechecks = locations(parallelPreChecks);
 
 			if (System.getProperty("rascal.compile.skip") != null) {
 				getLog().info("Skipping Rascal compiler completely");
@@ -154,14 +146,6 @@ public class CompileRascalMojo extends AbstractRascalMojo
 			return 1;
 		}
 		return (int) Math.min(parallelMax, result);
-	}
-
-
-	private void safeLog(Consumer<Log> action) {
-		Log log = getLog();
-		synchronized (log) {
-			action.accept(log);
-		}
 	}
 
 	private int runChecker(boolean verbose, List<Path> todoList, List<Path> prechecks, List<Path> srcLocs, List<Path> libLocs, Path binLoc, Path generatedSourcesLoc)

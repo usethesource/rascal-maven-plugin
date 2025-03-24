@@ -120,7 +120,7 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 		this.skipTag = skipTag;
 	}
 
-	private List<Path> locations(List<String> paths) {
+	protected List<Path> locations(List<String> paths) {
 		return paths.stream()
 			.map(Path::of)
 			.collect(Collectors.toCollection(ArrayList::new));

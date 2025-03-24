@@ -62,7 +62,7 @@ public class CompileRascalMojo extends AbstractRascalMojo
 	@Parameter(defaultValue = "${session}", required = true, readonly = true)
   	private MavenSession session;
 
-	public CompileRascalMojo(String mainClass, String skipTag) {
+	public CompileRascalMojo() {
 		super("org.rascalmpl.shell.RascalCompile", "compile");
 	}
 

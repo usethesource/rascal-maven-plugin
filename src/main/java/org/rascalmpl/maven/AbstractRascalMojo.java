@@ -82,7 +82,7 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 	@Parameter(defaultValue = "${session}", required = true, readonly = true)
   	protected MavenSession session;
 
-	@Parameter(defaultValue = "0.41.0-RC19", required = false, readonly = true)
+	@Parameter(defaultValue = "0.41.0-RC21", required = false, readonly = true)
 	protected String bootstrapRascalVersion;
 
 	@Parameter
@@ -315,7 +315,7 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 			command.add("-verbose");
 		}
 
-		return new ProcessBuilder(command).inheritIO().start();
+	return new ProcessBuilder(command).inheritIO().start();
 	}
 
 	protected List<Path> getTodoList(Path binLoc, List<Path> srcLocs, List<Path> ignoredLocs) throws InclusionScanException, URISyntaxException {

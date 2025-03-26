@@ -180,7 +180,7 @@ public class CompileRascalMojo extends AbstractRascalMojo
 			}
 
 			// wait until _all_ processes have exited and print their output in big chunks in order of process creation
-			for (int i = 1; i < chunks.size(); i++) {
+			for (int i = 0; i < processes.size(); i++) {
 				if (i <= 1) {
 					// the first process has inherited our IO
 					result += processes.get(i).waitFor();

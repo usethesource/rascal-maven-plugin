@@ -297,6 +297,9 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 			command.add("-D" + key + "=" + value);
 		});
 
+		// give it enough memory
+		command.add("-Xmx2G");
+
 		// we put the entire pathConfig on the commandline, and finally the todoList for compilation.
 		command.add("--illegal-access=deny");
 		command.add("-cp");

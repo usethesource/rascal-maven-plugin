@@ -17,6 +17,7 @@ import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -113,9 +114,18 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 	 */
 	protected Path cachedRascalRuntime = null;
 
-	public AbstractRascalMojo(String mainClass, String skipTag) {
+	private final String binaryExtension;
+
+	private final String dirtyExtension;
+
+	private final boolean makeTodoList;
+
+	public AbstractRascalMojo(String mainClass, String skipTag, boolean makeTodoList, String dirtyExtension, String binaryExtension) {
 		this.mainClass = mainClass;
 		this.skipTag = skipTag;
+		this.dirtyExtension = dirtyExtension;
+		this.binaryExtension = binaryExtension;
+		this.makeTodoList = makeTodoList;
 	}
 
 	protected Path getRascalRuntime() {
@@ -157,7 +167,7 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 
 			getLog().info("Checking if any files need compilation...");
 
-			List<Path> todoList = getTodoList(binLoc, srcLocs, ignoredLocs);
+			List<Path> todoList = makeTodoList ? getTodoList(binLoc, srcLocs, ignoredLocs) : Collections.emptyList();
 
 			if (!todoList.isEmpty()) {
 				getLog().info("Stale source files have been found:");
@@ -165,7 +175,7 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 					getLog().info("\t" + todo);
 				}
 			}
-			else {
+			else if (makeTodoList) {
 				getLog().info("No stale source files have been found, skipping compilation.");
 				return;
 			}
@@ -327,9 +337,9 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 				File file = new File(source);
 				String name = file.getName();
 
-				if (name.endsWith(".rsc")) {
+				if (name.endsWith("." + dirtyExtension)) {
 					return Set.of(
-						new File(targetDir, new File(file.getParentFile(), "$" + name.substring(0, name.length() - ".rsc".length()) + ".tpl").getPath())
+						new File(targetDir, new File(file.getParentFile(), "$" + name.substring(0, name.length() - ("." + dirtyExtension).length()) + "." + binaryExtension).getPath())
 					);
 				}
 				else {

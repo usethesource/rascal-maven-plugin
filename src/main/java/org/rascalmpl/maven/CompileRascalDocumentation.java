@@ -47,7 +47,7 @@ public class CompileRascalDocumentation extends AbstractRascalMojo
 	private String releaseNotes;
 
 	public CompileRascalDocumentation() {
-		super("org.rascalmpl.shell.RascalTutorCompile", "tutor");
+		super("org.rascalmpl.shell.RascalTutorCompile", "tutor",  false, "rsc", "md");
 	}
 
 	@Override

@@ -62,7 +62,7 @@ public class CompileRascalMojo extends AbstractRascalMojo
   	private MavenSession session;
 
 	public CompileRascalMojo() {
-		super("org.rascalmpl.shell.RascalCompile", "compile");
+		super("org.rascalmpl.shell.RascalCompile", "compile", true, "rsc", "tpl");
 	}
 
 	public void execute() throws MojoExecutionException {

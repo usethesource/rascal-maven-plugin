@@ -37,6 +37,7 @@ import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.BuildPluginManager;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.logging.Log;
+import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
 import org.codehaus.plexus.compiler.util.scan.InclusionScanException;
@@ -81,12 +82,14 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 	protected boolean verbose;
 
 	@Parameter(defaultValue = "${session}", required = true, readonly = true)
-  	protected MavenSession session;
+  	private MavenSession session;
 
 	@Parameter(defaultValue = "0.41.0-RC21", required = false, readonly = true)
 	protected String bootstrapRascalVersion;
 
-	@Parameter
+	// @Parameter(property="buildPluginManager", defaultValue="${buildPluginManager}", required=true, readonly = true)
+	// public BuildPluginManager pluginManager;
+	@Component
 	private BuildPluginManager pluginManager;
 
 	@Parameter(defaultValue="")
@@ -130,7 +133,7 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 
 	protected Path getRascalRuntime() {
 		if (cachedRascalRuntime == null) {
-			cachedRascalRuntime = detectedDependentRascalArtifact(getLog(), project);
+			cachedRascalRuntime = detectedDependentRascalArtifact(getLog(), project, session);
 		}
 
 		return cachedRascalRuntime;
@@ -205,12 +208,12 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 	 * When the current project is rascal itself we resolve to a declared bootstrap
 	 * dependency.
 	 */
-	protected Path detectedDependentRascalArtifact(Log log, MavenProject project) {
+	protected Path detectedDependentRascalArtifact(Log log, MavenProject project, MavenSession session) {
 		try {
 			if (project.getGroupId().equals("org.rascalmpl") && project.getArtifactId().equals("rascal")) {
 				// we are in bootstrap mode and must find a previously released
 				// version to kick-off from
-				return installBootstrapRascalVersion();
+				return installBootstrapRascalVersion(project, session);
 			}
 
 			for (Object o : project.getArtifacts()) {
@@ -225,7 +228,7 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 					else {
 						log.warn("Rascal version in pom.xml dependency is too old for this Rascal maven plugin. " + getReferenceRascalVersion() + " or later expected.");
 						log.warn("Using a newer version org.rascalmpl:rascal:" + bootstrapRascalVersion + "; please add it to the pom.xml");
-						return installBootstrapRascalVersion();
+						return installBootstrapRascalVersion(project, session);
 					}
 				}
 			}
@@ -259,7 +262,7 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 		return new DefaultArtifactVersion("0.41.0-RC16");
 	}
 
-	protected Path installBootstrapRascalVersion() throws MojoExecutionException {
+	protected Path installBootstrapRascalVersion(MavenProject project, MavenSession session) throws MojoExecutionException {
 		// download the boostrap version from our maven site
 		executeMojo(
 			plugin(

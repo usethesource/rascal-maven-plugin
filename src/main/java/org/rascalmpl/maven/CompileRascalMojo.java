@@ -30,7 +30,6 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
@@ -59,9 +58,6 @@ public class CompileRascalMojo extends AbstractRascalMojo
 
 	@Parameter(property = "parallelPreChecks", required = false )
 	private List<String> parallelPreChecks;
-
-	@Parameter(defaultValue = "${session}", required = true, readonly = true)
-  	private MavenSession session;
 
 	public CompileRascalMojo() {
 		super("org.rascalmpl.shell.RascalCompile", "compile", true, "rsc", "tpl");

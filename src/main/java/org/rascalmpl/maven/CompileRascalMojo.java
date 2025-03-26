@@ -176,12 +176,18 @@ public class CompileRascalMojo extends AbstractRascalMojo
 
 			// starts the processes asynchronously
 			for (int i = 1; i < chunks.size(); i++) {
-				processes.add(runMain(verbose, chunks.get(i), srcs, libs, tmpGeneratedSources.get(i), tmpBins.get(i), extraParameters, false));
+				processes.add(runMain(verbose, chunks.get(i), srcs, libs, tmpGeneratedSources.get(i), tmpBins.get(i), extraParameters, i <= 1));
 			}
 
 			// wait until _all_ processes have exited and print their output in big chunks in order of process creation
-			for (Process p : processes) {
-				result += readStandardOutputAndWait(p);
+			for (int i = 1; i < chunks.size(); i++) {
+				if (i <= 1) {
+					// the first process has inherited our IO
+					result += processes.get(i).waitFor();
+				} else {
+					// the other IO we read in asynchronously
+					result += readStandardOutputAndWait(processes.get(i));
+				}
 			}
 
 			// merge the output tpl folders, no matter how many errors have been detected

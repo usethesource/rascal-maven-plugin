@@ -188,7 +188,7 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 
 			getLog().info("Paths have been configured.");
 
-			runMain(verbose, todoList, srcLocs, libLocs, generatedSourcesLoc, binLoc, extraParameters).waitFor();
+			runMain(verbose, todoList, srcLocs, libLocs, generatedSourcesLoc, binLoc, extraParameters, true).waitFor();
 
 			return;
 		}
@@ -283,7 +283,7 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 			"org", "rascalmpl", "rascal", bootstrapRascalVersion, "rascal-" + bootstrapRascalVersion + ".jar");
 	}
 
-	protected Process runMain(boolean verbose, List<Path> todoList, List<Path> srcs, List<Path> libs, Path generated, Path bin, Map<String, String> extraParameters) throws IOException {
+	protected Process runMain(boolean verbose, List<Path> todoList, List<Path> srcs, List<Path> libs, Path generated, Path bin, Map<String, String> extraParameters, boolean inheritIO) throws IOException {
 		String javaHome = System.getProperty("java.home");
         String javaBin = javaHome + File.separator + "bin" + File.separator + "java";
 
@@ -325,7 +325,18 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 			command.add("-verbose");
 		}
 
-	return new ProcessBuilder(command).inheritIO().start();
+		ProcessBuilder p = new ProcessBuilder(command);
+
+		if (inheritIO) {
+			// everything merges with the current process' streams
+			p.inheritIO();
+		}
+		else {
+			// stderr goes to stdout as well
+			p.redirectErrorStream(true);
+		}
+
+		return p.start();
 	}
 
 	protected List<Path> getTodoList(Path binLoc, List<Path> srcLocs, List<Path> ignoredLocs) throws InclusionScanException, URISyntaxException {

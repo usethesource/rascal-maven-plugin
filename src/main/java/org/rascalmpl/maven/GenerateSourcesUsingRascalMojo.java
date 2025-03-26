@@ -32,6 +32,7 @@ public class GenerateSourcesUsingRascalMojo extends AbstractRascalMojo
     private String mainModule = "GenerateSources";
 
 	public GenerateSourcesUsingRascalMojo(String mainClass, String skipTag) {
-		super("org.rascalmpl.shell.RascalShell", "generate");
+		super("org.rascalmpl.shell.RascalShell", "generate", false, "", "");
+		extraParameters.put("mainModule", mainModule);
 	}
 }

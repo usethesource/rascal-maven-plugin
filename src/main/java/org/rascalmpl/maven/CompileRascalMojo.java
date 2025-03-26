@@ -11,8 +11,10 @@
  */
 package org.rascalmpl.maven;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.URISyntaxException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
@@ -169,17 +171,21 @@ public class CompileRascalMojo extends AbstractRascalMojo
 
 		try {
 			List<Process> processes = new LinkedList<>();
-			Process prechecker = runMain(verbose, chunks.get(0), srcs, libs, tmpGeneratedSources.get(0), tmpBins.get(0), extraParameters);
+			Process prechecker = runMain(verbose, chunks.get(0), srcs, libs, tmpGeneratedSources.get(0), tmpBins.get(0), extraParameters, true);
+
 			result += prechecker.waitFor(); // block until the process is finished
+
+			// add the result of this pre-build to the libs of the parallel processors to reuse .tpl files
+			libs.add(tmpBins.get(0));
 
 			// starts the processes asynchronously
 			for (int i = 1; i < chunks.size(); i++) {
-				processes.add(runMain(verbose, chunks.get(i), srcs, libs, tmpGeneratedSources.get(i), tmpBins.get(i), extraParameters));
+				processes.add(runMain(verbose, chunks.get(i), srcs, libs, tmpGeneratedSources.get(i), tmpBins.get(i), extraParameters, false));
 			}
 
-			// wait until _all_ processes have exited.
+			// wait until _all_ processes have exited and print their output in big chunks in order of process creation
 			for (Process p : processes) {
-				result += p.waitFor();
+				result += readStandardOutputAndWait(p);
 			}
 
 			// merge the output tpl folders, no matter how many errors have been detected
@@ -215,10 +221,27 @@ public class CompileRascalMojo extends AbstractRascalMojo
 		}
 	}
 
+	private int readStandardOutputAndWait(Process p) {
+		try (BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
+    		String line;
+    		while ((line = reader.readLine()) != null) {
+      			System.out.println(line);
+    		}
+
+			return p.waitFor();
+		}
+		catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+		catch (InterruptedException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
 	private int runCheckerSingleThreaded(boolean verbose, List<Path> todoList, List<Path> srcLocs, List<Path> libLocs, Path binLoc, Path generated) throws URISyntaxException, IOException, MojoExecutionException {
 		getLog().info("Running single checker process");
 		try {
-			return runMain(verbose, todoList, srcLocs, libLocs, generated, binLoc, extraParameters).waitFor();
+			return runMain(verbose, todoList, srcLocs, libLocs, generated, binLoc, extraParameters, true).waitFor();
 		} catch (InterruptedException e) {
 			getLog().error("Checker was interrupted");
 			throw new MojoExecutionException(e);

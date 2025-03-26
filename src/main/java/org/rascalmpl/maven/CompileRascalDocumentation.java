@@ -89,7 +89,7 @@ public class CompileRascalDocumentation extends AbstractRascalMojo
 
 			));
 
-			runMain(verbose, Collections.emptyList(), srcLocs, libLocs, generatedSourcesLoc, binLoc, extraParameters).waitFor();
+			runMain(verbose, Collections.emptyList(), srcLocs, libLocs, generatedSourcesLoc, binLoc, extraParameters, true).waitFor();
 
 			return;
 		}

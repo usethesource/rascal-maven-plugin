@@ -21,6 +21,6 @@ import org.apache.maven.plugins.annotations.ResolutionScope;
 public class RascalConsoleMojo extends AbstractRascalMojo
 {
 	public RascalConsoleMojo() {
-		super("org.rascalmpl.shell.RascalShell","console");
+		super("org.rascalmpl.shell.RascalShell","console", false, "", "");
 	}
 }

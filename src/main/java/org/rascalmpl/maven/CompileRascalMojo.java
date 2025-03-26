@@ -24,6 +24,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -164,14 +165,16 @@ public class CompileRascalMojo extends AbstractRascalMojo
 		List<Path> tmpGeneratedSources = chunks.stream().map(handleExceptions(l -> Files.createTempDirectory("rascal-sources"))).collect(Collectors.toList());
 		int result = 0;
 
+		Map<String,String> extraParameters = Map.of("modules", todoList.stream().map(Object::toString).collect(Collectors.joining(File.pathSeparator)));
+
 		try {
 			List<Process> processes = new LinkedList<>();
-			Process prechecker = runMain(verbose, chunks.get(0), srcs, libs, tmpGeneratedSources.get(0), tmpBins.get(0));
+			Process prechecker = runMain(verbose, chunks.get(0), srcs, libs, tmpGeneratedSources.get(0), tmpBins.get(0), extraParameters);
 			result += prechecker.waitFor(); // block until the process is finished
 
 			// starts the processes asynchronously
 			for (int i = 1; i < chunks.size(); i++) {
-				processes.add(runMain(verbose, chunks.get(1), srcs, libs, tmpGeneratedSources.get(i), tmpBins.get(i)));
+				processes.add(runMain(verbose, chunks.get(i), srcs, libs, tmpGeneratedSources.get(i), tmpBins.get(i), extraParameters));
 			}
 
 			// wait until _all_ processes have exited.
@@ -215,7 +218,7 @@ public class CompileRascalMojo extends AbstractRascalMojo
 	private int runCheckerSingleThreaded(boolean verbose, List<Path> todoList, List<Path> srcLocs, List<Path> libLocs, Path binLoc, Path generated) throws URISyntaxException, IOException, MojoExecutionException {
 		getLog().info("Running single checker process");
 		try {
-			return runMain(verbose, todoList, srcLocs, libLocs, generated, binLoc).waitFor();
+			return runMain(verbose, todoList, srcLocs, libLocs, generated, binLoc, extraParameters).waitFor();
 		} catch (InterruptedException e) {
 			getLog().error("Checker was interrupted");
 			throw new MojoExecutionException(e);

@@ -82,7 +82,7 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 	@Parameter(defaultValue = "${session}", required = true, readonly = true)
   	protected MavenSession session;
 
-	@Parameter(defaultValue = "0.41.0-RC18", required = false, readonly = true)
+	@Parameter(defaultValue = "0.41.0-RC19", required = false, readonly = true)
 	protected String bootstrapRascalVersion;
 
 	@Parameter
@@ -178,7 +178,7 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 
 			getLog().info("Paths have been configured.");
 
-			runMain(verbose, todoList, srcLocs, libLocs, generatedSourcesLoc, binLoc).waitFor();
+			runMain(verbose, todoList, srcLocs, libLocs, generatedSourcesLoc, binLoc, extraParameters).waitFor();
 
 			return;
 		}
@@ -273,7 +273,7 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 			"org", "rascalmpl", "rascal", bootstrapRascalVersion, "rascal-" + bootstrapRascalVersion + ".jar");
 	}
 
-	protected Process runMain(boolean verbose, List<Path> todoList, List<Path> srcs, List<Path> libs, Path generated, Path bin) throws IOException {
+	protected Process runMain(boolean verbose, List<Path> todoList, List<Path> srcs, List<Path> libs, Path generated, Path bin, Map<String, String> extraParameters) throws IOException {
 		String javaHome = System.getProperty("java.home");
         String javaBin = javaHome + File.separator + "bin" + File.separator + "java";
 
@@ -285,6 +285,7 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 		});
 
 		// we put the entire pathConfig on the commandline, and finally the todoList for compilation.
+		command.add("--illegal-access=deny");
 		command.add("-cp");
 		command.add(getRascalRuntime().toString());
 		command.add(mainClass);
@@ -299,8 +300,12 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 		command.add(bin.toString());
 		command.add("-generatedSources");
 		command.add(generated.toString());
-		command.add("-modules");
-		command.add(todoList.stream().map(Object::toString).collect(Collectors.joining(File.pathSeparator)));
+
+		if (!todoList.isEmpty()) {
+			command.add("-modules");
+			command.add(todoList.stream().map(Object::toString).collect(Collectors.joining(File.pathSeparator)));
+		}
+
 		for (Entry<String, String> e : extraParameters.entrySet()) {
 			command.add("-" + e.getKey());
 			command.add(e.getValue());

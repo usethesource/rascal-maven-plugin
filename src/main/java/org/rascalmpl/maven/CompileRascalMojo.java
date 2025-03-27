@@ -16,10 +16,12 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URISyntaxException;
+import java.nio.file.CopyOption;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
+import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -208,19 +210,6 @@ public class CompileRascalMojo extends AbstractRascalMojo
 		catch (InterruptedException e) {
 		    throw new MojoExecutionException("Checker was interrupted");
 		}
-		finally {
-			// delete all the temporaries to be sure
-			Stream.concat(tmpBins.stream(), tmpGeneratedSources.stream())
-				.forEach(pathToBeDeleted -> {
-					try (Stream<Path> paths = Files.walk(pathToBeDeleted)) {
-						paths.sorted(Comparator.reverseOrder()).map(Path::toFile).forEach(File::delete);
-					}
-					catch (IOException e) {
-						getLog().warn(e);
-					}
-				}
-			);
-		}
 	}
 
 	private int readStandardOutputAndWait(Process p) {
@@ -261,7 +250,6 @@ public class CompileRascalMojo extends AbstractRascalMojo
 
 	private static void mergeOutputFolders(Path dst, Path src) throws IOException {
 		Files.walkFileTree(src, new SimpleFileVisitor<Path>() {
-
             @Override
             public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs)
                     throws IOException {
@@ -269,10 +257,16 @@ public class CompileRascalMojo extends AbstractRascalMojo
                 return FileVisitResult.CONTINUE;
             }
 
+			@Override
+			public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
+				Files.delete(dir);
+				return FileVisitResult.CONTINUE;
+			}
+
             @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs)
                     throws IOException {
-                Files.copy(file, dst.resolve(src.relativize(file).toString()));
+                Files.move(file, dst.resolve(src.relativize(file).toString()), StandardCopyOption.REPLACE_EXISTING);
                 return FileVisitResult.CONTINUE;
             }
         });

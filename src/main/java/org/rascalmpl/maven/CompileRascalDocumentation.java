@@ -14,6 +14,7 @@ import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
@@ -58,11 +59,11 @@ public class CompileRascalDocumentation extends AbstractRascalMojo
 				return;
 			}
 
-			Path binLoc = Path.of(bin);
-			Path generatedSourcesLoc = Path.of(generatedSources);
-			List<Path> srcLocs = locations(srcs);
-			List<Path> ignoredLocs = locations(srcIgnores);
-			List<Path> libLocs = locations(libs);
+			Path binLoc = bin.toPath();
+			Path generatedSourcesLoc =  generatedSources.toPath();
+			List<Path> srcLocs = srcs.stream().map(f -> f.toPath()).collect(Collectors.toList());;
+			List<Path> ignoredLocs = srcIgnores.stream().map(f -> f.toPath()).collect(Collectors.toList());;
+			List<Path> libLocs = libs.stream().map(f -> f.toPath()).collect(Collectors.toList());;
 
 			getLog().info("configuring paths");
 			for (Path src : srcLocs) {

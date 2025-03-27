@@ -57,7 +57,7 @@ public class CompileRascalMojo extends AbstractRascalMojo
 	private int parallelMax;
 
 	@Parameter(property = "parallelPreChecks", required = false )
-	private List<String> parallelPreChecks;
+	private List<File> parallelPreChecks;
 
 	public CompileRascalMojo() {
 		super("org.rascalmpl.shell.RascalCompile", "compile", true, "rsc", "tpl");
@@ -65,13 +65,13 @@ public class CompileRascalMojo extends AbstractRascalMojo
 
 	public void execute() throws MojoExecutionException {
 		try {
-			Path binLoc = Path.of(bin);
+			Path binLoc = bin.toPath();
 
-			var generatedSourcesLoc = Path.of(generatedSources);
-			List<Path> srcLocs = locations(srcs);
-			List<Path> ignoredLocs = locations(srcIgnores);
-			List<Path> libLocs = locations(libs);
-			List<Path> prechecks = locations(parallelPreChecks);
+			var generatedSourcesLoc = generatedSources.toPath();
+			List<Path> srcLocs = srcs.stream().map(f -> f.toPath()).collect(Collectors.toList());
+			List<Path> ignoredLocs = srcIgnores.stream().map(f -> f.toPath()).collect(Collectors.toList());
+			List<Path> libLocs = libs.stream().map(f -> f.toPath()).collect(Collectors.toList());
+			List<Path> prechecks = parallelPreChecks.stream().map(f -> f.toPath()).collect(Collectors.toList());
 
 			if (System.getProperty("rascal.compile.skip") != null) {
 				getLog().info("Skipping Rascal compiler completely");

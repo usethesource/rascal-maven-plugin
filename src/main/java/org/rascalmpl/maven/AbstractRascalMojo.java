@@ -16,7 +16,6 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -43,7 +42,6 @@ import org.apache.maven.project.MavenProject;
 import org.codehaus.plexus.compiler.util.scan.InclusionScanException;
 import org.codehaus.plexus.compiler.util.scan.StaleSourceScanner;
 import org.codehaus.plexus.compiler.util.scan.mapping.SourceMapping;
-
 import static org.twdata.maven.mojoexecutor.MojoExecutor.executeMojo;
 import static org.twdata.maven.mojoexecutor.MojoExecutor.plugin;
 import static org.twdata.maven.mojoexecutor.MojoExecutor.goal;
@@ -64,19 +62,19 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 	protected MavenProject project;
 
 	@Parameter(defaultValue = "${project.build.outputDirectory}", property = "bin", required = true )
-	protected String bin;
+	protected File bin;
 
 	@Parameter(defaultValue = "${project.build.directory}/generatedSources", property = "generatedSources", required = true)
-	protected String generatedSources;
+	protected File generatedSources;
 
 	@Parameter(property = "srcs", required = true )
-	protected List<String> srcs;
+	protected List<File> srcs;
 
 	@Parameter(property = "srcIgnores", required = false )
-	protected List<String> srcIgnores;
+	protected List<File> srcIgnores;
 
 	@Parameter(property = "libs", required = false )
-	protected List<String> libs;
+	protected List<File> libs;
 
 	@Parameter(defaultValue="false", property= "verbose", required=true)
 	protected boolean verbose;
@@ -139,12 +137,6 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 		return cachedRascalRuntime;
 	}
 
-	protected List<Path> locations(List<String> paths) {
-		return paths.stream()
-			.map(Path::of)
-			.collect(Collectors.toCollection(ArrayList::new));
-	}
-
 	@Override
 	public void execute() throws MojoExecutionException {
 		try {
@@ -153,11 +145,11 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 				return;
 			}
 
-			Path binLoc = Path.of(bin);
-			Path generatedSourcesLoc = Path.of(generatedSources);
-			List<Path> srcLocs = locations(srcs);
-			List<Path> ignoredLocs = locations(srcIgnores);
-			List<Path> libLocs = locations(libs);
+			Path binLoc = bin.toPath();
+			Path generatedSourcesLoc = generatedSources.toPath();
+			List<Path> srcLocs = srcs.stream().map(f -> f.toPath()).collect(Collectors.toList());
+			List<Path> ignoredLocs = srcIgnores.stream().map(f -> f.toPath()).collect(Collectors.toList());
+			List<Path> libLocs = libs.stream().map(f -> f.toPath()).collect(Collectors.toList());
 
 			getLog().info("configuring paths");
 			for (Path src : srcLocs) {

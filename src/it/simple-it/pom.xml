@@ -14,13 +14,6 @@
   </properties>
 
   <build>
-      <dependencies>
-          <dependency>
-              <groupId>org.rascalmpl</groupId>
-              <artifactId>rascal</artifactId>
-              <version>0.41.0-RC21</version>
-          </dependency>
-      </dependencies>
     <plugins>
       <plugin>
         <groupId>org.rascalmpl</groupId>
@@ -55,4 +48,11 @@
       </plugin>
     </plugins>
   </build>
+      <dependencies>
+        <dependency>
+            <groupId>org.rascalmpl</groupId>
+            <artifactId>rascal</artifactId>
+            <version>0.41.0-RC21</version>
+        </dependency>
+    </dependencies>
 </project>

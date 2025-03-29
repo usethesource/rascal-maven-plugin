@@ -15,7 +15,6 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -85,8 +84,7 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 	@Parameter(defaultValue = "0.41.0-RC21", required = false, readonly = true)
 	protected String bootstrapRascalVersion;
 
-	// @Parameter(defaultValue="${maven.plugin.manager}", required=true, readonly = true)
-	// public BuildPluginManager pluginManager;
+	@SuppressWarnings("deprecation") // Can't get @Parameter to work for the pluginManager.
 	@Component
 	private BuildPluginManager pluginManager;
 
@@ -145,28 +143,22 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 				return;
 			}
 
-			Path binLoc = bin.toPath();
-			Path generatedSourcesLoc = generatedSources.toPath();
-			List<Path> srcLocs = srcs.stream().map(f -> f.toPath()).collect(Collectors.toList());
-			List<Path> ignoredLocs = srcIgnores.stream().map(f -> f.toPath()).collect(Collectors.toList());
-			List<Path> libLocs = libs.stream().map(f -> f.toPath()).collect(Collectors.toList());
-
 			getLog().info("configuring paths");
-			for (Path src : srcLocs) {
+			for (File src : srcs) {
 				getLog().info("\tregistered source location: " + src);
 			}
 
-			for (Path ignore : ignoredLocs) {
+			for (File ignore : srcIgnores) {
 				getLog().warn("\tignoring sources in: " + ignore);
 			}
 
 			getLog().info("Checking if any files need compilation...");
 
-			List<Path> todoList = makeTodoList ? getTodoList(binLoc, srcLocs, ignoredLocs) : Collections.emptyList();
+			List<File> todoList = makeTodoList ? getTodoList(bin, srcs, srcIgnores) : Collections.emptyList();
 
 			if (!todoList.isEmpty()) {
 				getLog().info("Stale source files have been found:");
-				for (Path todo : todoList) {
+				for (File todo : todoList) {
 					getLog().info("\t" + todo);
 				}
 			}
@@ -175,15 +167,15 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 				return;
 			}
 
-			libLocs.addAll(collectDependentArtifactLibraries(project));
+			libs.addAll(collectDependentArtifactLibraries(project));
 
-			for (Path lib : libLocs) {
+			for (File lib : libs) {
 				getLog().info("\tregistered library location: " + lib);
 			}
 
 			getLog().info("Paths have been configured.");
 
-			runMain(verbose, todoList, srcLocs, libLocs, generatedSourcesLoc, binLoc, extraParameters, true).waitFor();
+			runMain(verbose, todoList, srcs, libs, generatedSources, bin, extraParameters, true).waitFor();
 
 			return;
 		}
@@ -237,14 +229,14 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 		}
 	}
 
-	protected List<Path> collectDependentArtifactLibraries(MavenProject project) throws URISyntaxException, IOException {
-		List<Path> libs = new LinkedList<>();
+	protected List<File> collectDependentArtifactLibraries(MavenProject project) throws URISyntaxException, IOException {
+		List<File> libs = new LinkedList<>();
 
 		for (Object o : project.getArtifacts()) {
 			Artifact a = (Artifact) o;
 			File file = a.getFile().getAbsoluteFile();
 
-			libs.add(file.toPath());
+			libs.add(file);
 		}
 
 		return libs;
@@ -278,7 +270,7 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 			"org", "rascalmpl", "rascal", bootstrapRascalVersion, "rascal-" + bootstrapRascalVersion + ".jar");
 	}
 
-	protected Process runMain(boolean verbose, List<Path> todoList, List<Path> srcs, List<Path> libs, Path generated, Path bin, Map<String, String> extraParameters, boolean inheritIO) throws IOException {
+	protected Process runMain(boolean verbose, List<File> todoList, List<File> srcs, List<File> libs, File generated, File bin, Map<String, String> extraParameters, boolean inheritIO) throws IOException {
 		String javaHome = System.getProperty("java.home");
         String javaBin = javaHome + File.separator + "bin" + File.separator + "java";
 
@@ -337,7 +329,7 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 		return p.start();
 	}
 
-	protected List<Path> getTodoList(Path binLoc, List<Path> srcLocs, List<Path> ignoredLocs) throws InclusionScanException, URISyntaxException {
+	protected List<File> getTodoList(File binLoc, List<File> srcLocs, List<File> ignoredLocs) throws InclusionScanException, URISyntaxException {
 		StaleSourceScanner scanner = new StaleSourceScanner(100);
 		scanner.addSourceMapping(new SourceMapping() {
 
@@ -357,27 +349,25 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 			}
 		});
 
-		binLoc = Paths.get(binLoc.toString(), "rascal");
+		binLoc = new File(binLoc, "rascal");
 
 		Set<File> staleSources = new HashSet<>();
-		for (Path src : srcLocs) {
-			staleSources.addAll(scanner.getIncludedSources(src.toFile(), binLoc.toFile()));
+		for (File src : srcs) {
+			staleSources.addAll(scanner.getIncludedSources(src, binLoc));
 		}
 
-		List<Path> filteredStaleSources = new LinkedList<>();
+		List<File> filteredStaleSources = new LinkedList<>();
 
 		for (File file : staleSources) {
-			Path loc = file.toPath();
-
-			if (ignoredLocs.stream().noneMatch(l -> isIgnoredBy(l, loc))) {
-				filteredStaleSources.add(loc);
+			if (ignoredLocs.stream().noneMatch(l -> isIgnoredBy(l, file))) {
+				filteredStaleSources.add(file);
 			}
 		}
 
 		return filteredStaleSources;
 	}
 
-	protected boolean isIgnoredBy(Path prefix, Path loc) {
+	protected boolean isIgnoredBy(File prefix, File loc) {
 		String prefixPath = prefix.toString();
 		String locPath = loc.toString();
 

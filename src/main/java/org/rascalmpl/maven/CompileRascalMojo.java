@@ -59,9 +59,6 @@ public class CompileRascalMojo extends AbstractRascalMojo
 	@Parameter(property = "parallelPreChecks", required = false )
 	private List<File> parallelPreChecks;
 
-	// keeping this field to speed up subsequent (slow but cached) calls to system information
-	private SystemInfo systemInformation = new SystemInfo();
-
 	public CompileRascalMojo() {
 		super("org.rascalmpl.shell.RascalCompile", "compile", true, "rsc", "tpl");
 	}
@@ -138,8 +135,8 @@ public class CompileRascalMojo extends AbstractRascalMojo
 		// check total available memory. any memory in use can be swapped out, so
 		// we don't really care about the currently _available_ memory.
 		long maxMemory = systemInformation.getHardware().getMemory().getTotal();
-		long max2GmemoryDivisions = maxMemory / (2 * 1024 * 1024);
-		System.err.println("Max memory available");
+		// kB means kilobytes means 1000 bytes, while kiB means 1024 butes
+		long max2GmemoryDivisions = maxMemory / (2 * 1000 * 1000);
 
 		// we use as many processors as we can, without running out of memory
 		result = Math.min(result, max2GmemoryDivisions);

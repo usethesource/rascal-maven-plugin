@@ -123,7 +123,7 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 	private final boolean makeTodoList;
 
 	// keeping this field to speed up subsequent (slow but cached) calls to system information
-	private SystemInfo systemInformation = new SystemInfo();
+	protected SystemInfo systemInformation = new SystemInfo();
 
 	public AbstractRascalMojo(String mainClass, String skipTag, boolean makeTodoList, String dirtyExtension, String binaryExtension) {
 		this.mainClass = mainClass;
@@ -289,7 +289,7 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 
 		// give it enough memory, but not more than is available.
 		long totalMemoryKilobytes = systemInformation.getHardware().getMemory().getTotal() / 1000;
-		long requiredMemoryKilobytes = 2000;
+		long requiredMemoryKilobytes = 2000 * 1000;
 
 		command.add("-Xmx" + Math.min(totalMemoryKilobytes, requiredMemoryKilobytes) + "k");
 

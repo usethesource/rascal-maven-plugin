@@ -41,6 +41,9 @@ import org.apache.maven.project.MavenProject;
 import org.codehaus.plexus.compiler.util.scan.InclusionScanException;
 import org.codehaus.plexus.compiler.util.scan.StaleSourceScanner;
 import org.codehaus.plexus.compiler.util.scan.mapping.SourceMapping;
+
+import oshi.SystemInfo;
+
 import static org.twdata.maven.mojoexecutor.MojoExecutor.executeMojo;
 import static org.twdata.maven.mojoexecutor.MojoExecutor.plugin;
 import static org.twdata.maven.mojoexecutor.MojoExecutor.goal;
@@ -118,6 +121,9 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 	private final String dirtyExtension;
 
 	private final boolean makeTodoList;
+
+	// keeping this field to speed up subsequent (slow but cached) calls to system information
+	private SystemInfo systemInformation = new SystemInfo();
 
 	public AbstractRascalMojo(String mainClass, String skipTag, boolean makeTodoList, String dirtyExtension, String binaryExtension) {
 		this.mainClass = mainClass;
@@ -281,8 +287,11 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 			command.add("-D" + key + "=" + value);
 		});
 
-		// give it enough memory
-		command.add("-Xmx2G");
+		// give it enough memory, but not more than is available.
+		long totalMemoryKilobytes = systemInformation.getHardware().getMemory().getTotal() / 1000;
+		long requiredMemoryKilobytes = 2000;
+
+		command.add("-Xmx" + Math.min(totalMemoryKilobytes, requiredMemoryKilobytes) + "k");
 
 		// we put the entire pathConfig on the commandline, and finally the todoList for compilation.
 		command.add("--illegal-access=deny");

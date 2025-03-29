@@ -127,17 +127,25 @@ public class CompileRascalMojo extends AbstractRascalMojo
 	}
 
 	private int estimateBestNumberOfParallelProcesses() {
-		// check available CPUs (allowing for hyperthreading)
+		// check available CPUs, allowing for hyperthreading by asking for the logical count.
+		// we just need to know how many things we could run in parallel without pre-empting
+		// each other.
 		long result = systemInformation.getHardware().getProcessor().getLogicalProcessorCount();
 		if (result < 2) {
 			return 1;
 		}
 
-		// check currently available memory
-		long maxMemory = systemInformation.getHardware().getMemory().getAvailable();
+		// check total available memory. any memory in use can be swapped out, so
+		// we don't really care about the currently _available_ memory.
+		long maxMemory = systemInformation.getHardware().getMemory().getTotal();
+		long max2GmemoryDivisions = maxMemory / (2 * 1024 * 1024);
+		System.err.println("Max memory available");
 
-		result = Math.min(result, maxMemory / (2 * 1024 * 1024));
+		// we use as many processors as we can, without running out of memory
+		result = Math.min(result, max2GmemoryDivisions);
+
 		if (result < 2) {
+			// in case we can't allocated 2G even for one
 			return 1;
 		}
 

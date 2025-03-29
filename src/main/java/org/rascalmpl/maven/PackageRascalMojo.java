@@ -31,7 +31,7 @@ public class PackageRascalMojo extends AbstractRascalMojo
 	@Parameter(defaultValue = "|mvn://${project.groupId}--${project.name}--${project.version}/|", property = "sourceLookup", required = true )
     private String sourceLookup;
 
-	public PackageRascalMojo(String mainClass, String skipTag) {
+	public PackageRascalMojo() {
 		super("lang::rascalcore::package::Packager", "package");
 		extraParameters.put("sourceLookup", sourceLookup);
 	}

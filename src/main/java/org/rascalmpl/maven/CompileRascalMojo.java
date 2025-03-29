@@ -137,7 +137,7 @@ public class CompileRascalMojo extends AbstractRascalMojo
 		// we don't really care about the currently _available_ memory.
 		long maxMemory = systemInformation.getHardware().getMemory().getTotal();
 
-		getLog().info("Available memory:" + maxMemory / 1000 + " kilobytes");
+		getLog().info("Available memory: " + maxMemory / 1000 + " kilobytes");
 
 		// kB means kilobytes means 1000 bytes, while kiB means 1024 butes
 		long max2GmemoryDivisions = (maxMemory / 1000) / (2 * 1000 * 1000);
@@ -147,7 +147,7 @@ public class CompileRascalMojo extends AbstractRascalMojo
 		// we use as many processors as we can, without running out of memory
 		result = Math.min(result, max2GmemoryDivisions);
 		getLog().info("Estimated max number of processors: " + result);
-		getLog().info("Max number of processors requested:" + parallelMax);
+		getLog().info("Max number of processors requested: " + parallelMax);
 
 		if (result < 2) {
 			// in case we can't allocated 2G even for one

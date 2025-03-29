@@ -131,21 +131,33 @@ public class CompileRascalMojo extends AbstractRascalMojo
 			return 1;
 		}
 
+		getLog().info("Logical processor count: " + result);
+
 		// check total available memory. any memory in use can be swapped out, so
 		// we don't really care about the currently _available_ memory.
 		long maxMemory = systemInformation.getHardware().getMemory().getTotal();
+
+		getLog().info("Available memory:" + maxMemory / 1000 + " kilobytes");
+
 		// kB means kilobytes means 1000 bytes, while kiB means 1024 butes
-		long max2GmemoryDivisions = maxMemory / (2 * 1000 * 1000);
+		long max2GmemoryDivisions = (maxMemory / 1000) / (2 * 1000 * 1000);
+
+		getLog().info("Number of 2G processors for this amount of memory:" + max2GmemoryDivisions);
 
 		// we use as many processors as we can, without running out of memory
 		result = Math.min(result, max2GmemoryDivisions);
+		getLog().info("Estimated max number of processors: " + result);
+		getLog().info("Max number of processors requested:" + parallelMax);
 
 		if (result < 2) {
 			// in case we can't allocated 2G even for one
 			return 1;
 		}
 
-		return (int) Math.min(parallelMax, result);
+		long finalEstimate = result < 2 ? 1 : Math.min(parallelMax, result);
+		getLog().info("Final estimate number of processores: " + finalEstimate);
+
+		return (int) finalEstimate;
 	}
 
 	private int runChecker(boolean verbose, List<File> todoList, List<File> prechecks, List<File> srcLocs, List<File> libLocs, File binLoc, File generatedSourcesLoc)

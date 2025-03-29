@@ -131,7 +131,10 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 		return cachedRascalRuntime;
 	}
 
-	String files(List<File> list) {
+	/**
+	 * Converts a list of files to a string;Of;Paths using the OS's native path separator
+	 */
+	protected String files(List<File> list) {
 		return list.stream()
 			.map(Object::toString)
 			.collect(Collectors.joining(File.pathSeparator));
@@ -186,6 +189,8 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 			if (project.getGroupId().equals("org.rascalmpl") && project.getArtifactId().equals("rascal")) {
 				// we are in bootstrap mode and must find a previously released
 				// version to kick-off from
+				log.info("Maven Rascal Mojo detected rascal project self-application. Downloading the configured bootstrap rascal-" + bootstrapRascalVersion + ".jar");
+				log.info("Find <rascalBootstrapVersion>" + bootstrapRascalVersion + "</rascalBootstrapVersion> in rascal/pom.xml");
 				return installBootstrapRascalVersion(project, session);
 			}
 
@@ -200,7 +205,7 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 					}
 					else {
 						log.warn("Rascal version in pom.xml dependency is too old for this Rascal maven plugin. " + getReferenceRascalVersion() + " or later expected.");
-						log.warn("Using a newer version org.rascalmpl:rascal:" + bootstrapRascalVersion + "; please add it to the pom.xml");
+						log.warn("Downloading and using a newer version org.rascalmpl:rascal:" + bootstrapRascalVersion + "; please add it to the pom.xml");
 						return installBootstrapRascalVersion(project, session);
 					}
 				}

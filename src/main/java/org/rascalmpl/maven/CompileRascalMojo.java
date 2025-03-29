@@ -35,6 +35,8 @@ import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.codehaus.plexus.compiler.util.scan.InclusionScanException;
 
+import oshi.SystemInfo;
+
 /**
  * Maven Goal for Rascal compilation. The input is a list of
  * Rascal source folders, the output is for each module in the source tree:
@@ -56,6 +58,9 @@ public class CompileRascalMojo extends AbstractRascalMojo
 
 	@Parameter(property = "parallelPreChecks", required = false )
 	private List<File> parallelPreChecks;
+
+	// keeping this field to speed up subsequent (slow but cached) calls to system information
+	private SystemInfo systemInformation = new SystemInfo();
 
 	public CompileRascalMojo() {
 		super("org.rascalmpl.shell.RascalCompile", "compile", true, "rsc", "tpl");
@@ -121,23 +126,27 @@ public class CompileRascalMojo extends AbstractRascalMojo
 		}
 	}
 
-	private int parallelAmount() {
-	    // check available CPUs
-		long result = Runtime.getRuntime().availableProcessors();
+	private int estimateBestNumberOfParallelProcesses() {
+		// check available CPUs (allowing for hyperthreading)
+		long result = systemInformation.getHardware().getProcessor().getLogicalProcessorCount();
 		if (result < 2) {
 			return 1;
 		}
-		// check available memory
-		result = Math.min(result, Runtime.getRuntime().maxMemory() / (2 * 1024 * 1024));
+
+		// check currently available memory
+		long maxMemory = systemInformation.getHardware().getMemory().getAvailable();
+
+		result = Math.min(result, maxMemory / (2 * 1024 * 1024));
 		if (result < 2) {
 			return 1;
 		}
+
 		return (int) Math.min(parallelMax, result);
 	}
 
 	private int runChecker(boolean verbose, List<File> todoList, List<File> prechecks, List<File> srcLocs, List<File> libLocs, File binLoc, File generatedSourcesLoc)
 			throws IOException, URISyntaxException, Exception {
-	    if (!parallel || todoList.size() <= 10 || parallelAmount() <= 1) {
+	    if (!parallel || todoList.size() <= 10 || estimateBestNumberOfParallelProcesses() <= 1) {
 	    	return runCheckerSingleThreaded(verbose, todoList, srcLocs, libLocs, binLoc, generatedSourcesLoc);
 		}
 		else {
@@ -267,7 +276,7 @@ public class CompileRascalMojo extends AbstractRascalMojo
 	 */
 	private List<List<File>> splitTodoList(List<File> todoList) {
 		todoList.sort(File::compareTo); // improves cohesion of a chunk
-		int chunkSize = todoList.size() / parallelAmount();
+		int chunkSize = todoList.size() / estimateBestNumberOfParallelProcesses();
 		List<List<File>> result = new ArrayList<>();
 
 		for (int from = 0; from <= todoList.size(); from += chunkSize) {

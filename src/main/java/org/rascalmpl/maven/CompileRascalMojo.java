@@ -24,6 +24,7 @@ import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -34,8 +35,6 @@ import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.codehaus.plexus.compiler.util.scan.InclusionScanException;
-
-import oshi.SystemInfo;
 
 /**
  * Maven Goal for Rascal compilation. The input is a list of
@@ -60,7 +59,7 @@ public class CompileRascalMojo extends AbstractRascalMojo
 	private List<File> parallelPreChecks;
 
 	public CompileRascalMojo() {
-		super("org.rascalmpl.shell.RascalCompile", "compile", true, "rsc", "tpl");
+		super("org.rascalmpl.shell.RascalCompile", "compile");
 	}
 
 	public void execute() throws MojoExecutionException {
@@ -81,7 +80,7 @@ public class CompileRascalMojo extends AbstractRascalMojo
 
 			getLog().info("Checking if any files need compilation...");
 
-			List<File> todoList = getTodoList(bin, srcs, srcIgnores);
+			List<File> todoList = getTodoList(bin, srcs, srcIgnores, "rsc", "tpl");
 			todoList.removeAll(parallelPreChecks);
 
 			if (!todoList.isEmpty()) {
@@ -167,11 +166,13 @@ public class CompileRascalMojo extends AbstractRascalMojo
 		List<File> tmpGeneratedSources = chunks.stream().map(handleExceptions(l -> Files.createTempDirectory("rascal-sources").toFile())).collect(Collectors.toList());
 		int result = 0;
 
-		Map<String,String> extraParameters = Map.of("modules", todoList.stream().map(Object::toString).collect(Collectors.joining(File.pathSeparator)));
+		Map<String,String> extraParameters = new HashMap<>();
 
 		try {
 			List<Process> processes = new LinkedList<>();
-			Process prechecker = runMain(verbose, chunks.get(0), srcs, libs, tmpGeneratedSources.get(0), tmpBins.get(0), extraParameters, true);
+			extraParameters.put("modules", files(todoList));
+
+			Process prechecker = runMain(verbose, srcs, libs, tmpGeneratedSources.get(0), tmpBins.get(0), extraParameters, true);
 
 			result += prechecker.waitFor(); // block until the process is finished
 
@@ -180,7 +181,8 @@ public class CompileRascalMojo extends AbstractRascalMojo
 
 			// starts the processes asynchronously
 			for (int i = 1; i < chunks.size(); i++) {
-				processes.add(runMain(verbose, chunks.get(i), srcs, libs, tmpGeneratedSources.get(i), tmpBins.get(i), extraParameters, i <= 1));
+				extraParameters.put("modules", files(chunks.get(i)));
+				processes.add(runMain(verbose, srcs, libs, tmpGeneratedSources.get(i), tmpBins.get(i), extraParameters, i <= 1));
 			}
 
 			// wait until _all_ processes have exited and print their output in big chunks in order of process creation
@@ -234,7 +236,8 @@ public class CompileRascalMojo extends AbstractRascalMojo
 	private int runCheckerSingleThreaded(boolean verbose, List<File> todoList, List<File> srcLocs, List<File> libLocs, File binLoc, File generated) throws URISyntaxException, IOException, MojoExecutionException {
 		getLog().info("Running single checker process");
 		try {
-			return runMain(verbose, todoList, srcLocs, libLocs, generated, binLoc, extraParameters, true).waitFor();
+			extraParameters.put("modules", files(todoList));
+			return runMain(verbose, srcLocs, libLocs, generated, binLoc, extraParameters, true).waitFor();
 		} catch (InterruptedException e) {
 			getLog().error("Checker was interrupted");
 			throw new MojoExecutionException(e);

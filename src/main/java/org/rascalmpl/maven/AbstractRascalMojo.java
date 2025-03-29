@@ -15,7 +15,6 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -116,21 +115,12 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 	 */
 	protected Path cachedRascalRuntime = null;
 
-	private final String binaryExtension;
-
-	private final String dirtyExtension;
-
-	private final boolean makeTodoList;
-
 	// keeping this field to speed up subsequent (slow but cached) calls to system information
 	protected SystemInfo systemInformation = new SystemInfo();
 
-	public AbstractRascalMojo(String mainClass, String skipTag, boolean makeTodoList, String dirtyExtension, String binaryExtension) {
+	public AbstractRascalMojo(String mainClass, String skipTag) {
 		this.mainClass = mainClass;
 		this.skipTag = skipTag;
-		this.dirtyExtension = dirtyExtension;
-		this.binaryExtension = binaryExtension;
-		this.makeTodoList = makeTodoList;
 	}
 
 	protected Path getRascalRuntime() {
@@ -139,6 +129,12 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 		}
 
 		return cachedRascalRuntime;
+	}
+
+	String files(List<File> list) {
+		return list.stream()
+			.map(Object::toString)
+			.collect(Collectors.joining(File.pathSeparator));
 	}
 
 	@Override
@@ -160,19 +156,6 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 
 			getLog().info("Checking if any files need compilation...");
 
-			List<File> todoList = makeTodoList ? getTodoList(bin, srcs, srcIgnores) : Collections.emptyList();
-
-			if (!todoList.isEmpty()) {
-				getLog().info("Stale source files have been found:");
-				for (File todo : todoList) {
-					getLog().info("\t" + todo);
-				}
-			}
-			else if (makeTodoList) {
-				getLog().info("No stale source files have been found, skipping compilation.");
-				return;
-			}
-
 			libs.addAll(collectDependentArtifactLibraries(project));
 
 			for (File lib : libs) {
@@ -181,7 +164,7 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 
 			getLog().info("Paths have been configured.");
 
-			runMain(verbose, todoList, srcs, libs, generatedSources, bin, extraParameters, true).waitFor();
+			runMain(verbose, srcs, libs, generatedSources, bin, extraParameters, true).waitFor();
 
 			return;
 		}
@@ -276,7 +259,7 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 			"org", "rascalmpl", "rascal", bootstrapRascalVersion, "rascal-" + bootstrapRascalVersion + ".jar");
 	}
 
-	protected Process runMain(boolean verbose, List<File> todoList, List<File> srcs, List<File> libs, File generated, File bin, Map<String, String> extraParameters, boolean inheritIO) throws IOException {
+	protected Process runMain(boolean verbose, List<File> srcs, List<File> libs, File generated, File bin, Map<String, String> extraParameters, boolean inheritIO) throws IOException {
 		String javaHome = System.getProperty("java.home");
         String javaBin = javaHome + File.separator + "bin" + File.separator + "java";
 
@@ -302,18 +285,13 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 			command.add(mainModule);
 		}
 		command.add("-srcs");
-		command.add(srcs.stream().map(Object::toString).collect(Collectors.joining(File.pathSeparator)));
+		command.add(files(srcs));
 		command.add("-libs");
-		command.add(libs.stream().map(Object::toString).collect(Collectors.joining(File.pathSeparator)));
+		command.add(files(libs));
 		command.add("-bin");
 		command.add(bin.toString());
 		command.add("-generatedSources");
 		command.add(generated.toString());
-
-		if (!todoList.isEmpty()) {
-			command.add("-modules");
-			command.add(todoList.stream().map(Object::toString).collect(Collectors.joining(File.pathSeparator)));
-		}
 
 		for (Entry<String, String> e : extraParameters.entrySet()) {
 			command.add("-" + e.getKey());
@@ -338,7 +316,7 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 		return p.start();
 	}
 
-	protected List<File> getTodoList(File binLoc, List<File> srcLocs, List<File> ignoredLocs) throws InclusionScanException, URISyntaxException {
+	protected List<File> getTodoList(File binLoc, List<File> srcLocs, List<File> ignoredLocs, String dirtyExtension, String binaryExtension) throws InclusionScanException, URISyntaxException {
 		StaleSourceScanner scanner = new StaleSourceScanner(100);
 		scanner.addSourceMapping(new SourceMapping() {
 

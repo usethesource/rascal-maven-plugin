@@ -11,7 +11,6 @@
 package org.rascalmpl.maven;
 
 import java.io.File;
-import java.util.Collections;
 import java.util.Map;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
@@ -45,7 +44,7 @@ public class CompileRascalDocumentation extends AbstractRascalMojo
 	private String releaseNotes;
 
 	public CompileRascalDocumentation() {
-		super("org.rascalmpl.shell.RascalTutorCompile", "tutor",  false, "rsc", "md");
+		super("org.rascalmpl.shell.RascalTutorCompile", "tutor");
 	}
 
 	@Override
@@ -81,7 +80,7 @@ public class CompileRascalDocumentation extends AbstractRascalMojo
 
 			));
 
-			runMain(verbose, Collections.emptyList(), srcs, libs, generatedSources, bin, extraParameters, true).waitFor();
+			runMain(verbose, srcs, libs, generatedSources, bin, extraParameters, true).waitFor();
 
 			return;
 		}

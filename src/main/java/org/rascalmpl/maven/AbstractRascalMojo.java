@@ -15,8 +15,6 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -42,6 +40,9 @@ import org.apache.maven.project.MavenProject;
 import org.codehaus.plexus.compiler.util.scan.InclusionScanException;
 import org.codehaus.plexus.compiler.util.scan.StaleSourceScanner;
 import org.codehaus.plexus.compiler.util.scan.mapping.SourceMapping;
+
+import oshi.SystemInfo;
+
 import static org.twdata.maven.mojoexecutor.MojoExecutor.executeMojo;
 import static org.twdata.maven.mojoexecutor.MojoExecutor.plugin;
 import static org.twdata.maven.mojoexecutor.MojoExecutor.goal;
@@ -85,8 +86,7 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 	@Parameter(defaultValue = "0.41.0-RC21", required = false, readonly = true)
 	protected String bootstrapRascalVersion;
 
-	// @Parameter(defaultValue="${maven.plugin.manager}", required=true, readonly = true)
-	// public BuildPluginManager pluginManager;
+	@SuppressWarnings("deprecation") // Can't get @Parameter to work for the pluginManager.
 	@Component
 	private BuildPluginManager pluginManager;
 
@@ -115,18 +115,12 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 	 */
 	protected Path cachedRascalRuntime = null;
 
-	private final String binaryExtension;
+	// keeping this field to speed up subsequent (slow but cached) calls to system information
+	protected SystemInfo systemInformation = new SystemInfo();
 
-	private final String dirtyExtension;
-
-	private final boolean makeTodoList;
-
-	public AbstractRascalMojo(String mainClass, String skipTag, boolean makeTodoList, String dirtyExtension, String binaryExtension) {
+	public AbstractRascalMojo(String mainClass, String skipTag) {
 		this.mainClass = mainClass;
 		this.skipTag = skipTag;
-		this.dirtyExtension = dirtyExtension;
-		this.binaryExtension = binaryExtension;
-		this.makeTodoList = makeTodoList;
 	}
 
 	protected Path getRascalRuntime() {
@@ -137,6 +131,15 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 		return cachedRascalRuntime;
 	}
 
+	/**
+	 * Converts a list of files to a string;Of;Paths using the OS's native path separator
+	 */
+	protected String files(List<File> list) {
+		return list.stream()
+			.map(Object::toString)
+			.collect(Collectors.joining(File.pathSeparator));
+	}
+
 	@Override
 	public void execute() throws MojoExecutionException {
 		try {
@@ -145,45 +148,26 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 				return;
 			}
 
-			Path binLoc = bin.toPath();
-			Path generatedSourcesLoc = generatedSources.toPath();
-			List<Path> srcLocs = srcs.stream().map(f -> f.toPath()).collect(Collectors.toList());
-			List<Path> ignoredLocs = srcIgnores.stream().map(f -> f.toPath()).collect(Collectors.toList());
-			List<Path> libLocs = libs.stream().map(f -> f.toPath()).collect(Collectors.toList());
-
 			getLog().info("configuring paths");
-			for (Path src : srcLocs) {
+			for (File src : srcs) {
 				getLog().info("\tregistered source location: " + src);
 			}
 
-			for (Path ignore : ignoredLocs) {
+			for (File ignore : srcIgnores) {
 				getLog().warn("\tignoring sources in: " + ignore);
 			}
 
 			getLog().info("Checking if any files need compilation...");
 
-			List<Path> todoList = makeTodoList ? getTodoList(binLoc, srcLocs, ignoredLocs) : Collections.emptyList();
+			libs.addAll(collectDependentArtifactLibraries(project));
 
-			if (!todoList.isEmpty()) {
-				getLog().info("Stale source files have been found:");
-				for (Path todo : todoList) {
-					getLog().info("\t" + todo);
-				}
-			}
-			else if (makeTodoList) {
-				getLog().info("No stale source files have been found, skipping compilation.");
-				return;
-			}
-
-			libLocs.addAll(collectDependentArtifactLibraries(project));
-
-			for (Path lib : libLocs) {
+			for (File lib : libs) {
 				getLog().info("\tregistered library location: " + lib);
 			}
 
 			getLog().info("Paths have been configured.");
 
-			runMain(verbose, todoList, srcLocs, libLocs, generatedSourcesLoc, binLoc, extraParameters, true).waitFor();
+			runMain(verbose, srcs, libs, generatedSources, bin, extraParameters, true).waitFor();
 
 			return;
 		}
@@ -205,6 +189,8 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 			if (project.getGroupId().equals("org.rascalmpl") && project.getArtifactId().equals("rascal")) {
 				// we are in bootstrap mode and must find a previously released
 				// version to kick-off from
+				log.info("Maven Rascal Mojo detected rascal project self-application. Downloading the configured bootstrap rascal-" + bootstrapRascalVersion + ".jar");
+				log.info("Find <rascalBootstrapVersion>" + bootstrapRascalVersion + "</rascalBootstrapVersion> in rascal/pom.xml");
 				return installBootstrapRascalVersion(project, session);
 			}
 
@@ -219,7 +205,7 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 					}
 					else {
 						log.warn("Rascal version in pom.xml dependency is too old for this Rascal maven plugin. " + getReferenceRascalVersion() + " or later expected.");
-						log.warn("Using a newer version org.rascalmpl:rascal:" + bootstrapRascalVersion + "; please add it to the pom.xml");
+						log.warn("Downloading and using a newer version org.rascalmpl:rascal:" + bootstrapRascalVersion + "; please add it to the pom.xml");
 						return installBootstrapRascalVersion(project, session);
 					}
 				}
@@ -237,14 +223,14 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 		}
 	}
 
-	protected List<Path> collectDependentArtifactLibraries(MavenProject project) throws URISyntaxException, IOException {
-		List<Path> libs = new LinkedList<>();
+	protected List<File> collectDependentArtifactLibraries(MavenProject project) throws URISyntaxException, IOException {
+		List<File> libs = new LinkedList<>();
 
 		for (Object o : project.getArtifacts()) {
 			Artifact a = (Artifact) o;
 			File file = a.getFile().getAbsoluteFile();
 
-			libs.add(file.toPath());
+			libs.add(file);
 		}
 
 		return libs;
@@ -278,7 +264,7 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 			"org", "rascalmpl", "rascal", bootstrapRascalVersion, "rascal-" + bootstrapRascalVersion + ".jar");
 	}
 
-	protected Process runMain(boolean verbose, List<Path> todoList, List<Path> srcs, List<Path> libs, Path generated, Path bin, Map<String, String> extraParameters, boolean inheritIO) throws IOException {
+	protected Process runMain(boolean verbose, List<File> srcs, List<File> libs, File generated, File bin, Map<String, String> extraParameters, boolean inheritIO) throws IOException {
 		String javaHome = System.getProperty("java.home");
         String javaBin = javaHome + File.separator + "bin" + File.separator + "java";
 
@@ -289,8 +275,11 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 			command.add("-D" + key + "=" + value);
 		});
 
-		// give it enough memory
-		command.add("-Xmx2G");
+		// give it enough memory, but not more than is available.
+		long totalMemoryKilobytes = systemInformation.getHardware().getMemory().getTotal() / 1000;
+		long requiredMemoryKilobytes = 2000 * 1000;
+
+		command.add("-Xmx" + Math.min(totalMemoryKilobytes, requiredMemoryKilobytes) + "k");
 
 		// we put the entire pathConfig on the commandline, and finally the todoList for compilation.
 		command.add("--illegal-access=deny");
@@ -301,18 +290,13 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 			command.add(mainModule);
 		}
 		command.add("-srcs");
-		command.add(srcs.stream().map(Object::toString).collect(Collectors.joining(File.pathSeparator)));
+		command.add(files(srcs));
 		command.add("-libs");
-		command.add(libs.stream().map(Object::toString).collect(Collectors.joining(File.pathSeparator)));
+		command.add(files(libs));
 		command.add("-bin");
 		command.add(bin.toString());
 		command.add("-generatedSources");
 		command.add(generated.toString());
-
-		if (!todoList.isEmpty()) {
-			command.add("-modules");
-			command.add(todoList.stream().map(Object::toString).collect(Collectors.joining(File.pathSeparator)));
-		}
 
 		for (Entry<String, String> e : extraParameters.entrySet()) {
 			command.add("-" + e.getKey());
@@ -337,7 +321,7 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 		return p.start();
 	}
 
-	protected List<Path> getTodoList(Path binLoc, List<Path> srcLocs, List<Path> ignoredLocs) throws InclusionScanException, URISyntaxException {
+	protected List<File> getTodoList(File binLoc, List<File> srcLocs, List<File> ignoredLocs, String dirtyExtension, String binaryExtension) throws InclusionScanException, URISyntaxException {
 		StaleSourceScanner scanner = new StaleSourceScanner(100);
 		scanner.addSourceMapping(new SourceMapping() {
 
@@ -357,27 +341,25 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 			}
 		});
 
-		binLoc = Paths.get(binLoc.toString(), "rascal");
+		binLoc = new File(binLoc, "rascal");
 
 		Set<File> staleSources = new HashSet<>();
-		for (Path src : srcLocs) {
-			staleSources.addAll(scanner.getIncludedSources(src.toFile(), binLoc.toFile()));
+		for (File src : srcs) {
+			staleSources.addAll(scanner.getIncludedSources(src, binLoc));
 		}
 
-		List<Path> filteredStaleSources = new LinkedList<>();
+		List<File> filteredStaleSources = new LinkedList<>();
 
 		for (File file : staleSources) {
-			Path loc = file.toPath();
-
-			if (ignoredLocs.stream().noneMatch(l -> isIgnoredBy(l, loc))) {
-				filteredStaleSources.add(loc);
+			if (ignoredLocs.stream().noneMatch(l -> isIgnoredBy(l, file))) {
+				filteredStaleSources.add(file);
 			}
 		}
 
 		return filteredStaleSources;
 	}
 
-	protected boolean isIgnoredBy(Path prefix, Path loc) {
+	protected boolean isIgnoredBy(File prefix, File loc) {
 		String prefixPath = prefix.toString();
 		String locPath = loc.toString();
 

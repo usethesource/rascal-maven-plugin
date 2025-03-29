@@ -16,7 +16,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URISyntaxException;
-import java.nio.file.CopyOption;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -25,13 +24,11 @@ import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
@@ -62,41 +59,33 @@ public class CompileRascalMojo extends AbstractRascalMojo
 	private List<File> parallelPreChecks;
 
 	public CompileRascalMojo() {
-		super("org.rascalmpl.shell.RascalCompile", "compile", true, "rsc", "tpl");
+		super("org.rascalmpl.shell.RascalCompile", "compile");
 	}
 
 	public void execute() throws MojoExecutionException {
 		try {
-			Path binLoc = bin.toPath();
-
-			var generatedSourcesLoc = generatedSources.toPath();
-			List<Path> srcLocs = srcs.stream().map(f -> f.toPath()).collect(Collectors.toList());
-			List<Path> ignoredLocs = srcIgnores.stream().map(f -> f.toPath()).collect(Collectors.toList());
-			List<Path> libLocs = libs.stream().map(f -> f.toPath()).collect(Collectors.toList());
-			List<Path> prechecks = parallelPreChecks.stream().map(f -> f.toPath()).collect(Collectors.toList());
-
 			if (System.getProperty("rascal.compile.skip") != null) {
 				getLog().info("Skipping Rascal compiler completely");
 				return;
 			}
 
 			getLog().info("configuring paths");
-			for (Path src : srcLocs) {
+			for (File src : srcs) {
 				getLog().info("\tregistered source location: " + src);
 			}
 
-			for (Path ignore : ignoredLocs) {
+			for (File ignore : srcIgnores) {
 				getLog().warn("\tignoring sources in: " + ignore);
 			}
 
 			getLog().info("Checking if any files need compilation...");
 
-			List<Path> todoList = getTodoList(binLoc, srcLocs, ignoredLocs);
-			todoList.removeAll(prechecks);
+			List<File> todoList = getTodoList(bin, srcs, srcIgnores, "rsc", "tpl");
+			todoList.removeAll(parallelPreChecks);
 
 			if (!todoList.isEmpty()) {
 				getLog().info("Stale source files have been found:");
-				for (Path todo : todoList) {
+				for (File todo : todoList) {
 					getLog().info("\t" + todo);
 				}
 			}
@@ -106,15 +95,15 @@ public class CompileRascalMojo extends AbstractRascalMojo
 			}
 
 			// complete libraries with maven artifacts which include a META-INF/RASCAL.MF file
-			libLocs.addAll(collectDependentArtifactLibraries(project));
+			libs.addAll(collectDependentArtifactLibraries(project));
 
-			for (Path lib : libLocs) {
+			for (File lib : libs) {
 				getLog().info("\tregistered library location: " + lib);
 			}
 
-			getLog().info("Paths have been configured.");
+			getLog().info("Files have been configured.");
 
-			int result = runChecker(verbose, todoList, prechecks, srcLocs, libLocs, binLoc, generatedSourcesLoc);
+			int result = runChecker(verbose, todoList, parallelPreChecks, srcs, libs, bin, generatedSources);
 
 			if (result > 0) {
 				throw new MojoExecutionException("Errors found while checking.");
@@ -133,23 +122,47 @@ public class CompileRascalMojo extends AbstractRascalMojo
 		}
 	}
 
-	private int parallelAmount() {
-	    // check available CPUs
-		long result = Runtime.getRuntime().availableProcessors();
+	private int estimateBestNumberOfParallelProcesses() {
+		// check available CPUs, allowing for hyperthreading by asking for the logical count.
+		// we just need to know how many things we could run in parallel without pre-empting
+		// each other.
+		long result = systemInformation.getHardware().getProcessor().getLogicalProcessorCount();
 		if (result < 2) {
 			return 1;
 		}
-		// check available memory
-		result = Math.min(result, Runtime.getRuntime().maxMemory() / (2 * 1024 * 1024));
+
+		getLog().info("Logical processor count: " + result);
+
+		// check total available memory. any memory in use can be swapped out, so
+		// we don't really care about the currently _available_ memory.
+		long maxMemory = systemInformation.getHardware().getMemory().getTotal();
+
+		getLog().info("Available memory: " + maxMemory / 1000 + " kilobytes");
+
+		// kB means kilobytes means 1000 bytes, while kiB means 1024 butes
+		long max2GmemoryDivisions = (maxMemory / 1000) / (2 * 1000 * 1000);
+
+		getLog().info("Number of 2G processors for this amount of memory:" + max2GmemoryDivisions);
+
+		// we use as many processors as we can, without running out of memory
+		result = Math.min(result, max2GmemoryDivisions);
+		getLog().info("Estimated max number of processors: " + result);
+		getLog().info("Max number of processors requested: " + parallelMax);
+
 		if (result < 2) {
+			// in case we can't allocated 2G even for one
 			return 1;
 		}
-		return (int) Math.min(parallelMax, result);
+
+		long finalEstimate = result < 2 ? 1 : Math.min(parallelMax, result);
+		getLog().info("Final estimate number of processores: " + finalEstimate);
+
+		return (int) finalEstimate;
 	}
 
-	private int runChecker(boolean verbose, List<Path> todoList, List<Path> prechecks, List<Path> srcLocs, List<Path> libLocs, Path binLoc, Path generatedSourcesLoc)
+	private int runChecker(boolean verbose, List<File> todoList, List<File> prechecks, List<File> srcLocs, List<File> libLocs, File binLoc, File generatedSourcesLoc)
 			throws IOException, URISyntaxException, Exception {
-	    if (!parallel || todoList.size() <= 10 || parallelAmount() <= 1) {
+	    if (!parallel || todoList.size() <= 10 || estimateBestNumberOfParallelProcesses() <= 1) {
 	    	return runCheckerSingleThreaded(verbose, todoList, srcLocs, libLocs, binLoc, generatedSourcesLoc);
 		}
 		else {
@@ -157,19 +170,21 @@ public class CompileRascalMojo extends AbstractRascalMojo
 		}
 	}
 
-	private int runCheckerMultithreaded(boolean verbose, List<Path> todoList, List<Path> prechecks, List<Path> srcs, List<Path> libs, Path bin, Path generatedSourcesLoc) throws Exception {
+	private int runCheckerMultithreaded(boolean verbose, List<File> todoList, List<File> prechecks, List<File> srcs, List<File> libs, File bin, File generatedSourcesLoc) throws Exception {
 		todoList.removeAll(prechecks);
-		List<List<Path>> chunks = splitTodoList(todoList);
+		List<List<File>> chunks = splitTodoList(todoList);
 		chunks.add(0, prechecks);
-		List<Path> tmpBins = chunks.stream().map(handleExceptions(l -> Files.createTempDirectory("rascal-checker"))).collect(Collectors.toList());
-		List<Path> tmpGeneratedSources = chunks.stream().map(handleExceptions(l -> Files.createTempDirectory("rascal-sources"))).collect(Collectors.toList());
+		List<File> tmpBins = chunks.stream().map(handleExceptions(l -> Files.createTempDirectory("rascal-checker").toFile())).collect(Collectors.toList());
+		List<File> tmpGeneratedSources = chunks.stream().map(handleExceptions(l -> Files.createTempDirectory("rascal-sources").toFile())).collect(Collectors.toList());
 		int result = 0;
 
-		Map<String,String> extraParameters = Map.of("modules", todoList.stream().map(Object::toString).collect(Collectors.joining(File.pathSeparator)));
+		Map<String,String> extraParameters = new HashMap<>();
 
 		try {
 			List<Process> processes = new LinkedList<>();
-			Process prechecker = runMain(verbose, chunks.get(0), srcs, libs, tmpGeneratedSources.get(0), tmpBins.get(0), extraParameters, true);
+			extraParameters.put("modules", files(todoList));
+
+			Process prechecker = runMain(verbose, srcs, libs, tmpGeneratedSources.get(0), tmpBins.get(0), extraParameters, true);
 
 			result += prechecker.waitFor(); // block until the process is finished
 
@@ -178,7 +193,8 @@ public class CompileRascalMojo extends AbstractRascalMojo
 
 			// starts the processes asynchronously
 			for (int i = 1; i < chunks.size(); i++) {
-				processes.add(runMain(verbose, chunks.get(i), srcs, libs, tmpGeneratedSources.get(i), tmpBins.get(i), extraParameters, i <= 1));
+				extraParameters.put("modules", files(chunks.get(i)));
+				processes.add(runMain(verbose, srcs, libs, tmpGeneratedSources.get(i), tmpBins.get(i), extraParameters, i <= 1));
 			}
 
 			// wait until _all_ processes have exited and print their output in big chunks in order of process creation
@@ -229,10 +245,11 @@ public class CompileRascalMojo extends AbstractRascalMojo
 		}
 	}
 
-	private int runCheckerSingleThreaded(boolean verbose, List<Path> todoList, List<Path> srcLocs, List<Path> libLocs, Path binLoc, Path generated) throws URISyntaxException, IOException, MojoExecutionException {
+	private int runCheckerSingleThreaded(boolean verbose, List<File> todoList, List<File> srcLocs, List<File> libLocs, File binLoc, File generated) throws URISyntaxException, IOException, MojoExecutionException {
 		getLog().info("Running single checker process");
 		try {
-			return runMain(verbose, todoList, srcLocs, libLocs, generated, binLoc, extraParameters, true).waitFor();
+			extraParameters.put("modules", files(todoList));
+			return runMain(verbose, srcLocs, libLocs, generated, binLoc, extraParameters, true).waitFor();
 		} catch (InterruptedException e) {
 			getLog().error("Checker was interrupted");
 			throw new MojoExecutionException(e);
@@ -241,19 +258,21 @@ public class CompileRascalMojo extends AbstractRascalMojo
 		}
 	}
 
-	private void mergeOutputFolders(Path bin, List<Path> binFolders) throws IOException {
-		for (Path tmp : binFolders) {
+	private void mergeOutputFolders(File bin, List<File> binFolders) throws IOException {
+		for (File tmp : binFolders) {
 			getLog().info("Copying files from " + tmp + " to " + bin);
 			mergeOutputFolders(bin, tmp);
 		}
 	}
 
-	private static void mergeOutputFolders(Path dst, Path src) throws IOException {
-		Files.walkFileTree(src, new SimpleFileVisitor<Path>() {
+	private static void mergeOutputFolders(File dst, File src) throws IOException {
+		Path dstPath = dst.toPath();
+		Path srcPath = src.toPath();
+
+		Files.walkFileTree(srcPath, new SimpleFileVisitor<Path>() {
             @Override
-            public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs)
-                    throws IOException {
-                Files.createDirectories(dst.resolve(src.relativize(dir).toString()));
+            public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
+                Files.createDirectories(dstPath.resolve(srcPath.relativize(dir).toString()));
                 return FileVisitResult.CONTINUE;
             }
 
@@ -264,9 +283,8 @@ public class CompileRascalMojo extends AbstractRascalMojo
 			}
 
             @Override
-            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs)
-                    throws IOException {
-                Files.move(file, dst.resolve(src.relativize(file).toString()), StandardCopyOption.REPLACE_EXISTING);
+            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                Files.move(file, dstPath.resolve(srcPath.relativize(file).toString()), StandardCopyOption.REPLACE_EXISTING);
                 return FileVisitResult.CONTINUE;
             }
         });
@@ -276,10 +294,10 @@ public class CompileRascalMojo extends AbstractRascalMojo
 	 * Divide number of modules evenly over available cores.
 	 * TodoList is sorted to keep modules close that are in the same folder.
 	 */
-	private List<List<Path>> splitTodoList(List<Path> todoList) {
-		todoList.sort(Path::compareTo); // improves cohesion of a chunk
-		int chunkSize = todoList.size() / parallelAmount();
-		List<List<Path>> result = new ArrayList<>();
+	private List<List<File>> splitTodoList(List<File> todoList) {
+		todoList.sort(File::compareTo); // improves cohesion of a chunk
+		int chunkSize = todoList.size() / estimateBestNumberOfParallelProcesses();
+		List<List<File>> result = new ArrayList<>();
 
 		for (int from = 0; from <= todoList.size(); from += chunkSize) {
 			result.add(Collections.unmodifiableList(todoList.subList(from, Math.min(from + chunkSize, todoList.size()))));

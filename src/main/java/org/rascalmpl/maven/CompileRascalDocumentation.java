@@ -10,12 +10,8 @@
  */
 package org.rascalmpl.maven;
 
-import java.nio.file.Path;
-import java.util.Collections;
-import java.util.List;
+import java.io.File;
 import java.util.Map;
-import java.util.stream.Collectors;
-
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
@@ -48,7 +44,7 @@ public class CompileRascalDocumentation extends AbstractRascalMojo
 	private String releaseNotes;
 
 	public CompileRascalDocumentation() {
-		super("org.rascalmpl.shell.RascalTutorCompile", "tutor",  false, "rsc", "md");
+		super("org.rascalmpl.shell.RascalTutorCompile", "tutor");
 	}
 
 	@Override
@@ -59,24 +55,18 @@ public class CompileRascalDocumentation extends AbstractRascalMojo
 				return;
 			}
 
-			Path binLoc = bin.toPath();
-			Path generatedSourcesLoc =  generatedSources.toPath();
-			List<Path> srcLocs = srcs.stream().map(f -> f.toPath()).collect(Collectors.toList());;
-			List<Path> ignoredLocs = srcIgnores.stream().map(f -> f.toPath()).collect(Collectors.toList());;
-			List<Path> libLocs = libs.stream().map(f -> f.toPath()).collect(Collectors.toList());;
-
 			getLog().info("configuring paths");
-			for (Path src : srcLocs) {
+			for (File src : srcs) {
 				getLog().info("\tregistered source location: " + src);
 			}
 
-			for (Path ignore : ignoredLocs) {
+			for (File ignore : srcIgnores) {
 				getLog().warn("\tignoring sources in: " + ignore);
 			}
 
-			libLocs.addAll(collectDependentArtifactLibraries(project));
+			libs.addAll(collectDependentArtifactLibraries(project));
 
-			for (Path lib : libLocs) {
+			for (File lib : libs) {
 				getLog().info("\tregistered library location: " + lib);
 			}
 
@@ -90,7 +80,7 @@ public class CompileRascalDocumentation extends AbstractRascalMojo
 
 			));
 
-			runMain(verbose, Collections.emptyList(), srcLocs, libLocs, generatedSourcesLoc, binLoc, extraParameters, true).waitFor();
+			runMain(verbose, srcs, libs, generatedSources, bin, extraParameters, true).waitFor();
 
 			return;
 		}

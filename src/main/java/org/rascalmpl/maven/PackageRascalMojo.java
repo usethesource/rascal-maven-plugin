@@ -31,7 +31,7 @@ public class PackageRascalMojo extends AbstractRascalMojo
     private String sourceLookup;
 
 	public PackageRascalMojo(String mainClass, String skipTag) {
-		super("lang::rascalcore::package::Packager", "package", false, "", "");
+		super("lang::rascalcore::package::Packager", "package");
 		extraParameters.put("sourceLookup", sourceLookup);
 	}
 }

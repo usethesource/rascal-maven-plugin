@@ -183,8 +183,9 @@ public class CompileRascalMojo extends AbstractRascalMojo
 
 		try {
 			List<Process> processes = new LinkedList<>();
-			extraParameters.put("modules", files(todoList));
 
+			extraParameters.put("modules", files(chunks.get(0)));
+			getLog().info("Pre-compiling very common modules " + prechecks.stream().map(f -> f.getName()).collect(Collectors.joining(", ")));
 			Process prechecker = runMain(verbose, srcs, libs, tmpGeneratedSources.get(0), tmpBins.get(0), extraParameters, true);
 
 			result += prechecker.waitFor(); // block until the process is finished
@@ -195,6 +196,7 @@ public class CompileRascalMojo extends AbstractRascalMojo
 			// starts the processes asynchronously
 			for (int i = 1; i < chunks.size(); i++) {
 				extraParameters.put("modules", files(chunks.get(i)));
+				getLog().info("Compiler " + i + " started on a parallel job of " + chunks.get(i).size() + " modules.");
 				processes.add(runMain(verbose, srcs, libs, tmpGeneratedSources.get(i), tmpBins.get(i), extraParameters, i <= 1));
 			}
 

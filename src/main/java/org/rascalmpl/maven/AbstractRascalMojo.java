@@ -192,6 +192,11 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 				// version to kick-off from
 				log.info("Maven Rascal Mojo detected rascal project self-application. Downloading the configured bootstrap rascal-" + bootstrapRascalVersion + ".jar");
 				log.info("Find <rascalBootstrapVersion>" + bootstrapRascalVersion + "</rascalBootstrapVersion> in rascal/pom.xml");
+
+				if (bootstrapRascalVersion.endsWith("SNAPSHOT")) {
+					throw new IllegalArgumentException("The rascalBootstrapVersion configuration parameter must not be a SNAPSHOT release, because of the required reproducibility of any Rascal release. The Maven build will bail out now.");
+				}
+
 				return installBootstrapRascalVersion(project, session);
 			}
 

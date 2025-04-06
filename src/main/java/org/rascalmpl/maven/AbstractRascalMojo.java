@@ -169,7 +169,7 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 
 			getLog().info("Paths have been configured.");
 
-			runMain(verbose, srcs, libs, generatedSources, bin, extraParameters, true).waitFor();
+			runMain(verbose, srcs, srcIgnores, libs, generatedSources, bin, extraParameters, true).waitFor();
 
 			return;
 		}
@@ -271,7 +271,7 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 			"org", "rascalmpl", "rascal", bootstrapRascalVersion, "rascal-" + bootstrapRascalVersion + ".jar");
 	}
 
-	protected Process runMain(boolean verbose, List<File> srcs, List<File> libs, File generated, File bin, Map<String, String> extraParameters, boolean inheritIO) throws IOException {
+	protected Process runMain(boolean verbose, List<File> srcs, List<File> ignores, List<File> libs, File generated, File bin, Map<String, String> extraParameters, boolean inheritIO) throws IOException {
 		String javaHome = System.getProperty("java.home");
         String javaBin = javaHome + File.separator + "bin" + File.separator + "java";
 
@@ -293,16 +293,31 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 		command.add("-cp");
 		command.add(getRascalRuntime().toString());
 		command.add(mainClass);
-		if (mainModule != null && !mainModule.isEmpty()) {
+
+		if (mainClass.endsWith("RascalShell") && mainModule != null && !mainModule.isEmpty()) {
+			// the main module parameter is specific to the RascalShell command
+			// here for backward compatibility reasons for older client-owned shell scripts
 			command.add(mainModule);
 		}
 
-		command.add("-srcs");
-		command.add(files(srcs));
-		command.add("-libs");
-		command.add(files(libs));
+		if (!srcs.isEmpty()) {
+			command.add("-srcs");
+			command.add(files(srcs));
+		}
+
+		if (!srcIgnores.isEmpty()) {
+			command.add("-ignores");
+			command.add(files(srcIgnores));
+		}
+
+		if (!libs.isEmpty()) {
+			command.add("-libs");
+			command.add(files(libs));
+		}
+
 		command.add("-bin");
 		command.add(bin.toString());
+
 		command.add("-generatedSources");
 		command.add(generated.toString());
 

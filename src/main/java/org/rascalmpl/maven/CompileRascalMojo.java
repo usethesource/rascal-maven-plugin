@@ -59,6 +59,27 @@ public class CompileRascalMojo extends AbstractRascalMojo
 	@Parameter(property = "parallelPreChecks", required = false )
 	private List<File> parallelPreChecks;
 
+	@Parameter(required=false, defaultValue="false")
+	private boolean logPathConfig;
+
+	@Parameter(required=false, defaultValue="false")
+	private boolean logImports;
+
+	@Parameter(required=false, defaultValue="false")
+	private boolean logWrittenFiles;
+
+	@Parameter(required=false, defaultValue="true")
+	private boolean warnUnused;
+
+	@Parameter(required=false, defaultValue="true")
+	private boolean warnUnusedFormals;
+
+	@Parameter(required=false, defaultValue="true")
+	private boolean warnUnusedVariables;
+
+	@Parameter(required=false, defaultValue="true")
+	private boolean warnUnusedPatternFormals;
+
 	public CompileRascalMojo() {
 		super("org.rascalmpl.shell.RascalCompile", "compile");
 	}
@@ -184,8 +205,8 @@ public class CompileRascalMojo extends AbstractRascalMojo
 		try {
 			List<Process> processes = new LinkedList<>();
 
-			extraParameters.put("modules", files(chunks.get(0)));
-			getLog().info("Pre-compiling very common modules " + prechecks.stream().map(f -> f.getName()).collect(Collectors.joining(", ")));
+			setExtraCompilerParameters(verbose, chunks.get(0));
+			getLog().info("Pre-compiling common modules " + prechecks.stream().map(f -> f.getName()).collect(Collectors.joining(", ")));
 			Process prechecker = runMain(verbose, srcs, libs, tmpGeneratedSources.get(0), tmpBins.get(0), extraParameters, true);
 
 			result += prechecker.waitFor(); // block until the process is finished
@@ -195,7 +216,7 @@ public class CompileRascalMojo extends AbstractRascalMojo
 
 			// starts the processes asynchronously
 			for (int i = 1; i < chunks.size(); i++) {
-				extraParameters.put("modules", files(chunks.get(i)));
+				setExtraCompilerParameters(verbose, chunks.get(i));
 				getLog().info("Compiler " + i + " started on a parallel job of " + chunks.get(i).size() + " modules.");
 				processes.add(runMain(verbose, srcs, libs, tmpGeneratedSources.get(i), tmpBins.get(i), extraParameters, i <= 1));
 			}
@@ -251,7 +272,7 @@ public class CompileRascalMojo extends AbstractRascalMojo
 	private int runCheckerSingleThreaded(boolean verbose, List<File> todoList, List<File> srcLocs, List<File> libLocs, File binLoc, File generated) throws URISyntaxException, IOException, MojoExecutionException {
 		getLog().info("Running single checker process");
 		try {
-			extraParameters.put("modules", files(todoList));
+			setExtraCompilerParameters(verbose, todoList);
 			return runMain(verbose, srcLocs, libLocs, generated, binLoc, extraParameters, true).waitFor();
 		} catch (InterruptedException e) {
 			getLog().error("Checker was interrupted");
@@ -259,6 +280,23 @@ public class CompileRascalMojo extends AbstractRascalMojo
 		} catch (IOException e) {
 			throw new MojoExecutionException(e);
 		}
+	}
+
+	/**
+	 * These are the compiler-specific parameters of the Compile::main function.
+	 * The todoList is passed as the -modules parameter. That's the most important
+	 * one. The others are boolean configuration parameters which aid in debugging.
+	 */
+	private void setExtraCompilerParameters(boolean verbose, List<File> todoList) {
+		extraParameters.put("modules", files(todoList));
+		extraParameters.put("logPathConfig", Boolean.toString(logPathConfig));
+		extraParameters.put("logImports", Boolean.toString(logImports));
+		extraParameters.put("verbose", Boolean.toString(verbose));
+		extraParameters.put("logWrittenFiles", Boolean.toString(logWrittenFiles));
+		extraParameters.put("warnUnused", Boolean.toString(warnUnused));
+		extraParameters.put("warnUnusedVariables", Boolean.toString(warnUnusedVariables));
+		extraParameters.put("warnUnusedFormals", Boolean.toString(warnUnusedFormals));
+		extraParameters.put("warnUnusedPatternFormals", Boolean.toString(warnUnusedPatternFormals));
 	}
 
 	private void mergeOutputFolders(File bin, List<File> binFolders) throws IOException {
@@ -302,7 +340,7 @@ public class CompileRascalMojo extends AbstractRascalMojo
 		int chunkSize = todoList.size() / estimateBestNumberOfParallelProcesses();
 		List<List<File>> result = new ArrayList<>();
 
-		for (int from = 0; from <= todoList.size(); from += chunkSize) {
+		for (int from = 0; from < todoList.size(); from += chunkSize) {
 			result.add(Collections.unmodifiableList(todoList.subList(from, Math.min(from + chunkSize, todoList.size()))));
 		}
 

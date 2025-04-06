@@ -129,6 +129,7 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 			cachedRascalRuntime = detectedDependentRascalArtifact(getLog(), project, session);
 		}
 
+		getLog().info("The Rascal runtime was resolved at " + cachedRascalRuntime);
 		return cachedRascalRuntime;
 	}
 
@@ -283,7 +284,7 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 
 		// give it enough memory, but not more than is available.
 		long totalMemoryKilobytes = systemInformation.getHardware().getMemory().getTotal() / 1000;
-		long requiredMemoryKilobytes = 2000 * 1000;
+		long requiredMemoryKilobytes = 2000 * 1000 * 1000;
 
 		command.add("-Xmx" + Math.min(totalMemoryKilobytes, requiredMemoryKilobytes) + "k");
 
@@ -295,6 +296,7 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 		if (mainModule != null && !mainModule.isEmpty()) {
 			command.add(mainModule);
 		}
+
 		command.add("-srcs");
 		command.add(files(srcs));
 		command.add("-libs");

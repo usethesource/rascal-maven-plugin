@@ -84,7 +84,7 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 	@Parameter(defaultValue = "${session}", required = true, readonly = true)
   	private MavenSession session;
 
-	@Parameter(defaultValue = "0.41.0-RC22", required = false, readonly = false)
+	@Parameter(defaultValue = "0.41.0-RC24", required = false, readonly = false)
 	protected String bootstrapRascalVersion;
 
 	@SuppressWarnings("deprecation") // Can't get @Parameter to work for the pluginManager.

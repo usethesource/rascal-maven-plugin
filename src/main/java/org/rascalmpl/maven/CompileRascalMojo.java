@@ -316,9 +316,8 @@ public class CompileRascalMojo extends AbstractRascalMojo
 		extraParameters.put("warnUnusedVariables", Boolean.toString(warnUnusedVariables));
 		extraParameters.put("warnUnusedFormals", Boolean.toString(warnUnusedFormals));
 		extraParameters.put("warnUnusedPatternFormals", Boolean.toString(warnUnusedPatternFormals));
-		// extraParameters.put("warningsAsErrors", Boolean.toString(warningsAsErrors));
-		// extraParameters.put("errorsAsWarnings", Boolean.toString(errorsAsWarnings));
-
+		extraParameters.put("warningsAsErrors", Boolean.toString(warningsAsErrors));
+		extraParameters.put("errorsAsWarnings", Boolean.toString(errorsAsWarnings));
 	}
 
 	private void mergeOutputFolders(File bin, List<File> binFolders) throws IOException {

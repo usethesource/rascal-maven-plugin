@@ -244,7 +244,7 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 	}
 
 	protected final ArtifactVersion getReferenceRascalVersion() {
-		return new DefaultArtifactVersion("0.41.0-RC16");
+		return new DefaultArtifactVersion("0.41.0-RC26");
 	}
 
 	protected Path installBootstrapRascalVersion(MavenProject project, MavenSession session) throws MojoExecutionException {

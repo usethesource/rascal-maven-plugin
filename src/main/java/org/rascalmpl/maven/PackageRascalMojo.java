@@ -33,6 +33,10 @@ public class PackageRascalMojo extends AbstractRascalMojo
 
 	public PackageRascalMojo() {
 		super("org.rascalmpl.shell.RascalPackage", "package");
+	}
+
+	@Override
+	protected void setExtraParameters() {
 		extraParameters.put("sourceLookup", sourceLookup);
 	}
 }

@@ -21,6 +21,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.function.Function;
@@ -142,6 +143,10 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 			.collect(Collectors.joining(File.pathSeparator));
 	}
 
+	protected void setExtraParameters() {
+		// do nothing yet
+	}
+
 	@Override
 	public void execute() throws MojoExecutionException {
 		try {
@@ -168,6 +173,8 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 			}
 
 			getLog().info("Paths have been configured.");
+
+			setExtraParameters();
 
 			runMain(verbose, srcs, srcIgnores, libs, generatedSources, bin, extraParameters, true).waitFor();
 
@@ -292,6 +299,9 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 		command.add("--illegal-access=deny");
 		command.add("-cp");
 		command.add(getRascalRuntime().toString());
+
+		assert mainClass != null : "mainClass is null";
+
 		command.add(mainClass);
 
 		if (mainClass.endsWith("RascalShell") && mainModule != null && !mainModule.isEmpty()) {
@@ -316,13 +326,16 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 		}
 
 		command.add("-bin");
+		assert bin != null : "bin is null";
 		command.add(bin.toString());
 
 		command.add("-generatedSources");
+		assert generatedSources != null : "generatedSourced is null";
 		command.add(generated.toString());
 
 		for (Entry<String, String> e : extraParameters.entrySet()) {
 			command.add("-" + e.getKey());
+			assert e.getValue() != null : "value with " + e.getKey() + " is null in extraParameters";
 			command.add(e.getValue());
 		}
 
@@ -331,6 +344,8 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 		}
 
 		getLog().debug("Starting process: " + command.get(0) + command.stream().collect(Collectors.joining("\n\t")));
+
+		assert command.stream().map(Objects::nonNull).allMatch(b -> b) : "command had a null parameter";
 
 		ProcessBuilder p = new ProcessBuilder(command);
 

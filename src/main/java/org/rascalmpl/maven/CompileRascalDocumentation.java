@@ -54,6 +54,12 @@ public class CompileRascalDocumentation extends AbstractRascalMojo
 	@Parameter(property="releaseNotes", required=false, defaultValue="${project.basedir}/RELEASE-NOTES.md")
 	private String releaseNotes;
 
+	@Parameter(property="errorsAsWarnings", required=false, defaultValue="false")
+	private boolean errorsAsWarnings;
+
+	@Parameter(property="warningsAsErrors", required=false, defaultValue="false")
+	private boolean warningsAsErrors;
+
 	public CompileRascalDocumentation() {
 		super("org.rascalmpl.shell.RascalTutorCompile", "tutor");
 	}
@@ -89,6 +95,8 @@ public class CompileRascalDocumentation extends AbstractRascalMojo
 				"funding", funding,
 				"releaseNotes", releaseNotes,
 				"isPackageCourse", Boolean.toString(isPackageCourse),
+				"errorsAsWarnings", Boolean.toString(errorsAsWarnings),
+				"warningsAsErrors", Boolean.toString(warningsAsErrors)
 			));
 
 			if (isPackageCourse) {

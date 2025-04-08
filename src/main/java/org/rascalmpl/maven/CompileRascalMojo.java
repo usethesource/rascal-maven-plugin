@@ -80,6 +80,12 @@ public class CompileRascalMojo extends AbstractRascalMojo
 	@Parameter(required=false, defaultValue="true")
 	private boolean warnUnusedPatternFormals;
 
+	@Parameter(property="errorsAsWarnings", required=false, defaultValue="false")
+	private boolean errorsAsWarnings;
+
+	@Parameter(property="warningsAsErrors", required=false, defaultValue="false")
+	private boolean warningsAsErrors;
+
 	/**
 	 * Cache for the number of estimated useful parallel jobs for the checker/compiler
 	 */
@@ -310,6 +316,9 @@ public class CompileRascalMojo extends AbstractRascalMojo
 		extraParameters.put("warnUnusedVariables", Boolean.toString(warnUnusedVariables));
 		extraParameters.put("warnUnusedFormals", Boolean.toString(warnUnusedFormals));
 		extraParameters.put("warnUnusedPatternFormals", Boolean.toString(warnUnusedPatternFormals));
+		extraParameters.put("warningsAsErrors", Boolean.toString(warningsAsErrors));
+		extraParameters.put("errorsAsWarnings", Boolean.toString(errorsAsWarnings));
+
 	}
 
 	private void mergeOutputFolders(File bin, List<File> binFolders) throws IOException {

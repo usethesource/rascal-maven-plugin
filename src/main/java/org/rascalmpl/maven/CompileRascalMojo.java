@@ -80,6 +80,11 @@ public class CompileRascalMojo extends AbstractRascalMojo
 	@Parameter(required=false, defaultValue="true")
 	private boolean warnUnusedPatternFormals;
 
+	/**
+	 * Cache for the number of estimated useful parallel jobs for the checker/compiler
+	 */
+	private long processorEstimate = 0;
+
 	public CompileRascalMojo() {
 		super("org.rascalmpl.shell.RascalCompile", "compile");
 	}
@@ -145,41 +150,43 @@ public class CompileRascalMojo extends AbstractRascalMojo
 	}
 
 	private int estimateBestNumberOfParallelProcesses() {
-		// check available CPUs, allowing for hyperthreading by asking for the logical count.
-		// we just need to know how many things we could run in parallel without pre-empting
-		// each other.
-		long result = systemInformation.getHardware().getProcessor().getLogicalProcessorCount();
-		if (result < 2) {
-			return 1;
+		if (processorEstimate == 0) {
+			// check available CPUs, allowing for hyperthreading by asking for the logical count.
+			// we just need to know how many things we could run in parallel without pre-empting
+			// each other.
+			long result = systemInformation.getHardware().getProcessor().getLogicalProcessorCount();
+			if (result < 2) {
+				return 1;
+			}
+
+			getLog().info("Logical processor count: " + result);
+
+			// check total available memory. any memory in use can be swapped out, so
+			// we don't really care about the currently _available_ memory.
+			long maxMemory = systemInformation.getHardware().getMemory().getTotal();
+
+			getLog().info("Available memory: " + maxMemory / 1000 + " kilobytes");
+
+			// kB means kilobytes means 1000 bytes, while kiB means 1024 butes
+			long max2GmemoryDivisions = (maxMemory / 1000) / (2 * 1000 * 1000);
+
+			getLog().info("Number of 2G processors for this amount of memory:" + max2GmemoryDivisions);
+
+			// we use as many processors as we can, without running out of memory
+			result = Math.min(result, max2GmemoryDivisions);
+			getLog().info("Estimated max number of processors: " + result);
+			getLog().info("Max number of processors requested: " + parallelMax);
+
+			if (result < 2) {
+				// in case we can't allocated 2G even for one
+				return 1;
+			}
+
+			processorEstimate = result < 2 ? 1 : Math.min(parallelMax, result);
+			getLog().info("Final estimate number of processores: " + processorEstimate);
 		}
 
-		getLog().info("Logical processor count: " + result);
-
-		// check total available memory. any memory in use can be swapped out, so
-		// we don't really care about the currently _available_ memory.
-		long maxMemory = systemInformation.getHardware().getMemory().getTotal();
-
-		getLog().info("Available memory: " + maxMemory / 1000 + " kilobytes");
-
-		// kB means kilobytes means 1000 bytes, while kiB means 1024 butes
-		long max2GmemoryDivisions = (maxMemory / 1000) / (2 * 1000 * 1000);
-
-		getLog().info("Number of 2G processors for this amount of memory:" + max2GmemoryDivisions);
-
-		// we use as many processors as we can, without running out of memory
-		result = Math.min(result, max2GmemoryDivisions);
-		getLog().info("Estimated max number of processors: " + result);
-		getLog().info("Max number of processors requested: " + parallelMax);
-
-		if (result < 2) {
-			// in case we can't allocated 2G even for one
-			return 1;
-		}
-
-		long finalEstimate = result < 2 ? 1 : Math.min(parallelMax, result);
-		getLog().info("Final estimate number of processores: " + finalEstimate);
-
-		return (int) finalEstimate;
+		return (int) processorEstimate;
 	}
 
 	private int runChecker(boolean verbose, List<File> todoList, List<File> prechecks, List<File> srcLocs, List<File> srcIgnores, List<File> libLocs, File binLoc, File generatedSourcesLoc)
@@ -193,7 +200,6 @@ public class CompileRascalMojo extends AbstractRascalMojo
 	}
 
 	private int runCheckerMultithreaded(boolean verbose, List<File> todoList, List<File> prechecks, List<File> srcs, List<File> srcIgnores, List<File> libs, File bin, File generatedSourcesLoc) throws Exception {
-		todoList.removeAll(prechecks);
 		List<List<File>> chunks = splitTodoList(todoList);
 		chunks.add(0, prechecks);
 		List<File> tmpBins = chunks.stream().map(handleExceptions(l -> Files.createTempDirectory("rascal-checker").toFile())).collect(Collectors.toList());
@@ -207,7 +213,7 @@ public class CompileRascalMojo extends AbstractRascalMojo
 
 			var todoChunk = chunks.get(0);
 			if (!todoChunk.isEmpty()) {
-				setExtraCompilerParameters(verbose, todoChunk);
+				setExtraCompilerParameters(verbose, todoChunk, extraParameters);
 				getLog().info("Pre-compiling common modules " + prechecks.stream().map(f -> f.getName()).collect(Collectors.joining(", ")));
 				Process prechecker = runMain(verbose, srcs, srcIgnores, libs, tmpGeneratedSources.get(0), tmpBins.get(0), extraParameters, true);
 
@@ -221,7 +227,7 @@ public class CompileRascalMojo extends AbstractRascalMojo
 			for (int i = 1; i < chunks.size(); i++) {
 				var chunk = chunks.get(i);
 				if (!chunk.isEmpty()) { // can become empty by removing the pre-checks.
-					setExtraCompilerParameters(verbose, chunks.get(i));
+					setExtraCompilerParameters(verbose, chunks.get(i), extraParameters);
 					getLog().info("Compiler " + i + " started on a parallel job of " + chunks.get(i).size() + " modules.");
 					processes.add(runMain(verbose, srcs, srcIgnores, libs, tmpGeneratedSources.get(i), tmpBins.get(i), extraParameters, i <= 1));
 				}
@@ -279,7 +285,7 @@ public class CompileRascalMojo extends AbstractRascalMojo
 	private int runCheckerSingleThreaded(boolean verbose, List<File> todoList, List<File> srcLocs, List<File> srcIgnores, List<File> libLocs, File binLoc, File generated) throws URISyntaxException, IOException, MojoExecutionException {
 		getLog().info("Running single checker process");
 		try {
-			setExtraCompilerParameters(verbose, todoList);
+			setExtraCompilerParameters(verbose, todoList, extraParameters);
 			return runMain(verbose, srcLocs, srcIgnores, libLocs, generated, binLoc, extraParameters, true).waitFor();
 		} catch (InterruptedException e) {
 			getLog().error("Checker was interrupted");
@@ -294,7 +300,7 @@ public class CompileRascalMojo extends AbstractRascalMojo
 	 * The todoList is passed as the -modules parameter. That's the most important
 	 * one. The others are boolean configuration parameters which aid in debugging.
 	 */
-	private void setExtraCompilerParameters(boolean verbose, List<File> todoList) {
+	private void setExtraCompilerParameters(boolean verbose, List<File> todoList, Map<String, String> extraParameters) {
 		extraParameters.put("modules", files(todoList));
 		extraParameters.put("logPathConfig", Boolean.toString(logPathConfig));
 		extraParameters.put("logImports", Boolean.toString(logImports));

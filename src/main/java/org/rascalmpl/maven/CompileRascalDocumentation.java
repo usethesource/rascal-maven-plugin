@@ -34,13 +34,22 @@ import org.apache.maven.plugins.annotations.ResolutionScope;
 public class CompileRascalDocumentation extends AbstractRascalMojo
 {
 	@Parameter(property="license", required=false, defaultValue="${project.basedir}/LICENSE.md")
-	private String licenseFile;
+	private String license;
 
 	@Parameter(property="citation", required=false, defaultValue="${project.basedir}/CITATION.md")
 	private String citation;
 
+	@Parameter(property="sources", required=false, defaultValue="http://github.com/usethesource/${project.name}/blob/main")
+	private String sources;
+
 	@Parameter(property="funding", required=false, defaultValue="${project.basedir}/FUNDING.md")
 	private String funding;
+
+	@Parameter(property="issues", required=false, defaultValue="http://github.com/usethesource/${project.name}/issues")
+	private String issues;
+
+	@Parameter(property="isPackageCourse", required=false, defaultValue="true")
+	private boolean isPackageCourse;
 
 	@Parameter(property="releaseNotes", required=false, defaultValue="${project.basedir}/RELEASE-NOTES.md")
 	private String releaseNotes;
@@ -75,12 +84,16 @@ public class CompileRascalDocumentation extends AbstractRascalMojo
 			getLog().info("Paths have been configured.");
 
 			extraParameters.putAll(Map.of(
-				"license", licenseFile,
+				"license", license,
 				"citation", citation,
 				"funding", funding,
-				"releaseNotes", releaseNotes
-
+				"releaseNotes", releaseNotes,
+				"isPackageCourse", Boolean.toString(isPackageCourse),
 			));
+
+			if (isPackageCourse) {
+				extraParameters.put("packageName", project.getId());
+			}
 
 			runMain(verbose, srcs, srcIgnores, libs, generatedSources, bin, extraParameters, true).waitFor();
 

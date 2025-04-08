@@ -330,6 +330,8 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 			command.add("-verbose");
 		}
 
+		getLog().debug("Starting process: " + command.get(0) + command.stream().collect(Collectors.joining("\n\t")));
+
 		ProcessBuilder p = new ProcessBuilder(command);
 
 		if (inheritIO) {

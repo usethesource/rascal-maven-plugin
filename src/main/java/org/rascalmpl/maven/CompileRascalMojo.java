@@ -205,20 +205,26 @@ public class CompileRascalMojo extends AbstractRascalMojo
 		try {
 			List<Process> processes = new LinkedList<>();
 
-			setExtraCompilerParameters(verbose, chunks.get(0));
-			getLog().info("Pre-compiling common modules " + prechecks.stream().map(f -> f.getName()).collect(Collectors.joining(", ")));
-			Process prechecker = runMain(verbose, srcs, srcIgnores, libs, tmpGeneratedSources.get(0), tmpBins.get(0), extraParameters, true);
+			var todoChunk = chunks.get(0);
+			if (!todoChunk.isEmpty()) {
+				setExtraCompilerParameters(verbose, todoChunk);
+				getLog().info("Pre-compiling common modules " + prechecks.stream().map(f -> f.getName()).collect(Collectors.joining(", ")));
+				Process prechecker = runMain(verbose, srcs, srcIgnores, libs, tmpGeneratedSources.get(0), tmpBins.get(0), extraParameters, true);
 
-			result += prechecker.waitFor(); // block until the process is finished
+				result += prechecker.waitFor(); // block until the process is finished
 
-			// add the result of this pre-build to the libs of the parallel processors to reuse .tpl files
-			libs.add(tmpBins.get(0));
+				// add the result of this pre-build to the libs of the parallel processors to reuse .tpl files
+				libs.add(tmpBins.get(0));
+			}
 
 			// starts the processes asynchronously
 			for (int i = 1; i < chunks.size(); i++) {
-				setExtraCompilerParameters(verbose, chunks.get(i));
-				getLog().info("Compiler " + i + " started on a parallel job of " + chunks.get(i).size() + " modules.");
-				processes.add(runMain(verbose, srcs, srcIgnores, libs, tmpGeneratedSources.get(i), tmpBins.get(i), extraParameters, i <= 1));
+				var chunk = chunks.get(i);
+				if (!chunk.isEmpty()) { // can become empty by removing the pre-checks.
+					setExtraCompilerParameters(verbose, chunks.get(i));
+					getLog().info("Compiler " + i + " started on a parallel job of " + chunks.get(i).size() + " modules.");
+					processes.add(runMain(verbose, srcs, srcIgnores, libs, tmpGeneratedSources.get(i), tmpBins.get(i), extraParameters, i <= 1));
+				}
 			}
 
 			// wait until _all_ processes have exited and print their output in big chunks in order of process creation
@@ -226,6 +232,7 @@ public class CompileRascalMojo extends AbstractRascalMojo
 				if (i <= 1) {
 					// the first process has inherited our IO
 					result += processes.get(i).waitFor();
+					getLog().info("Compiler " + i + " finished on a job of " + chunks.get(i).size() + " modules.");
 				} else {
 					// the other IO we read in asynchronously
 					result += readStandardOutputAndWait(processes.get(i));

@@ -127,9 +127,9 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 	protected Path getRascalRuntime() {
 		if (cachedRascalRuntime == null) {
 			cachedRascalRuntime = detectedDependentRascalArtifact(getLog(), project, session);
+			getLog().info("The Rascal runtime was resolved at " + cachedRascalRuntime);
 		}
 
-		getLog().info("The Rascal runtime was resolved at " + cachedRascalRuntime);
 		return cachedRascalRuntime;
 	}
 

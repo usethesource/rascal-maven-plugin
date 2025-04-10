@@ -365,6 +365,20 @@ public class CompileRascalMojo extends AbstractRascalMojo
 			result.add(Collections.unmodifiableList(todoList.subList(from, Math.min(from + chunkSize, todoList.size()))));
 		}
 
+		// sometimes the last workload is too small to be effective
+		if (result.size() >= 2 && result.get(result.size() - 1).size() <= 10) {
+			var lastLoad = result.get(result.size() - 1);
+			var prevLoad = result.get(result.size() - 2);
+
+			// sublists are backed by the original, so we can't update them.
+			List<File> newLast = new ArrayList<>(lastLoad.size() + prevLoad.size());
+			newLast.addAll(prevLoad);
+			newLast.addAll(lastLoad);
+			result.remove(result.size() - 1);
+			result.remove(result.size() - 1);
+			result.add(Collections.unmodifiableList(newLast));
+		}
+
 		return result;
 	}
 }

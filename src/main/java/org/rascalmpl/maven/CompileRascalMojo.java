@@ -242,16 +242,19 @@ public class CompileRascalMojo extends AbstractRascalMojo
 			}
 
 			// wait until _all_ processes have exited and print their output in big chunks in order of process creation
-			for (int i = 0; i < processes.size(); i++) {
+			for (int i = 1; i < processes.size(); i++) {
+				var exitCode = 0;
+
 				if (i <= 1) {
 					// the first process has inherited our IO
-					var exitCode = processes.get(i).waitFor();
-					result += exitCode;
-					getLog().info("Compiler " + i + " finished ("+ exitCode + ") on a job of " + chunks.get(i).size() + " modules.");
+					exitCode = processes.get(i).waitFor();
 				} else {
 					// the other IO we read in asynchronously
-					result += readStandardOutputAndWait(processes.get(i));
+					exitCode = readStandardOutputAndWait(processes.get(i));
 				}
+
+				result += exitCode;
+				getLog().info("Compiler " + i + " finished ("+ exitCode + ") on a job of " + chunks.get(i).size() + " modules.");
 			}
 
 			// merge the output tpl folders, no matter how many errors have been detected
@@ -325,7 +328,7 @@ public class CompileRascalMojo extends AbstractRascalMojo
 
 	private void mergeOutputFolders(File bin, List<File> binFolders) throws IOException {
 		for (File tmp : binFolders) {
-			getLog().info("Copying files from " + tmp + " to " + bin);
+			getLog().debug("Copying files from " + tmp + " to " + bin);
 			mergeOutputFolders(bin, tmp);
 		}
 	}

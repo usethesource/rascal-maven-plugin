@@ -223,7 +223,9 @@ public class CompileRascalMojo extends AbstractRascalMojo
 				getLog().info("Pre-compiling common modules " + prechecks.stream().map(f -> f.getName()).collect(Collectors.joining(", ")));
 				Process prechecker = runMain(verbose, srcs, srcIgnores, libs, tmpGeneratedSources.get(0), tmpBins.get(0), extraParameters, true);
 
-				result += prechecker.waitFor(); // block until the process is finished
+				var exitCode = prechecker.waitFor();
+				getLog().info("Pre-compilation finished (" + exitCode + ")");
+				result += exitCode; // block until the process is finished
 
 				// add the result of this pre-build to the libs of the parallel processors to reuse .tpl files
 				libs.add(tmpBins.get(0));
@@ -243,8 +245,9 @@ public class CompileRascalMojo extends AbstractRascalMojo
 			for (int i = 0; i < processes.size(); i++) {
 				if (i <= 1) {
 					// the first process has inherited our IO
-					result += processes.get(i).waitFor();
-					getLog().info("Compiler " + i + " finished on a job of " + chunks.get(i).size() + " modules.");
+					var exitCode = processes.get(i).waitFor();
+					result += exitCode;
+					getLog().info("Compiler " + i + " finished ("+ exitCode + ") on a job of " + chunks.get(i).size() + " modules.");
 				} else {
 					// the other IO we read in asynchronously
 					result += readStandardOutputAndWait(processes.get(i));
@@ -359,7 +362,7 @@ public class CompileRascalMojo extends AbstractRascalMojo
 	private List<List<File>> splitTodoList(List<File> todoList) {
 		todoList.sort(File::compareTo); // improves cohesion of a chunk
 		int chunkSize = todoList.size() / estimateBestNumberOfParallelProcesses();
-		List<List<File>> result = new ArrayList<>();
+		List<List<File>> result = new ArrayList<>((todoList.size() / chunkSize) + 1);
 
 		for (int from = 0; from < todoList.size(); from += chunkSize) {
 			result.add(Collections.unmodifiableList(todoList.subList(from, Math.min(from + chunkSize, todoList.size()))));

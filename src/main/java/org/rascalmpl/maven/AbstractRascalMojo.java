@@ -361,7 +361,7 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 		return p.start();
 	}
 
-	protected List<File> getTodoList(File binLoc, List<File> srcLocs, List<File> ignoredLocs, String dirtyExtension, String binaryExtension) throws InclusionScanException, URISyntaxException {
+	protected List<File> getTodoList(File binLoc, List<File> srcLocs, List<File> ignoredLocs, String dirtyExtension, String binaryExtension, String binaryPrefix) throws InclusionScanException, URISyntaxException {
 		StaleSourceScanner scanner = new StaleSourceScanner(100);
 		scanner.addSourceMapping(new SourceMapping() {
 
@@ -372,7 +372,7 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 
 				if (name.endsWith("." + dirtyExtension)) {
 					return Set.of(
-						new File(targetDir, new File(file.getParentFile(), "$" + name.substring(0, name.length() - ("." + dirtyExtension).length()) + "." + binaryExtension).getPath())
+						new File(targetDir, new File(binaryPrefix.isEmpty() ? file.getParentFile() : new File(file.getParentFile(), binaryPrefix), "$" + name.substring(0, name.length() - ("." + dirtyExtension).length()) + "." + binaryExtension).getPath())
 					);
 				}
 				else {
@@ -381,7 +381,7 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 			}
 		});
 
-		binLoc = new File(binLoc, "rascal");
+		binLoc = new File(binLoc, binaryPrefix);
 
 		Set<File> staleSources = new HashSet<>();
 		for (File src : srcs) {

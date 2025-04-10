@@ -113,7 +113,7 @@ public class CompileRascalMojo extends AbstractRascalMojo
 
 			getLog().info("Checking if any files need compilation...");
 
-			List<File> todoList = getTodoList(bin, srcs, srcIgnores, "rsc", "tpl");
+			List<File> todoList = getTodoList(bin, srcs, srcIgnores, "rsc", "tpl", "rascal");
 			todoList.removeAll(parallelPreChecks);
 
 			if (!todoList.isEmpty()) {

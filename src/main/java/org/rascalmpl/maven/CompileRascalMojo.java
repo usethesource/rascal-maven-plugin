@@ -227,6 +227,10 @@ public class CompileRascalMojo extends AbstractRascalMojo
 				getLog().info("Pre-compilation finished (" + exitCode + ")");
 				result += exitCode; // block until the process is finished
 
+				if (exitCode == 137) {
+					getLog().error("JVM " + i + "was killed by the OS; possibly for taking to much memory");
+				}
+				
 				// add the result of this pre-build to the libs of the parallel processors to reuse .tpl files
 				libs.add(tmpBins.get(0));
 			}
@@ -251,6 +255,10 @@ public class CompileRascalMojo extends AbstractRascalMojo
 				} else {
 					// the other IO we read in asynchronously
 					exitCode = readStandardOutputAndWait(processes.get(i));
+				}
+
+				if (exitCode == 137) {
+					getLog().error("JVM " + i + "was killed by the OS; possibly for taking to much memory");
 				}
 
 				result += exitCode;

@@ -24,17 +24,17 @@ import org.apache.maven.project.MavenProject;
  * When invoked it will make sure local Rascal programs are runnable and execute them.
  * The running Rascal program is assumed to have code generation as a (side) effect.
  */
-@Mojo(name="generate-sources", defaultPhase = LifecyclePhase.GENERATE_SOURCES, requiresDependencyCollection = ResolutionScope.COMPILE_PLUS_RUNTIME, requiresDependencyResolution = ResolutionScope.COMPILE_PLUS_RUNTIME)
-public class GenerateSourcesUsingRascalMojo extends AbstractRascalMojo
+@Mojo(name="exec", defaultPhase = LifecyclePhase.NONE, requiresDependencyCollection = ResolutionScope.COMPILE_PLUS_RUNTIME, requiresDependencyResolution = ResolutionScope.COMPILE_PLUS_RUNTIME)
+public class ExecuteRascalMojo extends AbstractRascalMojo
 {
 	@Parameter(defaultValue="${project}", readonly=true, required=true)
     private MavenProject project;
 
     @Parameter(property = "mainModule", required=true)
-    private String mainModule = "GenerateSources";
+    private String mainModule = "Main";
 
-	public GenerateSourcesUsingRascalMojo(String mainClass, String skipTag) {
-		super("org.rascalmpl.shell.RascalShell", "generate");
+	public ExecuteRascalMojo(String mainClass, String skipTag) {
+		super("org.rascalmpl.shell.RascalShell", "exec");
 	}
 
 	@Override

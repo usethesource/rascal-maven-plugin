@@ -176,7 +176,7 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 
 			setExtraParameters();
 
-			runMain(verbose, srcs, srcIgnores, libs, generatedSources, bin, extraParameters, true).waitFor();
+			runMain(verbose, srcs, srcIgnores, libs, generatedSources, bin, extraParameters, true, 1).waitFor();
 
 			return;
 		}
@@ -278,7 +278,7 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 			"org", "rascalmpl", "rascal", bootstrapRascalVersion, "rascal-" + bootstrapRascalVersion + ".jar");
 	}
 
-	protected Process runMain(boolean verbose, List<File> srcs, List<File> ignores, List<File> libs, File generated, File bin, Map<String, String> extraParameters, boolean inheritIO) throws IOException {
+	protected Process runMain(boolean verbose, List<File> srcs, List<File> ignores, List<File> libs, File generated, File bin, Map<String, String> extraParameters, boolean inheritIO, int numProcesses) throws IOException {
 		String javaHome = System.getProperty("java.home");
         String javaBin = javaHome + File.separator + "bin" + File.separator + "java";
 
@@ -290,8 +290,9 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 		});
 
 		// give it enough memory, but not more than is available.
-		long totalMemoryKilobytes = systemInformation.getHardware().getMemory().getTotal() / 1000;
-		long requiredMemoryKilobytes = 2000 * 1000 * 1000;
+		// we divide the total memory by the number of processes we are running in parallel and take 10% for the OS.
+		long totalMemoryKilobytes = 9 * (systemInformation.getHardware().getMemory().getTotal() / (1000 * numProcesses * 10));
+		long requiredMemoryKilobytes = 2 * 1000 * 1000 * 1000 /* 2Gb */;
 
 		command.add("-Xmx" + Math.min(totalMemoryKilobytes, requiredMemoryKilobytes) + "k");
 

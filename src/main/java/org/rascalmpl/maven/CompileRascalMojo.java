@@ -221,7 +221,7 @@ public class CompileRascalMojo extends AbstractRascalMojo
 			if (!todoChunk.isEmpty()) {
 				setExtraCompilerParameters(verbose, todoChunk, extraParameters);
 				getLog().info("Pre-compiling common modules " + prechecks.stream().map(f -> f.getName()).collect(Collectors.joining(", ")));
-				Process prechecker = runMain(verbose, srcs, srcIgnores, libs, tmpGeneratedSources.get(0), tmpBins.get(0), extraParameters, true);
+				Process prechecker = runMain(verbose, srcs, srcIgnores, libs, tmpGeneratedSources.get(0), tmpBins.get(0), extraParameters, true, 1);
 
 				var exitCode = prechecker.waitFor();
 				getLog().info("Pre-compilation finished (" + exitCode + ")");
@@ -241,7 +241,7 @@ public class CompileRascalMojo extends AbstractRascalMojo
 				if (!chunk.isEmpty()) { // can become empty by removing the pre-checks.
 					setExtraCompilerParameters(verbose, chunks.get(i), extraParameters);
 					getLog().info("Compiler " + i + " started on a parallel job of " + chunks.get(i).size() + " modules.");
-					processes.add(runMain(verbose, srcs, srcIgnores, libs, tmpGeneratedSources.get(i), tmpBins.get(i), extraParameters, i <= 1));
+					processes.add(runMain(verbose, srcs, srcIgnores, libs, tmpGeneratedSources.get(i), tmpBins.get(i), extraParameters, i <= 1, chunks.size()));
 				}
 			}
 
@@ -306,7 +306,7 @@ public class CompileRascalMojo extends AbstractRascalMojo
 		getLog().info("Running single checker process");
 		try {
 			setExtraCompilerParameters(verbose, todoList, extraParameters);
-			return runMain(verbose, srcLocs, srcIgnores, libLocs, generated, binLoc, extraParameters, true).waitFor();
+			return runMain(verbose, srcLocs, srcIgnores, libLocs, generated, binLoc, extraParameters, true, 1).waitFor();
 		} catch (InterruptedException e) {
 			getLog().error("Checker was interrupted");
 			throw new MojoExecutionException(e);

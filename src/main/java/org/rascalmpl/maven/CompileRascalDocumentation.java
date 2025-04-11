@@ -103,7 +103,7 @@ public class CompileRascalDocumentation extends AbstractRascalMojo
 				extraParameters.put("packageName", project.getId());
 			}
 
-			runMain(verbose, srcs, srcIgnores, libs, generatedSources, bin, extraParameters, true).waitFor();
+			runMain(verbose, srcs, srcIgnores, libs, generatedSources, bin, extraParameters, true, 1).waitFor();
 
 			return;
 		}

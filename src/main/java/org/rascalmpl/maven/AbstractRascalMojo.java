@@ -85,7 +85,7 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 	@Parameter(defaultValue = "${session}", required = true, readonly = true)
   	private MavenSession session;
 
-	@Parameter(defaultValue = "0.41.0-RC24", required = false, readonly = false)
+	@Parameter(defaultValue = "0.41.0-RC32", required = false, readonly = false)
 	protected String bootstrapRascalVersion;
 
 	@SuppressWarnings("deprecation") // Can't get @Parameter to work for the pluginManager.
@@ -134,6 +134,20 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 		return cachedRascalRuntime;
 	}
 
+	protected String getScreenShotJar() {
+		for (Object o : project.getArtifacts()) {
+			Artifact a = (Artifact) o;
+
+			if (a.getGroupId().equals("org.rascalmpl") && a.getArtifactId().equals("rascal-tutor-screenshot")) {
+				File file = a.getFile().getAbsoluteFile();
+
+				return file.toString();
+			}
+		}
+
+		return "";
+	}
+
 	/**
 	 * Converts a list of files to a string;Of;Paths using the OS's native path separator
 	 */
@@ -176,7 +190,7 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 
 			setExtraParameters();
 
-			runMain(verbose, srcs, srcIgnores, libs, generatedSources, bin, extraParameters, true, 1).waitFor();
+			runMain(verbose, "", srcs, srcIgnores, libs, generatedSources, bin, extraParameters, true, 1).waitFor();
 
 			return;
 		}
@@ -251,7 +265,7 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 	}
 
 	protected final ArtifactVersion getReferenceRascalVersion() {
-		return new DefaultArtifactVersion("0.41.0-RC26");
+		return new DefaultArtifactVersion("0.41.0-RC30");
 	}
 
 	protected Path installBootstrapRascalVersion(MavenProject project, MavenSession session) throws MojoExecutionException {
@@ -278,7 +292,7 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 			"org", "rascalmpl", "rascal", bootstrapRascalVersion, "rascal-" + bootstrapRascalVersion + ".jar");
 	}
 
-	protected Process runMain(boolean verbose, List<File> srcs, List<File> ignores, List<File> libs, File generated, File bin, Map<String, String> extraParameters, boolean inheritIO, int numProcesses) throws IOException {
+	protected Process runMain(boolean verbose, String moreClasspath, List<File> srcs, List<File> ignores, List<File> libs, File generated, File bin, Map<String, String> extraParameters, boolean inheritIO, int numProcesses) throws IOException {
 		String javaHome = System.getProperty("java.home");
         String javaBin = javaHome + File.separator + "bin" + File.separator + "java";
 
@@ -299,7 +313,7 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 		// we put the entire pathConfig on the commandline, and finally the todoList for compilation.
 		command.add("--illegal-access=deny");
 		command.add("-cp");
-		command.add(getRascalRuntime().toString());
+		command.add(getRascalRuntime().toString() + (moreClasspath.isEmpty() ? "" : File.pathSeparator + moreClasspath));
 
 		assert mainClass != null : "mainClass is null";
 

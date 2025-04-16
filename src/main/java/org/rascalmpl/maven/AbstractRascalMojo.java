@@ -319,43 +319,47 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 
 		command.add(mainClass);
 
-		if (mainClass.endsWith("RascalShell") && mainModule != null && !mainModule.isEmpty()) {
-			// the main module parameter is specific to the RascalShell command
-			// here for backward compatibility reasons for older client-owned shell scripts
-			command.add(mainModule);
+		if (mainClass.endsWith("RascalShell")) {
+			if (mainModule != null && !mainModule.isEmpty()) {
+				// the main module parameter is specific to the RascalShell command
+				// here for backward compatibility reasons for older client-owned shell scripts
+				command.add(mainModule);
+			}
 		}
 
-		if (!srcs.isEmpty()) {
-			command.add("-srcs");
-			command.add(files(srcs));
-		}
+		if (!mainClass.endsWith("RascalShell")) {
+			if (!srcs.isEmpty()) {
+				command.add("-srcs");
+				command.add(files(srcs));
+			}
 
-		if (!srcIgnores.isEmpty()) {
-			command.add("-ignores");
-			command.add(files(srcIgnores));
-		}
+			if (!srcIgnores.isEmpty()) {
+				command.add("-ignores");
+				command.add(files(srcIgnores));
+			}
 
-		if (!libs.isEmpty()) {
-			command.add("-libs");
-			command.add(files(libs));
-		}
+			if (!libs.isEmpty()) {
+				command.add("-libs");
+				command.add(files(libs));
+			}
 
-		command.add("-bin");
-		assert bin != null : "bin is null";
-		command.add(bin.toString());
+			command.add("-bin");
+			assert bin != null : "bin is null";
+			command.add(bin.toString());
 
-		command.add("-generatedSources");
-		assert generatedSources != null : "generatedSourced is null";
-		command.add(generated.toString());
+			command.add("-generatedSources");
+			assert generatedSources != null : "generatedSourced is null";
+			command.add(generated.toString());
 
-		for (Entry<String, String> e : extraParameters.entrySet()) {
-			command.add("-" + e.getKey());
-			assert e.getValue() != null : "value with " + e.getKey() + " is null in extraParameters";
-			command.add(e.getValue());
-		}
+			for (Entry<String, String> e : extraParameters.entrySet()) {
+				command.add("-" + e.getKey());
+				assert e.getValue() != null : "value with " + e.getKey() + " is null in extraParameters";
+				command.add(e.getValue());
+			}
 
-		if (verbose) {
-			command.add("-verbose");
+			if (verbose) {
+				command.add("-verbose");
+			}
 		}
 
 		getLog().debug("Starting process: " + command.get(0) + command.stream().collect(Collectors.joining("\n\t")));

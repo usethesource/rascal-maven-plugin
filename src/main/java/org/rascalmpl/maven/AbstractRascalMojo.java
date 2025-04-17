@@ -83,14 +83,14 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 	protected boolean verbose;
 
 	@Parameter(defaultValue = "${session}", required = true, readonly = true)
-  	private MavenSession session;
+	protected MavenSession session;
 
 	@Parameter(defaultValue = "0.41.0-RC32", required = false, readonly = false)
 	protected String bootstrapRascalVersion;
 
 	@SuppressWarnings("deprecation") // Can't get @Parameter to work for the pluginManager.
 	@Component
-	private BuildPluginManager pluginManager;
+	protected BuildPluginManager pluginManager;
 
 	@Parameter(defaultValue="")
 	protected String mainModule;
@@ -132,20 +132,6 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 		}
 
 		return cachedRascalRuntime;
-	}
-
-	protected String getScreenShotJar() {
-		for (Object o : project.getArtifacts()) {
-			Artifact a = (Artifact) o;
-
-			if (a.getGroupId().equals("org.rascalmpl") && a.getArtifactId().equals("rascal-tutor-screenshot")) {
-				File file = a.getFile().getAbsoluteFile();
-
-				return file.toString();
-			}
-		}
-
-		return "";
 	}
 
 	/**
@@ -319,46 +305,54 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 
 		command.add(mainClass);
 
-		if (mainClass.endsWith("RascalShell") && mainModule != null && !mainModule.isEmpty()) {
-			// the main module parameter is specific to the RascalShell command
-			// here for backward compatibility reasons for older client-owned shell scripts
-			command.add(mainModule);
+		if (mainClass.endsWith("RascalShell")) {
+			if (mainModule != null && !mainModule.isEmpty()) {
+				// the main module parameter is specific to the RascalShell command
+				// here for backward compatibility reasons for older client-owned shell scripts
+				command.add(mainModule);
+			}
 		}
 
-		if (!srcs.isEmpty()) {
-			command.add("-srcs");
-			command.add(files(srcs));
+		if (!mainClass.endsWith("RascalShell")) {
+			if (!srcs.isEmpty()) {
+				command.add("-srcs");
+				command.add(files(srcs));
+			}
+
+			if (!srcIgnores.isEmpty()) {
+				command.add("-ignores");
+				command.add(files(srcIgnores));
+			}
+
+			if (!libs.isEmpty()) {
+				command.add("-libs");
+				command.add(files(libs));
+			}
+
+			command.add("-bin");
+			assert bin != null : "bin is null";
+			command.add(bin.toString());
+
+			command.add("-generatedSources");
+			assert generatedSources != null : "generatedSourced is null";
+			command.add(generated.toString());
+
+			for (Entry<String, String> e : extraParameters.entrySet()) {
+				command.add("-" + e.getKey());
+				assert e.getValue() != null : "value with " + e.getKey() + " is null in extraParameters";
+				command.add(e.getValue());
+			}
+
+			if (verbose) {
+				command.add("-verbose");
+			}
 		}
 
-		if (!srcIgnores.isEmpty()) {
-			command.add("-ignores");
-			command.add(files(srcIgnores));
-		}
-
-		if (!libs.isEmpty()) {
-			command.add("-libs");
-			command.add(files(libs));
-		}
-
-		command.add("-bin");
-		assert bin != null : "bin is null";
-		command.add(bin.toString());
-
-		command.add("-generatedSources");
-		assert generatedSources != null : "generatedSourced is null";
-		command.add(generated.toString());
-
-		for (Entry<String, String> e : extraParameters.entrySet()) {
-			command.add("-" + e.getKey());
-			assert e.getValue() != null : "value with " + e.getKey() + " is null in extraParameters";
-			command.add(e.getValue());
-		}
-
-		if (verbose) {
-			command.add("-verbose");
-		}
-
-		getLog().debug("Starting process: " + command.get(0) + command.stream().collect(Collectors.joining("\n\t")));
+		getLog().debug("Starting process:\n\t" + command.get(0) +
+			command.stream()
+			.map(s -> s.replaceAll("\n", "\\\\n"))
+			.map(s -> "'" + s + "'")
+			.collect(Collectors.joining(" ")));
 
 		assert command.stream().map(Objects::nonNull).allMatch(b -> b) : "command had a null parameter";
 

@@ -126,9 +126,23 @@ public class TutorRascalMojo extends AbstractRascalMojo
 				screenshotter = "";
 			}
 
-			runMain(verbose, screenshotter, srcs, srcIgnores, libs, generatedSources, bin, extraParameters, true, 1).waitFor();
+			int exitCode = runMain(
+				verbose,
+				screenshotter,
+				srcs,
+				srcIgnores,
+				libs,
+				generatedSources,
+				bin,
+				extraParameters,
+				true,
+				1)
+				.waitFor();
 
-			return;
+			if (exitCode != 0) {
+				throw new MojoExecutionException("tutor returned non-zero exit status");
+			}
+
 		}
 		catch (InterruptedException e) {
 			throw new MojoExecutionException("nested " + mainClass + " was killed", e);

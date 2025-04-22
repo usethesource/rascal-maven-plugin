@@ -43,6 +43,7 @@ import org.codehaus.plexus.compiler.util.scan.InclusionScanException;
 import org.codehaus.plexus.compiler.util.scan.StaleSourceScanner;
 import org.codehaus.plexus.compiler.util.scan.mapping.SourceMapping;
 
+import java.lang.Process;
 import oshi.SystemInfo;
 
 import static org.twdata.maven.mojoexecutor.MojoExecutor.executeMojo;
@@ -176,7 +177,18 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 
 			setExtraParameters();
 
-			runMain(verbose, "", srcs, srcIgnores, libs, generatedSources, bin, extraParameters, true, 1).waitFor();
+			runMain(
+				verbose,
+				"",
+				srcs,
+				srcIgnores,
+				libs,
+				generatedSources,
+				bin,
+				extraParameters,
+				true,
+				1)
+				.waitFor();
 
 			return;
 		}
@@ -348,13 +360,15 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 			}
 		}
 
-		getLog().debug("Starting process:\n\t" + command.get(0) +
+		assert command.stream().map(Objects::nonNull).allMatch(b -> b) : "command had a null parameter";
+
+		getLog().debug("Java exec: " + command.get(0));
+		getLog().debug("Starting process:\n\t java " +
 			command.stream()
+			.skip(1)
 			.map(s -> s.replaceAll("\n", "\\\\n"))
 			.map(s -> "'" + s + "'")
 			.collect(Collectors.joining(" ")));
-
-		assert command.stream().map(Objects::nonNull).allMatch(b -> b) : "command had a null parameter";
 
 		ProcessBuilder p = new ProcessBuilder(command);
 

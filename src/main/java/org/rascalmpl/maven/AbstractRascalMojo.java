@@ -395,7 +395,7 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 
 				if (name.endsWith("." + dirtyExtension)) {
 					return Set.of(
-						new File(targetDir, new File(binaryPrefix.isEmpty() ? file.getParentFile() : new File(file.getParentFile(), binaryPrefix), "$" + name.substring(0, name.length() - ("." + dirtyExtension).length()) + "." + binaryExtension).getPath())
+						new File(targetDir, new File(file.getParentFile(), "$" + name.substring(0, name.length() - ("." + dirtyExtension).length()) + "." + binaryExtension).getPath())
 					);
 				}
 				else {

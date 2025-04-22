@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
@@ -372,25 +373,16 @@ public class CompileRascalMojo extends AbstractRascalMojo
 	 */
 	private List<List<File>> splitTodoList(List<File> todoList) {
 		todoList.sort(File::compareTo); // improves cohesion of a chunk
-		int chunkSize = todoList.size() / estimateBestNumberOfParallelProcesses();
+		int procs = estimateBestNumberOfParallelProcesses();
+		int chunkSize = todoList.size() / procs;
+		int remainder = todoList.size() % procs;
 		List<List<File>> result = new ArrayList<>((todoList.size() / chunkSize) + 1);
 
-		for (int from = 0; from < todoList.size(); from += chunkSize) {
-			result.add(Collections.unmodifiableList(todoList.subList(from, Math.min(from + chunkSize, todoList.size()))));
-		}
-
-		// sometimes the last workload is too small to be effective
-		if (result.size() >= 2 && result.get(result.size() - 1).size() <= 10) {
-			var lastLoad = result.get(result.size() - 1);
-			var prevLoad = result.get(result.size() - 2);
-
-			// sublists are backed by the original, so we can't update them.
-			List<File> newLast = new ArrayList<>(lastLoad.size() + prevLoad.size());
-			newLast.addAll(prevLoad);
-			newLast.addAll(lastLoad);
-			result.remove(result.size() - 1);
-			result.remove(result.size() - 1);
-			result.add(Collections.unmodifiableList(newLast));
+		// Divide the work evenly. The remainder elements are distributed
+		// one-by-one over the prefix of the result list.
+		for (int from = 0; from < todoList.size(); from += chunkSize + ((remainder-- > 0 ? 1 : 0))) {
+			int to = from + chunkSize + ((remainder > 0) ? 1 : 0);
+			result.add(Collections.unmodifiableList(todoList.subList(from, to)));
 		}
 
 		return result;

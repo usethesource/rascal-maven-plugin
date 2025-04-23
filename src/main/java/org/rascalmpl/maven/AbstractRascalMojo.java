@@ -290,26 +290,32 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 			"org", "rascalmpl", "rascal", bootstrapRascalVersion, "rascal-" + bootstrapRascalVersion + ".jar");
 	}
 
+	private static long GB(int a) {
+		return a * (1024l*1024l*1024l);
+	}
+
 	protected Process runMain(boolean verbose, String moreClasspath, List<File> srcs, List<File> ignores, List<File> libs, File generated, File bin, Map<String, String> extraParameters, boolean inheritIO, int numProcesses) throws IOException {
 		String javaHome = System.getProperty("java.home");
         String javaBin = javaHome + File.separator + "bin" + File.separator + "java";
 
-		List<String> command = new LinkedList<String>();
+		List<String> command = new LinkedList<>();
 		command.add(javaBin);
 
 		System.getProperties().forEach((key, value) -> {
-			command.add("-D" + key + "=" + value);
+			// Do not propagate `user.dir`, since that breaks multi-module maven projects
+			if (!key.equals("user.dir")) {
+				command.add("-D" + key + "=" + value);
+			}
 		});
 
 		// give it enough memory, but not more than is available.
 		// we divide the total memory by the number of processes we are running in parallel and take 10% for the OS.
 		long totalMemoryKilobytes = 9 * (systemInformation.getHardware().getMemory().getTotal() / (1000 * numProcesses * 10));
-		long requiredMemoryKilobytes = 2 * 1000 * 1000 * 1000 /* 2Gb */;
+		long requiredMemoryKilobytes = GB(2);
 
 		command.add("-Xmx" + Math.min(totalMemoryKilobytes, requiredMemoryKilobytes) + "k");
 
 		// we put the entire pathConfig on the commandline, and finally the todoList for compilation.
-		command.add("--illegal-access=deny");
 		command.add("-cp");
 		command.add(getRascalRuntime().toString() + (moreClasspath.isEmpty() ? "" : File.pathSeparator + moreClasspath));
 
@@ -366,7 +372,7 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 		getLog().debug("Starting process:\n\t java " +
 			command.stream()
 			.skip(1)
-			.map(s -> s.replaceAll("\n", "\\\\n"))
+			.map(s -> s.replace("\n", "\\\\n"))
 			.map(s -> "'" + s + "'")
 			.collect(Collectors.joining(" ")));
 

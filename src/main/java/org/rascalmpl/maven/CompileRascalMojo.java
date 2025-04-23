@@ -23,12 +23,17 @@ import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
@@ -241,20 +246,38 @@ public class CompileRascalMojo extends AbstractRascalMojo
 				if (!chunk.isEmpty()) { // can become empty by removing the pre-checks.
 					setExtraCompilerParameters(verbose, chunks.get(i), extraParameters);
 					getLog().info("Compiler " + i + " started on a parallel job of " + chunks.get(i).size() + " modules.");
-					processes.add(runMain(verbose, "", srcs, srcIgnores, libs, tmpGeneratedSources.get(i), tmpBins.get(i), extraParameters, i <= 1, chunks.size()));
+					processes.add(runMain(verbose, "", srcs, srcIgnores, libs, tmpGeneratedSources.get(i), tmpBins.get(i), extraParameters, i == 1, chunks.size()));
 				}
 			}
 
-			// wait until _all_ processes have exited and print their output in big chunks in order of process creation
-			for (int i = 1; i < processes.size(); i++) {
-				var exitCode = 0;
 
-				if (i <= 1) {
-					// the first process has inherited our IO
-					exitCode = processes.get(i).waitFor();
-				} else {
-					// the other IO we read in asynchronously
-					exitCode = readStandardOutputAndWait(processes.get(i));
+			List<List<String>> otherLines = new ArrayList<>();
+			for (int i = 1; i < processes.size(); i++) {
+				Process p = processes.get(i - 1);
+				var ourQueue = new ArrayList<String>();
+				otherLines.add(ourQueue);
+				CompletableFuture.runAsync(() -> {
+					try (var reader = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
+						String line;
+						while ((line = reader.readLine()) != null) {
+							ourQueue.add(line);
+						}
+					}
+					catch (Exception e) {
+						return;
+					}
+				});
+			}
+
+
+
+			// wait until _all_ processes have exited and print their output in big chunks in order of process creation
+			for (int i = 0; i < processes.size(); i++) {
+				int exitCode = processes.get(i).waitFor();
+
+				if (i >= 1) {
+					// copy the output from the queue
+					otherLines.get(i - 1).forEach(System.out::println);
 				}
 
 				if (exitCode == 137) {

@@ -40,6 +40,7 @@ import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
+import org.apache.maven.shared.utils.cli.ShutdownHookUtils;
 import org.codehaus.plexus.compiler.util.scan.InclusionScanException;
 
 /**
@@ -221,12 +222,21 @@ public class CompileRascalMojo extends AbstractRascalMojo
 
 		try {
 			List<Process> processes = new LinkedList<>();
+			ShutdownHookUtils.addShutDownHook(new Thread(() -> {
+				for (var p: processes) {
+					try {
+						p.destroy();
+					} catch (Exception e) {
+					}
+				}
+			}));
 
 			var todoChunk = chunks.get(0);
 			if (!todoChunk.isEmpty()) {
 				setExtraCompilerParameters(verbose, todoChunk, extraParameters);
 				getLog().info("Pre-compiling common modules " + prechecks.stream().map(f -> f.getName()).collect(Collectors.joining(", ")));
 				Process prechecker = runMain(verbose, "", srcs, srcIgnores, libs, tmpGeneratedSources.get(0), tmpBins.get(0), extraParameters, true, 1);
+				processes.add(prechecker);
 
 				var exitCode = prechecker.waitFor();
 				getLog().info("Pre-compilation finished (" + exitCode + ")");
@@ -251,16 +261,28 @@ public class CompileRascalMojo extends AbstractRascalMojo
 			}
 
 
-			List<List<String>> otherLines = new ArrayList<>();
-			for (int i = 1; i < processes.size(); i++) {
-				Process p = processes.get(i - 1);
+			List<List<String>> otherOutput = new ArrayList<>();
+			for (int i = 2; i < processes.size(); i++) {
+				Process p = processes.get(i);
 				var ourQueue = new ArrayList<String>();
-				otherLines.add(ourQueue);
+				otherOutput.add(ourQueue);
 				CompletableFuture.runAsync(() -> {
-					try (var reader = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
-						String line;
-						while ((line = reader.readLine()) != null) {
-							ourQueue.add(line);
+					try (var reader = new InputStreamReader(p.getInputStream())) {
+						var buffer = new char[8 * 1024];
+						int filled = 0;
+						while (true) {
+							int read = reader.read(buffer, filled, buffer.length - filled);
+							if (read == -1) {
+								break;
+							}
+							filled += read;
+							if (filled == buffer.length) {
+								ourQueue.add(new String(buffer));
+							}
+							filled = 0;
+						}
+						if (filled > 0) {
+							ourQueue.add(new String(buffer, 0, filled));
 						}
 					}
 					catch (Exception e) {
@@ -270,14 +292,13 @@ public class CompileRascalMojo extends AbstractRascalMojo
 			}
 
 
-
 			// wait until _all_ processes have exited and print their output in big chunks in order of process creation
-			for (int i = 0; i < processes.size(); i++) {
+			for (int i = 1; i < processes.size(); i++) {
 				int exitCode = processes.get(i).waitFor();
 
-				if (i >= 1) {
+				if (i >= 2) {
 					// copy the output from the queue
-					otherLines.get(i - 1).forEach(System.out::println);
+					otherOutput.get(i - 2).forEach(System.out::print);
 				}
 
 				if (exitCode == 137) {
@@ -305,23 +326,6 @@ public class CompileRascalMojo extends AbstractRascalMojo
 		}
 		catch (InterruptedException e) {
 		    throw new MojoExecutionException("Checker was interrupted");
-		}
-	}
-
-	private int readStandardOutputAndWait(Process p) {
-		try (BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
-    		String line;
-    		while ((line = reader.readLine()) != null) {
-      			System.out.println(line);
-    		}
-
-			return p.waitFor();
-		}
-		catch (IOException e) {
-			throw new RuntimeException(e);
-		}
-		catch (InterruptedException e) {
-			throw new RuntimeException(e);
 		}
 	}
 

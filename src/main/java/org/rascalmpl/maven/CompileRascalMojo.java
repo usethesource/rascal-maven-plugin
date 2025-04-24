@@ -230,6 +230,8 @@ public class CompileRascalMojo extends AbstractRascalMojo
 					}
 				}
 			}));
+			// reuse previous tpls
+			libs.add(bin);
 
 			var todoChunk = chunks.get(0);
 			if (!todoChunk.isEmpty()) {

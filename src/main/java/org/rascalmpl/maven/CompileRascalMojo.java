@@ -12,7 +12,6 @@
  */
 package org.rascalmpl.maven;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -23,18 +22,15 @@ import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
+import org.apache.commons.io.file.SimplePathVisitor;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
@@ -230,11 +226,12 @@ public class CompileRascalMojo extends AbstractRascalMojo
 					}
 				}
 			}));
-			// reuse previous tpls
-			libs.add(bin);
 
 			var todoChunk = chunks.get(0);
 			if (!todoChunk.isEmpty()) {
+				// reuse tpls from target folder
+				copyOverTpls(bin, tmpBins.subList(0, 1));
+
 				setExtraCompilerParameters(verbose, todoChunk, extraParameters);
 				getLog().info("Pre-compiling common modules " + prechecks.stream().map(f -> f.getName()).collect(Collectors.joining(", ")));
 				Process prechecker = runMain(verbose, "", srcs, srcIgnores, libs, tmpGeneratedSources.get(0), tmpBins.get(0), extraParameters, true, 1);
@@ -248,8 +245,10 @@ public class CompileRascalMojo extends AbstractRascalMojo
 					getLog().error("JVM " + 0 + "was killed by the OS; possibly for taking to much memory");
 				}
 
-				// add the result of this pre-build to the libs of the parallel processors to reuse .tpl files
-				libs.add(tmpBins.get(0));
+				if (tmpBins.size() > 1) {
+					// add the result of this pre-build to the bins of the parallel processors to reuse .tpl files
+					copyOverTpls(tmpBins.get(0), tmpBins.subList(1, tmpBins.size()));
+				}
 			}
 
 			// starts the processes asynchronously
@@ -370,6 +369,33 @@ public class CompileRascalMojo extends AbstractRascalMojo
 		}
 	}
 
+	private static void copyOverTpls(File from, List<File> target) throws IOException {
+		Path srcPath = from.toPath();
+		var targetPaths = target.stream().map(File::toPath).collect(Collectors.toList());
+		Files.walkFileTree(srcPath, new SimplePathVisitor() {
+			@Override
+			public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
+				var child = srcPath.relativize(dir);
+				for (var t : targetPaths) {
+					Files.createDirectories(t.resolve(child));
+				}
+				return FileVisitResult.CONTINUE;
+			}
+			@Override
+			public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+				if (file.toString().endsWith(".tpl")) {
+					var child = srcPath.relativize(file);
+					for (var t : targetPaths) {
+						var targetFile = t.resolve(child);
+						Files.copy(file, targetFile);
+						Files.setLastModifiedTime(targetFile, attrs.lastModifiedTime());
+					}
+				}
+				return FileVisitResult.CONTINUE;
+			}
+		});
+	}
+
 	private static void mergeOutputFolders(File dst, File src) throws IOException {
 		Path dstPath = dst.toPath();
 		Path srcPath = src.toPath();
@@ -377,7 +403,7 @@ public class CompileRascalMojo extends AbstractRascalMojo
 		Files.walkFileTree(srcPath, new SimpleFileVisitor<Path>() {
             @Override
             public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
-                Files.createDirectories(dstPath.resolve(srcPath.relativize(dir).toString()));
+                Files.createDirectories(dstPath.resolve(srcPath.relativize(dir)));
                 return FileVisitResult.CONTINUE;
             }
 
@@ -389,7 +415,9 @@ public class CompileRascalMojo extends AbstractRascalMojo
 
             @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                Files.move(file, dstPath.resolve(srcPath.relativize(file).toString()), StandardCopyOption.REPLACE_EXISTING);
+				var targetFile = dstPath.resolve(srcPath.relativize(file));
+                Files.move(file, targetFile, StandardCopyOption.REPLACE_EXISTING);
+                Files.setLastModifiedTime(targetFile, attrs.lastModifiedTime());
                 return FileVisitResult.CONTINUE;
             }
         });

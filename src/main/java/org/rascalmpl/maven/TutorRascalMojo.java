@@ -71,7 +71,7 @@ public class TutorRascalMojo extends AbstractRascalMojo
 	@Parameter(property="warningsAsErrors", required=false, defaultValue="false")
 	private boolean warningsAsErrors;
 
-	@Parameter(defaultValue = "0.2.0", required = false, readonly = false)
+	@Parameter(defaultValue = "0.2.1", required = false, readonly = false)
 	private String screenShotFeatureVersion;
 
 	public TutorRascalMojo() {

@@ -135,6 +135,10 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 		return cachedRascalRuntime;
 	}
 
+	protected boolean isRascalProject() {
+		return project.getGroupId().equals("org.rascalmpl") && project.getArtifactId().equals("rascal");
+	}
+
 	/**
 	 * Converts a list of files to a string;Of;Paths using the OS's native path separator
 	 */

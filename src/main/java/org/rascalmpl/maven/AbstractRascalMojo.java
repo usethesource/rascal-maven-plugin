@@ -136,7 +136,7 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 	}
 
 	protected boolean isRascalProject() {
-		return project.getGroupId().equals("org.rascalmpl") && project.getId().equals("rascal");
+		return project.getGroupId().equals("org.rascalmpl") && project.getArtifactId().equals("rascal");
 	}
 
 	/**

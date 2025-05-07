@@ -140,6 +140,8 @@ public class TutorRascalMojo extends AbstractRascalMojo
 				screenshotter = "";
 			}
 
+			deps.add(0, bin);
+
 			int exitCode = runMain(
 				verbose,
 				screenshotter + (isRascalProject() ? (File.pathSeparator + deps.stream().map(Object::toString).collect(Collectors.joining(File.pathSeparator))) : ""),

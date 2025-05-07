@@ -22,6 +22,7 @@ import static org.twdata.maven.mojoexecutor.MojoExecutor.plugin;
 import java.io.File;
 import java.nio.file.Path;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -78,6 +79,18 @@ public class TutorRascalMojo extends AbstractRascalMojo
 		super("org.rascalmpl.shell.RascalTutorCompile", "tutor");
 	}
 
+	/**
+	 * Enables tutor bootstrap
+	 */
+	protected Path getRascalRuntime() {
+		if (isRascalProject()) {
+			// bootstrap mode
+			return bin.toPath();
+		}
+
+		return super.getRascalRuntime();
+	}
+
 	@Override
 	public void execute() throws MojoExecutionException {
 		try {
@@ -95,7 +108,8 @@ public class TutorRascalMojo extends AbstractRascalMojo
 				getLog().warn("\tignoring sources in: " + ignore);
 			}
 
-			libs.addAll(collectDependentArtifactLibraries(project));
+			var deps = collectDependentArtifactLibraries(project);
+			libs.addAll(deps);
 
 			for (File lib : libs) {
 				getLog().info("\tregistered library location: " + lib);
@@ -128,7 +142,7 @@ public class TutorRascalMojo extends AbstractRascalMojo
 
 			int exitCode = runMain(
 				verbose,
-				screenshotter,
+				screenshotter + (isRascalProject() ? (File.pathSeparator + deps.stream().map(Object::toString).collect(Collectors.joining(File.pathSeparator))) : ""),
 				srcs,
 				srcIgnores,
 				libs,

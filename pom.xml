@@ -17,7 +17,7 @@
 
     <groupId>org.rascalmpl</groupId>
     <artifactId>rascal-maven-plugin</artifactId>
-    <version>0.30.0-RC25</version>
+    <version>0.30.0-RC26-SNAPSHOT</version>
     <packaging>maven-plugin</packaging>
 
     <scm>

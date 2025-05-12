@@ -185,7 +185,7 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 				verbose,
 				"",
 				srcs,
-				srcIgnores,
+				ignores,
 				libs,
 				generatedSources,
 				bin,

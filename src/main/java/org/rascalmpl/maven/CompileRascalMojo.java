@@ -138,7 +138,7 @@ public class CompileRascalMojo extends AbstractRascalMojo
 
 			getLog().info("Files have been configured.");
 
-			int result = runChecker(verbose, todoList, parallelPreChecks, srcs, srcIgnores, libs, bin, generatedSources);
+			int result = runChecker(verbose, todoList, parallelPreChecks, srcs, ignores, libs, bin, generatedSources);
 
 			if (result > 0) {
 				throw new MojoExecutionException("Errors found while checking.");

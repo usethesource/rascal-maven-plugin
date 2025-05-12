@@ -104,7 +104,7 @@ public class TutorRascalMojo extends AbstractRascalMojo
 				getLog().info("\tregistered source location: " + src);
 			}
 
-			for (File ignore : srcIgnores) {
+			for (File ignore : ignores) {
 				getLog().warn("\tignoring sources in: " + ignore);
 			}
 
@@ -146,7 +146,7 @@ public class TutorRascalMojo extends AbstractRascalMojo
 				verbose,
 				screenshotter + (isRascalProject() ? (File.pathSeparator + deps.stream().map(Object::toString).collect(Collectors.joining(File.pathSeparator))) : ""),
 				srcs,
-				srcIgnores,
+				ignores,
 				libs,
 				generatedSources,
 				bin,

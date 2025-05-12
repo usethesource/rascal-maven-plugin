@@ -74,8 +74,8 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 	@Parameter(property = "srcs", required = true )
 	protected List<File> srcs;
 
-	@Parameter(property = "srcIgnores", required = false )
-	protected List<File> srcIgnores;
+	@Parameter(property = "ignores", required = false )
+	protected List<File> ignores;
 
 	@Parameter(property = "libs", required = false )
 	protected List<File> libs;
@@ -165,7 +165,7 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 				getLog().info("\tregistered source location: " + src);
 			}
 
-			for (File ignore : srcIgnores) {
+			for (File ignore : ignores) {
 				getLog().warn("\tignoring sources in: " + ignore);
 			}
 
@@ -341,9 +341,9 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 				command.add(files(srcs));
 			}
 
-			if (!srcIgnores.isEmpty()) {
+			if (!ignores.isEmpty()) {
 				command.add("-ignores");
-				command.add(files(srcIgnores));
+				command.add(files(ignores));
 			}
 
 			if (!libs.isEmpty()) {

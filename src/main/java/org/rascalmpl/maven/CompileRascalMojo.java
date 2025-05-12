@@ -109,13 +109,13 @@ public class CompileRascalMojo extends AbstractRascalMojo
 				getLog().info("\tregistered source location: " + src);
 			}
 
-			for (File ignore : srcIgnores) {
+			for (File ignore : ignores) {
 				getLog().warn("\tignoring sources in: " + ignore);
 			}
 
 			getLog().info("Checking if any files need compilation...");
 
-			List<File> todoList = getTodoList(bin, srcs, srcIgnores, "rsc", "tpl", "rascal");
+			List<File> todoList = getTodoList(bin, srcs, ignores, "rsc", "tpl", "rascal");
 			todoList.removeAll(parallelPreChecks);
 
 			if (!todoList.isEmpty()) {

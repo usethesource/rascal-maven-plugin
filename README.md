@@ -2,9 +2,9 @@
 
 This MVN plugin runs the experimental Rascal checker (and later also the compiler).
 
-### Functionality 
+### Functionality
 * It loads a Rascal interpreter and then the source of the compiler into that interpreter.
-* Then it executes the Rascal checker and prints the results on the commandline. 
+* Then it executes the Rascal checker and prints the results on the commandline.
 * Output files such as `.tpl` and `.class` files are written to the target folder
 * The build fails if errors are detected. Warnings are only printed.
 
@@ -27,9 +27,9 @@ This MVN plugin runs the experimental Rascal checker (and later also the compile
               <srcs>
                  <src>${project.basedir}/src</src>
               </srcs>
-              <srcIgnores>
+              <ignores>
                  <ignore>${project.basedir}/src/experimental</ignore>
-              </srcIgnores>
+              </ignores>
         </configuration>
         <executions>
           <execution>

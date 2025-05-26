@@ -299,7 +299,8 @@ public class CompileRascalMojo extends AbstractRascalMojo
 
 				if (i >= 2) {
 					// copy the output from the queue
-					otherOutput.get(i - 2).forEach(System.out::print);
+					getLog().info("Printing output of Compiler " + i);
+					otherOutput.get(i - 2).forEach(getLog()::info);
 				}
 
 				if (exitCode == 137) {

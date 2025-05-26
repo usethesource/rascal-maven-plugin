@@ -128,7 +128,9 @@ public class TutorRascalMojo extends AbstractRascalMojo
 			));
 
 			if (isPackageCourse) {
-				extraParameters.put("packageName", project.getId());
+				extraParameters.put("groupId", project.getGroupId());
+				extraParameters.put("artifactId", project.getArtifactId());
+				extraParameters.put("version", project.getVersion());
 			}
 
 			String screenshotter = null;

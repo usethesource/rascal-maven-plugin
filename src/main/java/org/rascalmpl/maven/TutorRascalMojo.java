@@ -154,7 +154,7 @@ public class TutorRascalMojo extends AbstractRascalMojo
 				srcs,
 				ignores,
 				libs,
-				generatedSources,
+				resources,
 				bin,
 				extraParameters,
 				true,

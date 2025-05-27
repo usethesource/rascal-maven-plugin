@@ -138,7 +138,7 @@ public class CompileRascalMojo extends AbstractRascalMojo
 
 			getLog().info("Files have been configured.");
 
-			int result = runChecker(verbose, todoList, parallelPreChecks, srcs, ignores, libs, bin, generatedSources);
+			int result = runChecker(verbose, todoList, parallelPreChecks, srcs, ignores, libs, bin, resources);
 
 			if (result > 0) {
 				throw new MojoExecutionException("Errors found while checking.");
@@ -197,21 +197,20 @@ public class CompileRascalMojo extends AbstractRascalMojo
 		return (int) processorEstimate;
 	}
 
-	private int runChecker(boolean verbose, List<File> todoList, List<File> prechecks, List<File> srcLocs, List<File> srcIgnores, List<File> libLocs, File binLoc, File generatedSourcesLoc)
+	private int runChecker(boolean verbose, List<File> todoList, List<File> prechecks, List<File> srcLocs, List<File> srcIgnores, List<File> libLocs, File binLoc, List<File> resources)
 			throws IOException, URISyntaxException, Exception {
 	    if (!parallel || todoList.size() <= 10 || estimateBestNumberOfParallelProcesses() <= 1) {
-	    	return runCheckerSingleThreaded(verbose, todoList, srcLocs, srcIgnores, libLocs, binLoc, generatedSourcesLoc);
+	    	return runCheckerSingleThreaded(verbose, todoList, srcLocs, srcIgnores, libLocs, binLoc, resources);
 		}
 		else {
-			return runCheckerMultithreaded(verbose, todoList, prechecks, srcLocs, srcIgnores, libLocs, binLoc, generatedSourcesLoc);
+			return runCheckerMultithreaded(verbose, todoList, prechecks, srcLocs, srcIgnores, libLocs, binLoc, resources);
 		}
 	}
 
-	private int runCheckerMultithreaded(boolean verbose, List<File> todoList, List<File> prechecks, List<File> srcs, List<File> srcIgnores, List<File> libs, File bin, File generatedSourcesLoc) throws Exception {
+	private int runCheckerMultithreaded(boolean verbose, List<File> todoList, List<File> prechecks, List<File> srcs, List<File> srcIgnores, List<File> libs, File bin, List<File> resources) throws Exception {
 		List<List<File>> chunks = splitTodoList(todoList);
 		chunks.add(0, prechecks);
 		List<File> tmpBins = chunks.stream().map(handleExceptions(l -> Files.createTempDirectory("rascal-checker").toFile())).collect(Collectors.toList());
-		List<File> tmpGeneratedSources = chunks.stream().map(handleExceptions(l -> Files.createTempDirectory("rascal-sources").toFile())).collect(Collectors.toList());
 		int result = 0;
 
 		Map<String,String> extraParameters = new HashMap<>();
@@ -234,7 +233,7 @@ public class CompileRascalMojo extends AbstractRascalMojo
 
 				setExtraCompilerParameters(verbose, todoChunk, extraParameters);
 				getLog().info("Pre-compiling common modules " + prechecks.stream().map(f -> f.getName()).collect(Collectors.joining(", ")));
-				Process prechecker = runMain(verbose, "", srcs, srcIgnores, libs, tmpGeneratedSources.get(0), tmpBins.get(0), extraParameters, true, 1);
+				Process prechecker = runMain(verbose, "", srcs, srcIgnores, libs, resources, tmpBins.get(0), extraParameters, true, 1);
 				processes.add(prechecker);
 
 				var exitCode = prechecker.waitFor();
@@ -257,10 +256,9 @@ public class CompileRascalMojo extends AbstractRascalMojo
 				if (!chunk.isEmpty()) { // can become empty by removing the pre-checks.
 					setExtraCompilerParameters(verbose, chunks.get(i), extraParameters);
 					getLog().info("Compiler " + i + " started on a parallel job of " + chunks.get(i).size() + " modules.");
-					processes.add(runMain(verbose, "", srcs, srcIgnores, libs, tmpGeneratedSources.get(i), tmpBins.get(i), extraParameters, i == 1, chunks.size()));
+					processes.add(runMain(verbose, "", srcs, srcIgnores, libs, resources, tmpBins.get(i), extraParameters, i == 1, chunks.size()));
 				}
 			}
-
 
 			List<List<String>> otherOutput = new ArrayList<>();
 			for (int i = 2; i < processes.size(); i++) {
@@ -314,9 +312,6 @@ public class CompileRascalMojo extends AbstractRascalMojo
 			// merge the output tpl folders, no matter how many errors have been detected
 			mergeOutputFolders(bin, tmpBins);
 
-			// we also merge the generated sources (not used at the moment)
-			mergeOutputFolders(generatedSourcesLoc, tmpGeneratedSources);
-
 			if (result > 0) {
 				throw new MojoExecutionException("Checker found errors");
 			}
@@ -331,11 +326,11 @@ public class CompileRascalMojo extends AbstractRascalMojo
 		}
 	}
 
-	private int runCheckerSingleThreaded(boolean verbose, List<File> todoList, List<File> srcLocs, List<File> srcIgnores, List<File> libLocs, File binLoc, File generated) throws URISyntaxException, IOException, MojoExecutionException {
+	private int runCheckerSingleThreaded(boolean verbose, List<File> todoList, List<File> srcLocs, List<File> srcIgnores, List<File> libLocs, File binLoc, List<File> resources) throws URISyntaxException, IOException, MojoExecutionException {
 		getLog().info("Running single checker process");
 		try {
 			setExtraCompilerParameters(verbose, todoList, extraParameters);
-			return runMain(verbose, "",srcLocs, srcIgnores, libLocs, generated, binLoc, extraParameters, true, 1).waitFor();
+			return runMain(verbose, "",srcLocs, srcIgnores, libLocs, resources, binLoc, extraParameters, true, 1).waitFor();
 		} catch (InterruptedException e) {
 			getLog().error("Checker was interrupted");
 			throw new MojoExecutionException(e);

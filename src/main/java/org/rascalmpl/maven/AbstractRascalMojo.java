@@ -68,9 +68,6 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 	@Parameter(defaultValue = "${project.build.outputDirectory}", property = "bin", required = true )
 	protected File bin;
 
-	@Parameter(defaultValue = "${project.build.directory}/generatedSources", property = "generatedSources", required = true)
-	protected File generatedSources;
-
 	@Parameter(property = "srcs", required = true )
 	protected List<File> srcs;
 
@@ -79,6 +76,9 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 
 	@Parameter(property = "libs", required = false )
 	protected List<File> libs;
+
+	@Parameter(property = "resources", required = false)
+	protected List<File> resources;
 
 	@Parameter(defaultValue="false", property= "verbose", required=true)
 	protected boolean verbose;
@@ -169,6 +169,10 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 				getLog().warn("\tignoring sources in: " + ignore);
 			}
 
+			for (File resource : resources) {
+				getLog().warn("\tcopying resources: " + resource);
+			}
+
 			getLog().info("Checking if any files need compilation...");
 
 			libs.addAll(collectDependentArtifactLibraries(project));
@@ -187,7 +191,7 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 				srcs,
 				ignores,
 				libs,
-				generatedSources,
+				resources,
 				bin,
 				extraParameters,
 				true,
@@ -298,7 +302,7 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 		return a * (1024l*1024l*1024l);
 	}
 
-	protected Process runMain(boolean verbose, String moreClasspath, List<File> srcs, List<File> ignores, List<File> libs, File generated, File bin, Map<String, String> extraParameters, boolean inheritIO, int numProcesses) throws IOException {
+	protected Process runMain(boolean verbose, String moreClasspath, List<File> srcs, List<File> ignores, List<File> libs, List<File> resources, File bin, Map<String, String> extraParameters, boolean inheritIO, int numProcesses) throws IOException {
 		String javaHome = System.getProperty("java.home");
         String javaBin = javaHome + File.separator + "bin" + File.separator + "java";
 
@@ -341,6 +345,11 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 				command.add(files(srcs));
 			}
 
+			if (!resources.isEmpty()) {
+				command.add("-resources");
+				command.add(files(resources));
+			}
+
 			if (!ignores.isEmpty()) {
 				command.add("-ignores");
 				command.add(files(ignores));
@@ -355,9 +364,6 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 			assert bin != null : "bin is null";
 			command.add(bin.toString());
 
-			command.add("-generatedSources");
-			assert generatedSources != null : "generatedSourced is null";
-			command.add(generated.toString());
 
 			for (Entry<String, String> e : extraParameters.entrySet()) {
 				command.add("-" + e.getKey());

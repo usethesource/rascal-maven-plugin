@@ -57,6 +57,9 @@ public class TutorRascalMojo extends AbstractRascalMojo
 	@Parameter(property="funding", required=false, defaultValue="${project.basedir}/FUNDING.md")
 	private String funding;
 
+	@Parameter(property="authors", required=false, defaultValue="${project.basedir}/AUTHORS.md")
+	private String authors;
+
 	@Parameter(property="issues", required=false, defaultValue="http://github.com/usethesource/${project.name}/issues")
 	private String issues;
 
@@ -121,6 +124,7 @@ public class TutorRascalMojo extends AbstractRascalMojo
 				"license", license,
 				"citation", citation,
 				"funding", funding,
+				"authors", authors,
 				"releaseNotes", releaseNotes,
 				"isPackageCourse", Boolean.toString(isPackageCourse),
 				"errorsAsWarnings", Boolean.toString(errorsAsWarnings),

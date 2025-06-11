@@ -15,8 +15,6 @@ package org.rascalmpl.maven;
 import java.io.File;
 import java.net.URISyntaxException;
 import java.util.List;
-import java.util.stream.Collectors;
-
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
@@ -84,10 +82,10 @@ public class CompileRascalMojo extends AbstractRascalMojo
 	@Override
 	protected void setExtraParameters() {
 		try {
-			extraParameters.put("modules", filesPar(getTodoList(bin, srcs, ignores, "rsc", "tpl", "$")));
+			extraParameters.put("modules", files(getTodoList(bin, srcs, ignores, "rsc", "tpl", "$")));
 			extraParameters.put("parallel", Boolean.toString(parallel));
 			extraParameters.put("parallelMax", Integer.toString(parallelMax));
-			extraParameters.put("parallelPreChecks", filesPar(parallelPreChecks));
+			extraParameters.put("parallelPreChecks", files(parallelPreChecks));
 			extraParameters.put("logPathConfig", Boolean.toString(logPathConfig));
 			extraParameters.put("logImports", Boolean.toString(logImports));
 			extraParameters.put("logWrittenFiles", Boolean.toString(logWrittenFiles));
@@ -100,9 +98,5 @@ public class CompileRascalMojo extends AbstractRascalMojo
 		} catch (InclusionScanException | URISyntaxException e) {
 			throw new RuntimeException(e);
 		}
-	}
-
-	private static String filesPar(List<?> lst) {
-		return lst.stream().map(Object::toString).collect(Collectors.joining(File.pathSeparator));
 	}
 }

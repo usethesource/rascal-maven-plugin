@@ -13,30 +13,14 @@
 package org.rascalmpl.maven;
 
 import java.io.File;
-import java.io.IOException;
-import java.io.InputStreamReader;
 import java.net.URISyntaxException;
-import java.nio.file.FileVisitResult;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.SimpleFileVisitor;
-import java.nio.file.StandardCopyOption;
-import java.nio.file.attribute.BasicFileAttributes;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
-import org.apache.commons.io.file.SimplePathVisitor;
-import org.apache.maven.plugin.MojoExecutionException;
+
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
-import org.apache.maven.shared.utils.cli.ShutdownHookUtils;
 import org.codehaus.plexus.compiler.util.scan.InclusionScanException;
 
 /**
@@ -60,6 +44,9 @@ public class CompileRascalMojo extends AbstractRascalMojo
 
 	@Parameter(property = "parallelPreChecks", required = false )
 	private List<File> parallelPreChecks;
+
+	@Parameter(property = "modules", required = false )
+	private List<File> modules;
 
 	@Parameter(required=false, defaultValue="false")
 	private boolean logPathConfig;
@@ -88,27 +75,34 @@ public class CompileRascalMojo extends AbstractRascalMojo
 	@Parameter(property="warningsAsErrors", required=false, defaultValue="false")
 	private boolean warningsAsErrors;
 
+
+
 	public CompileRascalMojo() {
 		super("org.rascalmpl.shell.RascalCompile", "compile");
 	}
 
 	@Override
 	protected void setExtraParameters() {
-		extraParameters.put("parallel", Boolean.toString(parallel));
-		extraParameters.put("parallelMax", Integer.toString(parallelMax));
-		extraParameters.put("parallelPreChecks", filesPar(parallelPreChecks));
-		extraParameters.put("logPathConfig", Boolean.toString(logPathConfig));
-		extraParameters.put("logImports", Boolean.toString(logImports));
-		extraParameters.put("logWrittenFiles", Boolean.toString(logWrittenFiles));
-		extraParameters.put("warnUnused", Boolean.toString(warnUnused));
-		extraParameters.put("warnUnusedFormals", Boolean.toString(warnUnusedFormals));
-		extraParameters.put("warnUnusedVariables", Boolean.toString(warnUnusedVariables));
-		extraParameters.put("warnUnusedPatternFormals", Boolean.toString(warnUnusedPatternFormals));
-		extraParameters.put("errorsAsWarnings", Boolean.toString(errorsAsWarnings));
-		extraParameters.put("warningsAsErrors", Boolean.toString(warningsAsErrors));
+		try {
+			extraParameters.put("modules", filesPar(getTodoList(bin, srcs, ignores, "rsc", "tpl", "$")));
+			extraParameters.put("parallel", Boolean.toString(parallel));
+			extraParameters.put("parallelMax", Integer.toString(parallelMax));
+			extraParameters.put("parallelPreChecks", filesPar(parallelPreChecks));
+			extraParameters.put("logPathConfig", Boolean.toString(logPathConfig));
+			extraParameters.put("logImports", Boolean.toString(logImports));
+			extraParameters.put("logWrittenFiles", Boolean.toString(logWrittenFiles));
+			extraParameters.put("warnUnused", Boolean.toString(warnUnused));
+			extraParameters.put("warnUnusedFormals", Boolean.toString(warnUnusedFormals));
+			extraParameters.put("warnUnusedVariables", Boolean.toString(warnUnusedVariables));
+			extraParameters.put("warnUnusedPatternFormals", Boolean.toString(warnUnusedPatternFormals));
+			extraParameters.put("errorsAsWarnings", Boolean.toString(errorsAsWarnings));
+			extraParameters.put("warningsAsErrors", Boolean.toString(warningsAsErrors));
+		} catch (InclusionScanException | URISyntaxException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	private static String filesPar(List<?> lst) {
-		return lst.stream().map(Object::toString).collect(Collectors.joining(File.separator));
+		return lst.stream().map(Object::toString).collect(Collectors.joining(File.pathSeparator));
 	}
 }

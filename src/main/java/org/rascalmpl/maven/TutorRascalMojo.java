@@ -157,8 +157,7 @@ public class TutorRascalMojo extends AbstractRascalMojo
 				resources,
 				bin,
 				extraParameters,
-				true,
-				1)
+				true)
 				.waitFor();
 
 			if (exitCode != 0) {

@@ -44,7 +44,6 @@ import org.codehaus.plexus.compiler.util.scan.StaleSourceScanner;
 import org.codehaus.plexus.compiler.util.scan.mapping.SourceMapping;
 
 import java.lang.Process;
-import oshi.SystemInfo;
 
 import static org.twdata.maven.mojoexecutor.MojoExecutor.executeMojo;
 import static org.twdata.maven.mojoexecutor.MojoExecutor.plugin;
@@ -64,6 +63,9 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 {
 	@Parameter(defaultValue="${project}", readonly=true, required=true)
 	protected MavenProject project;
+
+	@Parameter(property="memory", defaultValue="2G", readonly=true, required=false)
+	protected String memory;
 
 	@Parameter(defaultValue = "${project.build.outputDirectory}", property = "bin", required = true )
 	protected File bin;
@@ -117,9 +119,6 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 	 * This is where bootstrap issues are resolved.
 	 */
 	protected Path cachedRascalRuntime = null;
-
-	// keeping this field to speed up subsequent (slow but cached) calls to system information
-	protected SystemInfo systemInformation = new SystemInfo();
 
 	public AbstractRascalMojo(String mainClass, String skipTag) {
 		this.mainClass = mainClass;
@@ -194,8 +193,7 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 				resources,
 				bin,
 				extraParameters,
-				true,
-				1)
+				true)
 				.waitFor();
 
 			return;
@@ -298,11 +296,7 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 			"org", "rascalmpl", "rascal", bootstrapRascalVersion, "rascal-" + bootstrapRascalVersion + ".jar");
 	}
 
-	private static long GB(int a) {
-		return a * (1024l*1024l*1024l);
-	}
-
-	protected Process runMain(boolean verbose, String moreClasspath, List<File> srcs, List<File> ignores, List<File> libs, List<File> resources, File bin, Map<String, String> extraParameters, boolean inheritIO, int numProcesses) throws IOException {
+	protected Process runMain(boolean verbose, String moreClasspath, List<File> srcs, List<File> ignores, List<File> libs, List<File> resources, File bin, Map<String, String> extraParameters, boolean inheritIO) throws IOException {
 		String javaHome = System.getProperty("java.home");
         String javaBin = javaHome + File.separator + "bin" + File.separator + "java";
 
@@ -316,12 +310,7 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 			}
 		});
 
-		// give it enough memory, but not more than is available.
-		// we divide the total memory by the number of processes we are running in parallel and take 10% for the OS.
-		long totalMemoryKilobytes = 9 * (systemInformation.getHardware().getMemory().getTotal() / (1000 * numProcesses * 10));
-		long requiredMemoryKilobytes = GB(2);
-
-		command.add("-Xmx" + Math.min(totalMemoryKilobytes, requiredMemoryKilobytes) + "k");
+		command.add("-Xmx" + memory);
 
 		// we put the entire pathConfig on the commandline, and finally the todoList for compilation.
 		command.add("-cp");

@@ -159,17 +159,17 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 				return;
 			}
 
-			getLog().info("configuring paths");
+			getLog().debug("configuring paths");
 			for (File src : srcs) {
-				getLog().info("\tregistered source location: " + src);
+				getLog().debug("\tregistered source location: " + src);
 			}
 
 			for (File ignore : ignores) {
-				getLog().warn("\tignoring sources in: " + ignore);
+				getLog().debug("\tignoring sources in: " + ignore);
 			}
 
 			for (File resource : resources) {
-				getLog().warn("\tcopying resources: " + resource);
+				getLog().debug("\tcopying resources: " + resource);
 			}
 
 			getLog().info("Checking if any files need compilation...");
@@ -177,10 +177,10 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 			libs.addAll(collectDependentArtifactLibraries(project));
 
 			for (File lib : libs) {
-				getLog().info("\tregistered library location: " + lib);
+				getLog().debug("\tregistered library location: " + lib);
 			}
 
-			getLog().info("Paths have been configured.");
+			getLog().debug("Paths have been configured.");
 
 			setExtraParameters();
 

@@ -184,7 +184,7 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 
 			setExtraParameters();
 
-			runMain(
+			int exitVal = runMain(
 				verbose,
 				"",
 				srcs,
@@ -195,6 +195,10 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 				extraParameters,
 				true)
 				.waitFor();
+
+				if (exitVal != 0) {
+					throw new MojoExecutionException(mainClass + " exited with error code " + exitVal);
+				}
 
 			return;
 		}

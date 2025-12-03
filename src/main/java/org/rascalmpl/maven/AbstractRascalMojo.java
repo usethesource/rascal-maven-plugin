@@ -88,7 +88,7 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 	@Parameter(defaultValue = "${session}", required = true, readonly = true)
 	protected MavenSession session;
 
-	@Parameter(defaultValue = "0.41.0-RC49", required = false, readonly = false)
+	@Parameter(defaultValue = "0.41.0", required = false, readonly = false)
 	protected String bootstrapRascalVersion;
 
 	@SuppressWarnings("deprecation") // Can't get @Parameter to work for the pluginManager.
@@ -273,7 +273,7 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 	}
 
 	protected final ArtifactVersion getReferenceRascalVersion() {
-		return new DefaultArtifactVersion("0.41.0-RC30");
+		return new DefaultArtifactVersion("0.41.0");
 	}
 
 	protected Path installBootstrapRascalVersion(MavenProject project, MavenSession session) throws MojoExecutionException {
@@ -282,7 +282,7 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 			plugin(
 				"org.apache.maven.plugins",
 				"maven-dependency-plugin",
-				"3.1.1"
+				"3.9.0"
 			),
 			goal("get"),
 			configuration(

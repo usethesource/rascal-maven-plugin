@@ -14,9 +14,7 @@ package org.rascalmpl.maven;
 
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
-import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
-import org.apache.maven.project.MavenProject;
 
 /**
  * Maven Goal for running local Rascal programs during the maven generate-source phase.
@@ -27,18 +25,7 @@ import org.apache.maven.project.MavenProject;
 @Mojo(name="exec", defaultPhase = LifecyclePhase.NONE, requiresDependencyCollection = ResolutionScope.COMPILE_PLUS_RUNTIME, requiresDependencyResolution = ResolutionScope.COMPILE_PLUS_RUNTIME)
 public class ExecuteRascalMojo extends AbstractRascalMojo
 {
-	@Parameter(defaultValue="${project}", readonly=true, required=true)
-    private MavenProject project;
-
-    @Parameter(property = "mainModule", required=true)
-    private String mainModule = "Main";
-
 	public ExecuteRascalMojo() {
 		super("org.rascalmpl.shell.RascalShell", "exec");
-	}
-
-	@Override
-	protected void setExtraParameters() {
-		extraParameters.put("mainModule", mainModule);
 	}
 }

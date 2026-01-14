@@ -380,6 +380,7 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 			.collect(Collectors.joining(" ")));
 
 		ProcessBuilder p = new ProcessBuilder(command);
+		p.directory(proejct.getBasedir());
 
 		if (inheritIO) {
 			// everything merges with the current process' streams

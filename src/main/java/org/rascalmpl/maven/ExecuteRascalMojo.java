@@ -33,7 +33,7 @@ public class ExecuteRascalMojo extends AbstractRascalMojo
     @Parameter(property = "mainModule", required=true)
     private String mainModule = "Main";
 
-	public ExecuteRascalMojo(String mainClass, String skipTag) {
+	public ExecuteRascalMojo() {
 		super("org.rascalmpl.shell.RascalShell", "exec");
 	}
 

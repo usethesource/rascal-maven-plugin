@@ -12,8 +12,13 @@
  */
 package org.rascalmpl.maven;
 
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
 import java.util.List;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
@@ -43,8 +48,10 @@ public class CompileRascalMojo extends AbstractRascalMojo
 	@Parameter(property = "parallelPreChecks", required = false )
 	private List<File> parallelPreChecks;
 
-	@Parameter(property = "modules", required = false )
 	private List<File> modules;
+
+	@Parameter(property = "modulesFromFile", defaultValue = "false")
+	private boolean modulesFromFile;
 
 	@Parameter(required=false, defaultValue="false")
 	private boolean logPathConfig;
@@ -73,16 +80,34 @@ public class CompileRascalMojo extends AbstractRascalMojo
 	@Parameter(property="warningsAsErrors", required=false, defaultValue="false")
 	private boolean warningsAsErrors;
 
-
-
 	public CompileRascalMojo() {
 		super("org.rascalmpl.shell.RascalCompile", "compile");
+
+		getLog().info("Intializing compiler...");
+
+		modules = new ArrayList<>();
+		try {
+			if (modulesFromFile) {
+				getLog().info("modulesFromFile = true");
+				var modulesFile = File.createTempFile("rascal-maven-modules", ".txt");
+				try (BufferedWriter w = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(modulesFile)))) {
+					for (var f : modules) {
+						w.write(f.getAbsolutePath());
+						w.newLine();
+					}
+				}
+				modules = List.of(modulesFile);
+			}
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	@Override
 	protected void setExtraParameters() {
 		try {
-			extraParameters.put("modules", files(getTodoList(bin, srcs, ignores, "rsc", "tpl", "$")));
+			extraParameters.put("modules", files(modulesFromFile ? modules : getTodoList(bin, srcs, ignores, "rsc", "tpl", "$")));
+			extraParameters.put("modulesFromFile", Boolean.toString(modulesFromFile));
 			extraParameters.put("parallel", Boolean.toString(parallel));
 			extraParameters.put("parallelMax", Integer.toString(parallelMax));
 			extraParameters.put("parallelPreChecks", files(parallelPreChecks));

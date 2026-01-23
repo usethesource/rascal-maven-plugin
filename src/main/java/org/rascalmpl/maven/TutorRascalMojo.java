@@ -131,11 +131,9 @@ public class TutorRascalMojo extends AbstractRascalMojo
 				"warningsAsErrors", Boolean.toString(warningsAsErrors)
 			));
 
-			if (isPackageCourse) {
-				extraParameters.put("groupId", project.getGroupId());
-				extraParameters.put("artifactId", project.getArtifactId());
-				extraParameters.put("version", project.getVersion());
-			}
+			extraParameters.put("groupId", project.getGroupId());
+			extraParameters.put("artifactId", project.getArtifactId());
+			extraParameters.put("version", project.getVersion());
 
 			String screenshotter = null;
 			try {

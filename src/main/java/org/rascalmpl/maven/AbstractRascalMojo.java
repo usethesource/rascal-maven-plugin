@@ -182,7 +182,7 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 
 			setExtraParameters();
 
-			int result = runMain(
+			int exitVal = runMain(
 				verbose,
 				"",
 				srcs,
@@ -194,9 +194,10 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 				true)
 				.waitFor();
 
-			if (result != 0) {
-				throw new MojoExecutionException(mainClass + "terminated with errors. Exit code was " + result);
-			}
+                        if (exitVal != 0) {
+                            throw new MojoExecutionException(mainClass + " exited with error code " + exitVal);
+                        }
+
 			return;
 		}
 		catch (InterruptedException e) {
@@ -282,7 +283,7 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 			plugin(
 				"org.apache.maven.plugins",
 				"maven-dependency-plugin",
-				"3.1.1"
+				"3.9.0"
 			),
 			goal("get"),
 			configuration(
@@ -380,6 +381,7 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 			.collect(Collectors.joining(" ")));
 
 		ProcessBuilder p = new ProcessBuilder(command);
+		p.directory(project.getBasedir());
 
 		if (inheritIO) {
 			// everything merges with the current process' streams

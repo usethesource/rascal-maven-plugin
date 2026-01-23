@@ -64,7 +64,7 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 	@Parameter(defaultValue="${project}", readonly=true, required=true)
 	protected MavenProject project;
 
-	@Parameter(property="memory", defaultValue="2G", readonly=true, required=false)
+	@Parameter(property="memory", defaultValue="2G", readonly=false, required=false)
 	protected String memory;
 
 	@Parameter(defaultValue = "${project.build.outputDirectory}", property = "bin", required = true )
@@ -88,7 +88,7 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 	@Parameter(defaultValue = "${session}", required = true, readonly = true)
 	protected MavenSession session;
 
-	@Parameter(defaultValue = "0.41.0-RC49", required = false, readonly = false)
+	@Parameter(defaultValue = "0.41.3-SNAPSHOT", required = false, readonly = false)
 	protected String bootstrapRascalVersion;
 
 	@SuppressWarnings("deprecation") // Can't get @Parameter to work for the pluginManager.
@@ -169,10 +169,8 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 			}
 
 			for (File resource : resources) {
-				getLog().debug("\tcopying resources: " + resource);
+				getLog().debug("\tregistered resource: " + resource);
 			}
-
-			getLog().info("Checking if any files need compilation...");
 
 			libs.addAll(collectDependentArtifactLibraries(project));
 
@@ -184,7 +182,7 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 
 			setExtraParameters();
 
-			runMain(
+			int result = runMain(
 				verbose,
 				"",
 				srcs,
@@ -196,13 +194,19 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 				true)
 				.waitFor();
 
+			if (result != 0) {
+				throw new MojoExecutionException(mainClass + "terminated with errors. Exit code was " + result);
+			}
 			return;
 		}
 		catch (InterruptedException e) {
-			throw new MojoExecutionException("nested " + mainClass + " was killed", e);
+			throw new MojoExecutionException(mainClass + " process was killed.", e);
+		}
+		catch (MojoExecutionException e) {
+			throw e;
 		}
 		catch (Throwable e) {
-			throw new MojoExecutionException("error launching " + mainClass, e);
+			throw new MojoExecutionException(mainClass + " process execution threw an unexpected exception.", e);
 		}
 	}
 
@@ -386,7 +390,18 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 			p.redirectErrorStream(true);
 		}
 
-		return p.start();
+		Process runningProcess = p.start();
+
+		// try to clean up the forked process as nicely as possible if we get killed prematurely ourselves
+		Runtime.getRuntime().addShutdownHook(new Thread("shutdown-hook-" + mainClass) {
+			public synchronized void start() {
+				if (runningProcess != null && runningProcess.isAlive()) {
+					runningProcess.destroy();
+				}
+			};
+		});
+
+		return runningProcess;
 	}
 
 	protected List<File> getTodoList(File binLoc, List<File> srcLocs, List<File> ignoredLocs, String dirtyExtension, String binaryExtension, String binaryPrefix) throws InclusionScanException, URISyntaxException {

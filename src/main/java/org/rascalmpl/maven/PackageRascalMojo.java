@@ -12,6 +12,7 @@
  */
 package org.rascalmpl.maven;
 
+import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
@@ -31,12 +32,24 @@ public class PackageRascalMojo extends AbstractRascalMojo
 	@Parameter(defaultValue = "|mvn://${project.groupId}--${project.name}--${project.version}/|", property = "sourceLookup", required = true )
     private String sourceLookup;
 
+	@Parameter(defaultValue = "${project.basedir}/target/relocatedClasses", property = "relocatedClasses", required = true )
+    private String relocatedClasses;
+
 	public PackageRascalMojo() {
 		super("org.rascalmpl.shell.RascalPackage", "package");
 	}
 
 	@Override
+	public void execute() throws MojoExecutionException {
+		super.execute();
+
+		// after this the other plugins (like the shader) should use the new folder
+		project.getBuild().setOutputDirectory(relocatedClasses);
+	}
+
+	@Override
 	protected void setExtraParameters() {
 		extraParameters.put("sourceLookup", sourceLookup);
+		extraParameters.put("relocatedClasses", relocatedClasses);
 	}
 }

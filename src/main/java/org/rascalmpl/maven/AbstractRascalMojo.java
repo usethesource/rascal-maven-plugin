@@ -396,11 +396,11 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 
 		// try to clean up the forked process as nicely as possible if we get killed prematurely ourselves
 		if (runningProcess != null) {
-			Runtime.getRuntime().addShutdownHook(() -> {
+			Runtime.getRuntime().addShutdownHook(new Thread(() -> {
 				if (runningProcess.isAlive()) {
 					runningProcess.destroy();
 				}
-			});
+			}));
 		}
 
 		return runningProcess;

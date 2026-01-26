@@ -102,23 +102,23 @@ public class TutorRascalMojo extends AbstractRascalMojo
 				return;
 			}
 
-			getLog().info("configuring paths");
+			getLog().debug("configuring paths");
 			for (File src : srcs) {
-				getLog().info("\tregistered source location: " + src);
+				getLog().debug("\tregistered source location: " + src);
 			}
 
 			for (File ignore : ignores) {
-				getLog().warn("\tignoring sources in: " + ignore);
+				getLog().debug("\tignoring sources in: " + ignore);
 			}
 
 			var deps = collectDependentArtifactLibraries(project);
 			libs.addAll(deps);
 
 			for (File lib : libs) {
-				getLog().info("\tregistered library location: " + lib);
+				getLog().debug("\tregistered library location: " + lib);
 			}
 
-			getLog().info("Paths have been configured.");
+			getLog().debug("Paths have been configured.");
 
 			extraParameters.putAll(Map.of(
 				"license", license,
@@ -159,15 +159,15 @@ public class TutorRascalMojo extends AbstractRascalMojo
 				.waitFor();
 
 			if (exitCode != 0) {
-				throw new MojoExecutionException("tutor returned non-zero exit status");
+				throw new MojoExecutionException(mainClass + " terminated with errors.");
 			}
 
 		}
 		catch (InterruptedException e) {
-			throw new MojoExecutionException("nested " + mainClass + " was killed", e);
+			throw new MojoExecutionException(mainClass + " was killed.", e);
 		}
 		catch (Throwable e) {
-			throw new MojoExecutionException("error launching " + mainClass, e);
+			throw new MojoExecutionException(mainClass + " terminated with an exception.", e);
 		}
 	}
 

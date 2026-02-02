@@ -43,8 +43,10 @@ public class PackageRascalMojo extends AbstractRascalMojo
 	public void execute() throws MojoExecutionException {
 		super.execute();
 
-		// after this the other plugins (like the shader) should use the new folder
-		project.getBuild().setOutputDirectory(relocatedClasses);
+		if (!isSkipped()) {
+			// after this the other plugins (like the shader) should use the new folder
+			project.getBuild().setOutputDirectory(relocatedClasses);
+		}
 	}
 
 	@Override

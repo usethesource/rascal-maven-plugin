@@ -151,10 +151,14 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 		// do nothing yet
 	}
 
+	protected boolean isSkipped() {
+		return System.getProperty("rascal." + skipTag + ".skip") != null;
+	}
+
 	@Override
 	public void execute() throws MojoExecutionException {
 		try {
-			if (System.getProperty("rascal." + skipTag + ".skip") != null) {
+			if (isSkipped()) {
 				getLog().info("Skipping " + getClass().getName() + " completely");
 				return;
 			}

@@ -252,7 +252,7 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 				}
 			}
 
-			throw new MojoExecutionException("Pom.xml is missig a dependency on org.rascalmpl:rascal:" + getReferenceRascalVersion() + " (or later).");
+			throw new MojoExecutionException("Pom.xml is missing a dependency on org.rascalmpl:rascal:" + getReferenceRascalVersion() + " (or later).");
 		}
 		catch (OverConstrainedVersionException e) {
 			log.error("Rascal version is over-constrained (impossible to resolve). Expected " + getReferenceRascalVersion() + " or later. Have to abort.");

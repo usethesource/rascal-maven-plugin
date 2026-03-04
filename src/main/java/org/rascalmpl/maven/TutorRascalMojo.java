@@ -66,7 +66,7 @@ public class TutorRascalMojo extends AbstractRascalMojo
 	@Parameter(property="isPackageCourse", required=false, defaultValue="true")
 	private boolean isPackageCourse;
 
-	@Parameter(property="includeLibraries", required=false, defaultValue="true")
+	@Parameter(property="includeLibraries", required=false, defaultValue="false")
 	private boolean includeLibraries;
 
 	@Parameter(property="releaseNotes", required=false, defaultValue="${project.basedir}/RELEASE-NOTES.md")

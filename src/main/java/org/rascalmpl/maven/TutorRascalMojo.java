@@ -66,6 +66,9 @@ public class TutorRascalMojo extends AbstractRascalMojo
 	@Parameter(property="isPackageCourse", required=false, defaultValue="true")
 	private boolean isPackageCourse;
 
+	@Parameter(property="includeLibraries", required=false, defaultValue="true")
+	private boolean includeLibraries;
+
 	@Parameter(property="releaseNotes", required=false, defaultValue="${project.basedir}/RELEASE-NOTES.md")
 	private String releaseNotes;
 
@@ -127,6 +130,7 @@ public class TutorRascalMojo extends AbstractRascalMojo
 				"authors", authors,
 				"releaseNotes", releaseNotes,
 				"isPackageCourse", Boolean.toString(isPackageCourse),
+				"includeLibraries", Boolean.toString(includeLibraries),
 				"errorsAsWarnings", Boolean.toString(errorsAsWarnings),
 				"warningsAsErrors", Boolean.toString(warningsAsErrors)
 			));

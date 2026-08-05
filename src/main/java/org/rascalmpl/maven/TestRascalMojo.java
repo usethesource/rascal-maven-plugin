@@ -27,6 +27,15 @@ import org.apache.maven.plugins.annotations.ResolutionScope;
 @Mojo(name="test", defaultPhase = LifecyclePhase.TEST, requiresDependencyCollection = ResolutionScope.COMPILE_PLUS_RUNTIME, requiresDependencyResolution = ResolutionScope.COMPILE_PLUS_RUNTIME)
 public class TestRascalMojo extends AbstractRascalMojo
 {
+	@Parameter(property="parallel", required = false, defaultValue="false")
+	private boolean parallel;
+
+	@Parameter(property="parallelMax", required = false, defaultValue="4")
+	private int parallelMax;
+
+	@Parameter(property = "parallelPreChecks", required = false )
+	private List<File> parallelPreChecks;
+
 	@Parameter(defaultValue = "", property = "modules", required = false)
     private List<File> modules;
 
@@ -39,5 +48,8 @@ public class TestRascalMojo extends AbstractRascalMojo
 		extraParameters.put("modules", allRascalSourceFiles(srcs, ignores).stream().map(Object::toString).collect(Collectors.joining(File.pathSeparator)));
 		extraParameters.put("reporting", "true");
 		extraParameters.put("projectRoot", project.getBasedir().toString());
+		extraParameters.put("parallel", Boolean.toString(parallel));
+		extraParameters.put("parallelMax", Integer.toString(parallelMax));
+		extraParameters.put("parallelPreChecks", files(parallelPreChecks));
 	}
 }

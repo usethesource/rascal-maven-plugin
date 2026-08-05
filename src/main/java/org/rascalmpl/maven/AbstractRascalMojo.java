@@ -40,7 +40,6 @@ import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
 import org.codehaus.plexus.compiler.util.scan.InclusionScanException;
-import org.codehaus.plexus.compiler.util.scan.SourceInclusionScanner;
 import org.codehaus.plexus.compiler.util.scan.StaleSourceScanner;
 import org.codehaus.plexus.compiler.util.scan.mapping.SourceMapping;
 
@@ -89,7 +88,7 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 	@Parameter(defaultValue = "${session}", required = true, readonly = true)
 	protected MavenSession session;
 
-	@Parameter(defaultValue = "0.42.3-SNAPSHOT", required = false, readonly = false)
+	@Parameter(defaultValue = "0.43.0-RC9", required = false, readonly = false)
 	protected String bootstrapRascalVersion;
 
 	@SuppressWarnings("deprecation") // Can't get @Parameter to work for the pluginManager.

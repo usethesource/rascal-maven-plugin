@@ -36,16 +36,12 @@ public class TestRascalMojo extends AbstractRascalMojo
 	@Parameter(property = "parallelPreChecks", required = false )
 	private List<File> parallelPreChecks;
 
-	@Parameter(defaultValue = "", property = "modules", required = false)
-    private List<File> modules;
-
 	public TestRascalMojo() {
 		super("org.rascalmpl.shell.RascalTest","test");
 	}
 
 	@Override
 	protected void setExtraParameters() {
-		extraParameters.put("modules", allRascalSourceFiles(srcs, ignores).stream().map(Object::toString).collect(Collectors.joining(File.pathSeparator)));
 		extraParameters.put("reporting", "true");
 		extraParameters.put("projectRoot", project.getBasedir().toString());
 		extraParameters.put("parallel", Boolean.toString(parallel));

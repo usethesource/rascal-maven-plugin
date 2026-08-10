@@ -88,7 +88,7 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 	@Parameter(defaultValue = "${session}", required = true, readonly = true)
 	protected MavenSession session;
 
-	@Parameter(defaultValue = "0.42.0", required = false, readonly = false)
+	@Parameter(defaultValue = "0.43.0-RC9", required = false, readonly = false)
 	protected String bootstrapRascalVersion;
 
 	@SuppressWarnings("deprecation") // Can't get @Parameter to work for the pluginManager.
@@ -408,6 +408,25 @@ public abstract class AbstractRascalMojo extends AbstractMojo
 		}
 
 		return runningProcess;
+	}
+
+	protected List<File> allRascalSourceFiles(List<File> sourceLocs, List<File> ignoredLocs) {
+		var result = new LinkedList<File>();
+		allRascalSourceFiles(sourceLocs.stream().toArray(File[]::new), ignoredLocs, result);
+		return result;
+	}
+
+	private void allRascalSourceFiles(File[] sourceLocs, List<File> ignoredLocs, List<File> result) {
+		for (File f : sourceLocs) {
+			if (!ignoredLocs.contains(f)) {
+				if (f.getName().endsWith(".rsc")) {
+					result.add(f);
+				}
+				else if (f.isDirectory()) {
+					allRascalSourceFiles(f.listFiles(), ignoredLocs, result);
+				}
+			}
+		}
 	}
 
 	protected List<File> getTodoList(File binLoc, List<File> srcLocs, List<File> ignoredLocs, String dirtyExtension, String binaryExtension, String binaryPrefix) throws InclusionScanException, URISyntaxException {

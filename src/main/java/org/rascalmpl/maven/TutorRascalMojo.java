@@ -42,7 +42,7 @@ import org.apache.maven.project.MavenProject;
  * Note that during the compilation of documentation, the Rascal interpreter is
  * used to execute code examples for inclusion in the docs. This uses the REPL interface.
  */
-@Mojo(name="tutor", inheritByDefault=false, defaultPhase = LifecyclePhase.GENERATE_RESOURCES, requiresDependencyCollection = ResolutionScope.COMPILE_PLUS_RUNTIME, requiresDependencyResolution = ResolutionScope.COMPILE_PLUS_RUNTIME)
+@Mojo(name="tutor", defaultPhase = LifecyclePhase.GENERATE_RESOURCES, requiresDependencyCollection = ResolutionScope.COMPILE_PLUS_RUNTIME, requiresDependencyResolution = ResolutionScope.COMPILE_PLUS_RUNTIME)
 public class TutorRascalMojo extends AbstractRascalMojo
 {
 	@Parameter(property="license", required=false, defaultValue="${project.basedir}/LICENSE.md")

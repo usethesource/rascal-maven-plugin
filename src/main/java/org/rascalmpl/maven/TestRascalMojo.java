@@ -14,8 +14,6 @@ package org.rascalmpl.maven;
 
 import java.io.File;
 import java.util.List;
-import java.util.stream.Collectors;
-
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;

@@ -24,5 +24,6 @@ public class ConsoleRascalMojo extends AbstractRascalMojo
 {
 	public ConsoleRascalMojo() {
 		super("org.rascalmpl.shell.RascalShell","console");
+		System.setProperty("log4j.provider", "org.apache.logging.log4j.simple.internal.SimpleProvider");
 	}
 }

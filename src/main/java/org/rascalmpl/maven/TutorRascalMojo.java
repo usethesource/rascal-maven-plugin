@@ -60,6 +60,9 @@ public class TutorRascalMojo extends AbstractRascalMojo
 	@Parameter(property="authors", required=false, defaultValue="${project.basedir}/AUTHORS.md")
 	private String authors;
 
+	@Parameter(property="version", required=false, defaultValue="")
+	private String version;
+
 	@Parameter(property="issues", required=false, defaultValue="http://github.com/usethesource/${project.name}/issues")
 	private String issues;
 
@@ -135,9 +138,16 @@ public class TutorRascalMojo extends AbstractRascalMojo
 				"warningsAsErrors", Boolean.toString(warningsAsErrors)
 			));
 
+			if (!version.isEmpty()) {
+				extraParameters.put("version", version);
+			}
+			else {
+				extraParameters.put("version", project.getVersion());
+			}
+
 			extraParameters.put("groupId", project.getGroupId());
 			extraParameters.put("artifactId", project.getArtifactId());
-			extraParameters.put("version", project.getVersion());
+
 
 			String screenshotter = null;
 			try {

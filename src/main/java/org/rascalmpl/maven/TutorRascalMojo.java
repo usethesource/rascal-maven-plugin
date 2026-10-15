@@ -138,7 +138,7 @@ public class TutorRascalMojo extends AbstractRascalMojo
 				"warningsAsErrors", Boolean.toString(warningsAsErrors)
 			));
 
-			if (version == null || !version.isEmpty()) {
+			if (version != null || !version.isEmpty()) {
 				extraParameters.put("version", version);
 			}
 			else {
